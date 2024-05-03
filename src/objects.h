@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -14,6 +15,23 @@
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
+
+// TODO: Make this nicer
+std::string mermaid_path{};
+void set_output(std::string path) { mermaid_path = path; }
+
+[[noreturn]] static void error(const std::string &msg) {
+  std::cerr << "Error: " << msg << std::endl;
+  abort();
+}
+
+class DynObject;
+
+struct Edge {
+  DynObject *src;
+  std::string key;
+  DynObject *dst;
+};
 
 // Representation of objects
 class DynObject {
@@ -41,15 +59,20 @@ class DynObject {
 
   bool is_immutable() { return region.get_tag() == ImmutableTag; }
 
-  static Region* get_region(DynObject* obj) {
+  static Region *get_region(DynObject *obj) {
     if ((obj == nullptr) || obj->is_immutable())
       return nullptr;
     return obj->region.get_ptr();
   }
 
   template <typename Pre, typename Post = Nop>
-  void visit(Pre pre, Post post = {}, DynObject* parent = nullptr) {
-    if (!pre(this, "root", parent))
+  void visit(Pre pre, Post post = {}) {
+    visit(Edge{frame(), "", this}, pre, post);
+  }
+
+  template <typename Pre, typename Post = Nop>
+  static void visit(Edge e, Pre pre, Post post = {}) {
+    if (!pre(e))
       return;
 
     constexpr bool HasPost = !std::is_same_v<Post, Nop>;
@@ -57,7 +80,7 @@ class DynObject {
 
     std::vector<std::pair<utils::TaggedPointer<DynObject>, std::string>> stack;
 
-    auto visit_object = [&](DynObject* obj) {
+    auto visit_object = [&](DynObject *obj) {
       if (obj == nullptr)
         return;
       if constexpr (HasPost)
@@ -66,7 +89,7 @@ class DynObject {
         stack.push_back({obj, key});
     };
 
-    visit_object(this);
+    visit_object(e.dst);
 
     while (!stack.empty()) {
       auto [obj, key] = stack.back();
@@ -78,37 +101,38 @@ class DynObject {
         continue;
       }
 
-      DynObject* next = obj_ptr->get(key);
-      if (pre(next, key, obj_ptr)) {
+      DynObject *next = obj_ptr->get(key);
+      if (pre({obj_ptr, key, next})) {
         visit_object(next);
       }
     }
   }
 
   static void remove_reference(DynObject *src, DynObject *old_dst) {
-    old_dst->visit([&](DynObject *old_dst, std::string, DynObject* src) {
-      if (old_dst == nullptr)
-        return false;
+    visit(
+        {src, "", old_dst},
+        [&](Edge e) {
+          if (e.dst == nullptr)
+            return false;
 
-      auto old_dst_region = get_region(old_dst);
-      auto src_region = get_region(src);
-      bool result = old_dst->change_rc(-1) == 0;
+          auto old_dst_region = get_region(e.dst);
+          auto src_region = get_region(e.src);
+          bool result = e.dst->change_rc(-1) == 0;
 
-      if (old_dst_region != nullptr && src_region == nullptr)
-      {
-        old_dst_region->local_reference_count--;
-        std::cout << "Removed reference from region: " << old_dst->name << std::endl;
-        std::cout << "Region LRC: " << old_dst_region->local_reference_count << std::endl;
-      }
+          if (old_dst_region != nullptr && src_region == nullptr) {
+            old_dst_region->local_reference_count--;
+            std::cout << "Removed reference from region: " << old_dst->name
+                      << std::endl;
+            std::cout << "Region LRC: " << old_dst_region->local_reference_count
+                      << std::endl;
+          }
 
-      return result;
-    },
-    [&](DynObject *obj) { delete obj; },
-    src);
+          return result;
+        },
+        [&](DynObject *obj) { delete obj; });
   }
 
-  static void add_reference(DynObject* src, DynObject* new_dst)
-  {
+  static void add_reference(DynObject *src, DynObject *new_dst) {
     if ((new_dst == nullptr) || new_dst->is_immutable())
       return;
 
@@ -116,7 +140,6 @@ class DynObject {
     auto new_dst_region = get_region(new_dst);
     if (src_region == new_dst_region)
       return;
-
 
     if (src_region != nullptr) {
       new_dst->add_to_region(src_region);
@@ -150,13 +173,14 @@ class DynObject {
   void add_to_region(Region *r) {
     size_t internal_references{0};
     size_t rc_of_added_objects{0};
-    visit([&](DynObject *obj, std::string, DynObject*) {
-      if (obj->is_immutable())
+    visit([&](Edge e) {
+      auto obj = e.dst;
+      if (obj == nullptr || obj->is_immutable())
         return false;
 
       if (obj->region.get_ptr() == 0) {
-        std::cout << "Adding object to region: " << obj->name << " rc = " << obj->rc
-                  << std::endl;
+        std::cout << "Adding object to region: " << obj->name
+                  << " rc = " << obj->rc << std::endl;
         rc_of_added_objects += obj->rc;
         internal_references++;
         obj->region = {r};
@@ -171,8 +195,7 @@ class DynObject {
       }
 
       // TODO: Handle nested regions correctly!
-      std::cout << "Error: Object already in a region" << std::endl;
-      abort();
+      error("Object already in a region");
       return false;
     });
     r->local_reference_count += rc_of_added_objects - internal_references;
@@ -195,16 +218,21 @@ public:
     std::cout << "Deallocate: " << name << std::endl;
   }
 
-  void inc_rc() { change_rc(1); add_reference(nullptr, this);}
+  void inc_rc() {
+    change_rc(1);
+    add_reference(nullptr, this);
+  }
 
   void dec_rc() { remove_reference(nullptr, this); }
 
   void freeze() {
     // TODO SCC algorithm
-    visit([](DynObject *obj, std::string, DynObject*) {
-      if (obj->region.get_tag() == ImmutableTag)
+    visit([](Edge e) {
+      auto obj = e.dst;
+      if (obj->is_immutable())
         return false;
 
+      // TODO remove from region if in one.
       obj->region.set_tag(ImmutableTag);
       return true;
     });
@@ -213,10 +241,8 @@ public:
   DynObject *get(std::string name) { return fields[name]; }
 
   void set(std::string name, DynObject *value) {
-    if (is_immutable())
-    {
-      std::cout << "Cannot mutate immutable object" << std::endl;
-      abort();
+    if (is_immutable()) {
+      error("Cannot mutate immutable object");
       return;
     }
     DynObject *old = fields[name];
@@ -224,29 +250,71 @@ public:
     update_notification(this, old, value);
   }
 
-  void print() {
-    std::map<DynObject *, size_t> visited;
-    size_t id = 1;
-    size_t i = 0;
-    visit(
-        [&](DynObject *obj, std::string key, DynObject*) {
-          std::fill_n(std::ostream_iterator<char>(std::cout), i, ' ');
-          std::cout << key;
+  static void mermaid(std::vector<Edge>& roots) {
+    auto out = std::ofstream(mermaid_path);
+    std::map<DynObject *, std::size_t> visited;
+    std::map<Region *, std::vector<std::size_t>> region_strings;
+    std::vector<std::size_t> immutable_objects;
+    size_t id = 2;
+    visited[frame()] = 0;
+    visited[nullptr] = 1;
+    immutable_objects.push_back(1);
+    out << "```mermaid" << std::endl;
+    out << "graph TD" << std::endl;
+    out << "id0[frame]" << std::endl;
+    out << "id1[null]" << std::endl;
+    for (auto& root : roots) {
+      visit({root.src, root.key, root.dst},
+            [&](Edge e) {
+              DynObject *dst = e.dst;
+              std::string key = e.key; 
+              DynObject *src = e.src;
+              out << "  id" << visited[src] << " -->|" << key << "| ";
+              size_t curr_id;
+              if (visited.find(dst) != visited.end()) {
+                out << "id" << visited[dst] << std::endl;
+                return false;
+              }
 
-          size_t curr_id;
-          if (visited.find(obj) != visited.end()) {
-            std::cout << " -> " << id - visited[obj] << std::endl;
-            return false;
-          }
+              curr_id = id++;
+              visited[dst] = curr_id;
+              out << "id" << curr_id << "[ " << dst->name << " - " << dst->rc
+                  << " ]" << std::endl;
 
-          curr_id = id++;
-          visited[obj] = curr_id;
-          std::cout << (/*obj==nullptr? "null" : */(obj->is_immutable() ? "|" : ":"))
-                    << std::endl;
-          i += 2;
-          return true;
-        },
-        [&](DynObject *obj) { i -= 2; });
+              auto region = get_region(dst);
+              if (region != nullptr) {
+                region_strings[region].push_back(curr_id);
+              }
+
+              if (dst->is_immutable()) {
+                immutable_objects.push_back(curr_id);
+              }
+              return true;
+            },
+            {});
+    }
+
+    for (auto [region, objects] : region_strings) {
+      out << "subgraph " << region << " - " << region->local_reference_count
+          << std::endl;
+      for (auto obj : objects) {
+        out << "  id" << obj << std::endl;
+      }
+      out << "end" << std::endl;
+    }
+
+    out << "subgraph Immutable" << std::endl;
+    for (auto obj : immutable_objects) {
+      out << "  id" << obj << std::endl;
+    }
+    out << "end" << std::endl;
+    out << "```" << std::endl;
+  }
+
+  void mermaid() {
+    std::vector<Edge> roots;
+    roots.push_back({frame(), "root", this});
+    mermaid(roots);
   }
 
   void create_region() {
@@ -254,6 +322,11 @@ public:
     add_to_region(r);
     // Add root reference as external.
     r->local_reference_count++;
+  }
+
+  static DynObject *frame() {
+    static DynObject frame{"frame"};
+    return &frame;
   }
 };
 } // namespace objects

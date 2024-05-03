@@ -8,13 +8,37 @@ namespace api
 
   class Reference;
 
+  void set_output(std::string path)
+  {
+    objects::set_output(path);
+  }
+
   class Object
   {
     friend class Reference;
+    friend void mermaid(std::initializer_list<std::pair<std::string, Object&>> roots);
 
     DynObject* object;
 
     Object(DynObject* object) : object(object) {}
+
+    void copy(DynObject* new_object)
+    {
+      auto old = object;
+      if (new_object != nullptr)
+        new_object->inc_rc();
+      object = new_object;
+      if (old != nullptr)
+        old->dec_rc();
+    }
+
+    void move(DynObject* new_object)
+    {
+      auto old = object;
+      object = new_object;
+      if (old != nullptr)
+        old->dec_rc();
+    }
 
   public:
     Object() : object(nullptr) {}
@@ -32,24 +56,24 @@ namespace api
 
     Object& operator=(Object& other)
     {
-      auto old = object;
-      if (other.object != nullptr)
-        object->inc_rc();
-      object = other.object;
-      if (old != nullptr)
-        old->dec_rc();
+      copy(other.object);
       return *this;
     }
 
     Object& operator=(Object&& other)
     {
-      auto old = object;
-      object = other.object;
-      other.object = nullptr;
-      if (old != nullptr)
-        old->dec_rc();
+      move(other.object);
       return *this;
     }
+
+    Object& operator=(std::nullptr_t)
+    {
+      move(nullptr);
+      return *this;
+    }
+
+    Object& operator=(Reference& other);
+    Object& operator=(Reference&& other);
 
     static Object create(std::string name)
     {
@@ -69,14 +93,14 @@ namespace api
       object->freeze();
     }
 
-    void print()
-    {
-      object->print();
-    }
-
     void create_region()
     {
       object->create_region();
+    }
+
+    void mermaid()
+    {
+      object->mermaid();
     }
   };
 
@@ -86,28 +110,55 @@ namespace api
     std::string key;
     DynObject* object;
 
+    void copy(DynObject* new_object)
+    {
+      auto old = object;
+      if (new_object != nullptr)
+        new_object->inc_rc();
+      object->set(key, new_object);
+    }
+
+    void move(DynObject*& new_object)
+    {
+      object->set(key, new_object);
+      new_object = nullptr;
+    }
+
+    DynObject* get()
+    {
+      return object->get(key);
+    }
+
     Reference(std::string name, DynObject* object) : key(name), object(object) {}
   public:
 
-    operator DynObject*() const {
-      auto result = object->get(key);
-      if (result != nullptr)
-        result->inc_rc();
-      return result;    
-    }
-
     Reference& operator=(Object& other)
     {
-      if (other.object != nullptr)
-        other.object->inc_rc();
-      object->set(key, other.object);
+      copy(other.object);
       return *this;
     }
 
     Reference& operator=(Object&& other)
     {
-      object->set(key, other.object);
-      other.object = nullptr;
+      move(other.object);
+      return *this;
+    }
+
+    Reference& operator=(Reference& other)
+    {
+      copy(other.get());
+      return *this;
+    }
+
+    Reference& operator=(Reference&& other)
+    {
+      copy(other.get());
+      return *this;
+    }
+
+    Reference& operator=(std::nullptr_t)
+    {
+      object->set(key, nullptr);
       return *this;
     }
   };
@@ -116,5 +167,29 @@ namespace api
   Reference Object::operator[](std::string name)
   {
     return Reference(name, object);
+  }
+
+  Object& Object::operator=(Reference& other)
+  {
+    copy(other.get());
+    return *this;
+  }
+
+  Object& Object::operator=(Reference&& other)
+  {
+    copy(other.get());
+    return *this;
+  }
+
+  void mermaid(std::initializer_list<std::pair<std::string, Object&>> roots)
+  {
+    std::vector<objects::Edge> edges;
+    for (auto& root : roots)
+    {
+      edges.push_back({objects::DynObject::frame(), root.first, root.second.object});
+    }
+    objects::DynObject::mermaid(edges);
+    std::cout << "Press a key!" << std::endl;
+    getchar();
   }
 }
