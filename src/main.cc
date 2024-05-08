@@ -64,5 +64,28 @@ int main()
 
   mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}});
 
+  a["c"]["sub"] = g;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}});
+
+  auto new_obj = Object::create("new");
+  new_obj.create_region();
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  a["c"]["sub"] = nullptr;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  new_obj["sub"] = g;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  dd = nullptr;
+  g = nullptr;
+  h = nullptr;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
   return 0;
 }

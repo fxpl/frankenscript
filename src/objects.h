@@ -41,7 +41,69 @@ class DynObject {
   struct Region {
     size_t local_reference_count{0};
     Region *parent{nullptr};
+    size_t parent_reference_count{0};
     std::set<Region *> children{};
+
+    static void dec_lrc(Region *r) {
+      // Edge triggered LRC for parent.
+      while (true) {
+        r->local_reference_count--;
+        if (r->local_reference_count != 0)
+          break;
+        if (r->parent == nullptr)
+          break;
+        r = r->parent;
+      }
+    }
+
+    static void inc_lrc(Region *r) {
+      // Edge triggered LRC for parent.
+      while (true) {
+        r->local_reference_count++;
+        if (r->local_reference_count != 1)
+          break;
+        if (r->parent == nullptr)
+          break;
+        r = r->parent;
+      }
+    }
+
+    static void dec_prc(Region *r) {
+      r->parent_reference_count--;
+      if (r->parent_reference_count != 0)
+        return;
+
+      dec_lrc(r->parent);
+
+      r->parent = nullptr;
+    }
+
+    static void set_parent(Region *r, Region *p) {
+      // This edge becomes a parent edge, so remove from local reference count?
+      r->local_reference_count--;
+      r->parent_reference_count++;
+
+      // Check if already parented, if so increment the parent reference count.
+      if (r->parent == p) {
+        r->parent_reference_count++;
+        return;
+      }
+
+      // Check if already parented to another region.
+      if (r->parent != nullptr)
+        error("Region already has a parent");
+
+      // Set the parent and increment the parent reference count.
+      r->parent = p;
+      assert(r->parent_reference_count == 1);
+
+      // If the region has local references, then we need the parent to have a
+      // local reference to.
+      if (r->local_reference_count == 0)
+        return;
+
+      inc_lrc(r->parent);
+    }
   };
 
   // Represents the region of specific object. Uses small pointers to
@@ -119,14 +181,17 @@ class DynObject {
           auto src_region = get_region(e.src);
           bool result = e.dst->change_rc(-1) == 0;
 
-          if (old_dst_region != nullptr && src_region == nullptr) {
-            old_dst_region->local_reference_count--;
-            std::cout << "Removed reference from region: " << old_dst->name
-                      << std::endl;
-            std::cout << "Region LRC: " << old_dst_region->local_reference_count
-                      << std::endl;
+          if (old_dst_region == src_region)
+            return result;
+
+          if (src_region == nullptr) {
+            Region::dec_lrc(old_dst_region);
+            return result;
           }
 
+          std::cout << "Removing parent reference from region: "
+                    << old_dst->name << std::endl;
+          Region::dec_prc(old_dst_region);
           return result;
         },
         [&](DynObject *obj) { delete obj; });
@@ -187,15 +252,15 @@ class DynObject {
         return true;
       }
 
-      if (obj->region.get_ptr() == r) {
+      auto obj_region = get_region(obj);
+      if (obj_region == r) {
         std::cout << "Adding internal reference to object: " << obj->name
                   << std::endl;
         internal_references++;
         return false;
       }
 
-      // TODO: Handle nested regions correctly!
-      error("Object already in a region");
+      Region::set_parent(obj_region, r);
       return false;
     });
     r->local_reference_count += rc_of_added_objects - internal_references;
@@ -250,7 +315,7 @@ public:
     update_notification(this, old, value);
   }
 
-  static void mermaid(std::vector<Edge>& roots) {
+  static void mermaid(std::vector<Edge> &roots) {
     auto out = std::ofstream(mermaid_path);
     std::map<DynObject *, std::size_t> visited;
     std::map<Region *, std::vector<std::size_t>> region_strings;
@@ -263,11 +328,11 @@ public:
     out << "graph TD" << std::endl;
     out << "id0[frame]" << std::endl;
     out << "id1[null]" << std::endl;
-    for (auto& root : roots) {
+    for (auto &root : roots) {
       visit({root.src, root.key, root.dst},
             [&](Edge e) {
               DynObject *dst = e.dst;
-              std::string key = e.key; 
+              std::string key = e.key;
               DynObject *src = e.src;
               out << "  id" << visited[src] << " -->|" << key << "| ";
               size_t curr_id;
@@ -295,7 +360,15 @@ public:
     }
 
     for (auto [region, objects] : region_strings) {
-      out << "subgraph " << region << " - " << region->local_reference_count
+      if (region->parent == nullptr)
+        continue;
+      out << "  region" << region << "  -->|parent| region" << region->parent
+          << std::endl; 
+    }
+
+    for (auto [region, objects] : region_strings) {
+      out << "subgraph  " << std::endl;
+      out << "  region" << region << "[meta\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "]"
           << std::endl;
       for (auto obj : objects) {
         out << "  id" << obj << std::endl;
