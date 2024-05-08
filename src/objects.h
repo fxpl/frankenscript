@@ -85,7 +85,6 @@ class DynObject {
 
       // Check if already parented, if so increment the parent reference count.
       if (r->parent == p) {
-        r->parent_reference_count++;
         return;
       }
 

@@ -81,6 +81,8 @@ int main()
 
   mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
 
+  new_obj["h"] = h;
+
   dd = nullptr;
   g = nullptr;
   h = nullptr;
