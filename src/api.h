@@ -1,6 +1,7 @@
 #pragma once
 
 #include "objects.h"
+#include "mermaid.h"
 
 namespace api
 {
@@ -97,11 +98,6 @@ namespace api
     {
       object->create_region();
     }
-
-    void mermaid()
-    {
-      object->mermaid();
-    }
   };
 
   class Reference
@@ -193,7 +189,7 @@ namespace api
     {
       edges.push_back({objects::DynObject::frame(), root.first, root.second.object});
     }
-    objects::DynObject::mermaid(edges);
+    objects::mermaid(edges);
     std::cout << "Press a key!" << std::endl;
     getchar();
   }

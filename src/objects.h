@@ -11,19 +11,11 @@
 #include <vector>
 
 #include "nop.h"
+#include "region.h"
 #include "tagged_pointer.h"
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
-
-// TODO: Make this nicer
-std::string mermaid_path{};
-void set_output(std::string path) { mermaid_path = path; }
-
-[[noreturn]] static void error(const std::string &msg) {
-  std::cerr << "Error: " << msg << std::endl;
-  abort();
-}
 
 class DynObject;
 
@@ -36,74 +28,7 @@ struct Edge {
 // Representation of objects
 class DynObject {
   friend class Reference;
-
-  // Represents the region of objects
-  struct Region {
-    size_t local_reference_count{0};
-    Region *parent{nullptr};
-    size_t parent_reference_count{0};
-    std::set<Region *> children{};
-
-    static void dec_lrc(Region *r) {
-      // Edge triggered LRC for parent.
-      while (true) {
-        r->local_reference_count--;
-        if (r->local_reference_count != 0)
-          break;
-        if (r->parent == nullptr)
-          break;
-        r = r->parent;
-      }
-    }
-
-    static void inc_lrc(Region *r) {
-      // Edge triggered LRC for parent.
-      while (true) {
-        r->local_reference_count++;
-        if (r->local_reference_count != 1)
-          break;
-        if (r->parent == nullptr)
-          break;
-        r = r->parent;
-      }
-    }
-
-    static void dec_prc(Region *r) {
-      r->parent_reference_count--;
-      if (r->parent_reference_count != 0)
-        return;
-
-      dec_lrc(r->parent);
-
-      r->parent = nullptr;
-    }
-
-    static void set_parent(Region *r, Region *p) {
-      // This edge becomes a parent edge, so remove from local reference count?
-      r->local_reference_count--;
-      r->parent_reference_count++;
-
-      // Check if already parented, if so increment the parent reference count.
-      if (r->parent == p) {
-        return;
-      }
-
-      // Check if already parented to another region.
-      if (r->parent != nullptr)
-        error("Region already has a parent");
-
-      // Set the parent and increment the parent reference count.
-      r->parent = p;
-      assert(r->parent_reference_count == 1);
-
-      // If the region has local references, then we need the parent to have a
-      // local reference to.
-      if (r->local_reference_count == 0)
-        return;
-
-      inc_lrc(r->parent);
-    }
-  };
+  friend void mermaid(std::vector<Edge> &roots);
 
   // Represents the region of specific object. Uses small pointers to
   // encode special regions.
@@ -125,6 +50,8 @@ class DynObject {
       return nullptr;
     return obj->region.get_ptr();
   }
+
+  bool is_local_object() { return region.get_ptr() == nullptr; }
 
   template <typename Pre, typename Post = Nop>
   void visit(Pre pre, Post post = {}) {
@@ -242,7 +169,7 @@ class DynObject {
       if (obj == nullptr || obj->is_immutable())
         return false;
 
-      if (obj->region.get_ptr() == 0) {
+      if (obj->is_local_object()) {
         std::cout << "Adding object to region: " << obj->name
                   << " rc = " << obj->rc << std::endl;
         rc_of_added_objects += obj->rc;
@@ -282,6 +209,13 @@ public:
     std::cout << "Deallocate: " << name << std::endl;
   }
 
+  // Place holder for the frame object.  Used in various places if we don't have
+  // an entry point.
+  inline static DynObject *frame() {
+    static DynObject frame{"frame"};
+    return &frame;
+  }
+
   void inc_rc() {
     change_rc(1);
     add_reference(nullptr, this);
@@ -314,91 +248,11 @@ public:
     update_notification(this, old, value);
   }
 
-  static void mermaid(std::vector<Edge> &roots) {
-    auto out = std::ofstream(mermaid_path);
-    std::map<DynObject *, std::size_t> visited;
-    std::map<Region *, std::vector<std::size_t>> region_strings;
-    std::vector<std::size_t> immutable_objects;
-    size_t id = 2;
-    visited[frame()] = 0;
-    visited[nullptr] = 1;
-    immutable_objects.push_back(1);
-    out << "```mermaid" << std::endl;
-    out << "graph TD" << std::endl;
-    out << "id0[frame]" << std::endl;
-    out << "id1[null]" << std::endl;
-    for (auto &root : roots) {
-      visit({root.src, root.key, root.dst},
-            [&](Edge e) {
-              DynObject *dst = e.dst;
-              std::string key = e.key;
-              DynObject *src = e.src;
-              out << "  id" << visited[src] << " -->|" << key << "| ";
-              size_t curr_id;
-              if (visited.find(dst) != visited.end()) {
-                out << "id" << visited[dst] << std::endl;
-                return false;
-              }
-
-              curr_id = id++;
-              visited[dst] = curr_id;
-              out << "id" << curr_id << "[ " << dst->name << " - " << dst->rc
-                  << " ]" << std::endl;
-
-              auto region = get_region(dst);
-              if (region != nullptr) {
-                region_strings[region].push_back(curr_id);
-              }
-
-              if (dst->is_immutable()) {
-                immutable_objects.push_back(curr_id);
-              }
-              return true;
-            },
-            {});
-    }
-
-    for (auto [region, objects] : region_strings) {
-      if (region->parent == nullptr)
-        continue;
-      out << "  region" << region << "  -->|parent| region" << region->parent
-          << std::endl; 
-    }
-
-    for (auto [region, objects] : region_strings) {
-      out << "subgraph  " << std::endl;
-      out << "  region" << region << "[meta\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "]"
-          << std::endl;
-      for (auto obj : objects) {
-        out << "  id" << obj << std::endl;
-      }
-      out << "end" << std::endl;
-    }
-
-    out << "subgraph Immutable" << std::endl;
-    for (auto obj : immutable_objects) {
-      out << "  id" << obj << std::endl;
-    }
-    out << "end" << std::endl;
-    out << "```" << std::endl;
-  }
-
-  void mermaid() {
-    std::vector<Edge> roots;
-    roots.push_back({frame(), "root", this});
-    mermaid(roots);
-  }
-
   void create_region() {
     Region *r = new Region();
     add_to_region(r);
     // Add root reference as external.
     r->local_reference_count++;
-  }
-
-  static DynObject *frame() {
-    static DynObject frame{"frame"};
-    return &frame;
   }
 };
 } // namespace objects
