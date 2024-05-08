@@ -161,6 +161,11 @@ namespace api
       object->set(key, nullptr);
       return *this;
     }
+
+    Reference operator[](std::string name)
+    {
+      return {name, object->get(key)};
+    }
   };
 
 
