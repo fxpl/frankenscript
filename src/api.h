@@ -164,7 +164,7 @@ template <typename F> void run(F &&f) {
     auto objs = objects::DynObject::get_local_region()->get_objects();
     std::vector<objects::Edge> edges;
     for (auto obj : objs) {
-      edges.push_back({objects::DynObject::frame(), "?", obj});
+      edges.push_back({nullptr, "?", obj});
     }
     objects::mermaid(edges);
     std::cout << "Press a key!" << std::endl;
