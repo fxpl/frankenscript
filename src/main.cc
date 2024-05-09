@@ -6,7 +6,7 @@
 
 #include "api.h"
 
-int main()
+void test()
 {
   using namespace api;
   
@@ -88,6 +88,14 @@ int main()
   h = nullptr;
 
   mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+}
 
+
+
+
+int main()
+{
+  api::run(test);
+  
   return 0;
 }

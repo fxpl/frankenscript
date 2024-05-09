@@ -193,4 +193,18 @@ namespace api
     std::cout << "Press a key!" << std::endl;
     getchar();
   }
+
+  template <typename F>
+  void run(F&& f)
+  {
+    size_t initial_count = objects::DynObject::get_count();
+
+    f();
+
+    if (objects::DynObject::get_count() != initial_count)
+    {
+      std::cout << "Memory leak detected!" << std::endl;
+      std::exit(1);
+    }
+  };
 }

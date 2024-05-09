@@ -29,6 +29,8 @@ struct Edge {
 class DynObject {
   friend class Reference;
   friend void mermaid(std::vector<Edge> &roots);
+  friend void destruct(DynObject *obj);
+  friend void dealloc(DynObject *obj);
 
   // Represents the region of specific object. Uses small pointers to
   // encode special regions.
@@ -115,12 +117,18 @@ class DynObject {
             return result;
           }
 
+          // Handle immutable case
+          if (old_dst_region == nullptr)
+            return result;
+
           std::cout << "Removing parent reference from region: "
                     << old_dst->name << std::endl;
           Region::dec_prc(old_dst_region);
           return result;
         },
         [&](DynObject *obj) { delete obj; });
+
+    Region::collect();
   }
 
   static void add_reference(DynObject *src, DynObject *new_dst) {
@@ -175,6 +183,7 @@ class DynObject {
         rc_of_added_objects += obj->rc;
         internal_references++;
         obj->region = {r};
+        r->objects.insert(obj);
         return true;
       }
 
@@ -199,13 +208,21 @@ class DynObject {
   }
 
 public:
-  DynObject(std::string name) : name(name) {
+  DynObject(std::string name, bool global = false) : name(name) {
     count++;
     std::cout << "Allocate: " << name << std::endl;
   }
 
   ~DynObject() {
     count--;
+    if (change_rc(0) != 0) {
+      if (this != frame())
+        error("Object still has references");
+    }
+
+    auto r = get_region(this);
+    if (r != nullptr)
+      r->objects.erase(this);
     std::cout << "Deallocate: " << name << std::endl;
   }
 
@@ -254,5 +271,32 @@ public:
     // Add root reference as external.
     r->local_reference_count++;
   }
+
+  static size_t get_count() { return count; }
 };
+
+void destruct(DynObject *obj) {
+  for (auto &[key, field] : obj->fields) {
+    if (field == nullptr)
+      continue;
+    auto src_region = DynObject::get_region(obj);
+    auto dst_region = DynObject::get_region(field);
+    if (src_region == dst_region) {
+      // Same region just remove the rc, but don't try to collect.
+      field->change_rc(-1);
+      continue;
+    }
+
+    obj->set(key, nullptr);
+  }
+}
+
+void dealloc(DynObject *obj) {
+  // Called from the region destructor.
+  // So remove from region if in one.
+  // This ensures we don't try to remove it from the set that is being iterated.
+  obj->region = nullptr;
+  delete obj;
+}
+
 } // namespace objects

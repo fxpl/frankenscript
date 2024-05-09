@@ -40,7 +40,7 @@ namespace objects {
 
               curr_id = id++;
               visited[dst] = curr_id;
-              out << "id" << curr_id << "[ " << dst->name << " - " << dst->rc
+              out << "id" << curr_id << "[ " << dst << "\\n" << dst->name << "\\nrc=" << dst->rc
                   << " ]" << std::endl;
 
               auto region = DynObject::get_region(dst);
@@ -59,13 +59,13 @@ namespace objects {
     for (auto [region, objects] : region_strings) {
       if (region->parent == nullptr)
         continue;
-      out << "  region" << region << "  -->|parent| region" << region->parent
+      out << "  region" << region << "  -.->|parent| region" << region->parent
           << std::endl; 
     }
 
     for (auto [region, objects] : region_strings) {
       out << "subgraph  " << std::endl;
-      out << "  region" << region << "[meta\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "]"
+      out << "  region" << region << "{meta\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "}"
           << std::endl;
       for (auto obj : objects) {
         out << "  id" << obj << std::endl;
