@@ -64,8 +64,16 @@ namespace objects {
     }
 
     for (auto [region, objects] : region_strings) {
-      out << "subgraph  " << std::endl;
-      out << "  region" << region << "{meta\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "}"
+      out << "subgraph  ";
+      
+      if (region == DynObject::get_local_region())
+      { 
+        out << "local region" << std::endl;
+        out << "  id0";
+      }
+      
+      out << std::endl;
+      out << "  region" << region << "{" << region << "\\nlrc=" << region->local_reference_count << "\\nprc=" << region->parent_reference_count << "}"
           << std::endl;
       for (auto obj : objects) {
         out << "  id" << obj << std::endl;

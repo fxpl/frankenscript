@@ -51,6 +51,7 @@ struct Region {
       // TODO, this can be hooked to perform delayed operations like send.
 
       to_collect.push_back(r);
+      std::cout << "Collecting region: " << r << std::endl;
     }
   }
 
@@ -67,6 +68,7 @@ struct Region {
   }
 
   static void dec_prc(Region *r) {
+    std::cout << "Dropping parent reference: " << r << std::endl;
     r->parent_reference_count--;
     if (r->parent_reference_count != 0)
       return;
@@ -77,8 +79,10 @@ struct Region {
     if (r->local_reference_count != 0)
       dec_lrc(r->parent);
     else
+    {
+      std::cout << "Collecting region: " << r << std::endl;
       to_collect.push_back(r);
-
+    }
     // Unset parent pointer.
     r->parent = nullptr;
   }
@@ -107,6 +111,12 @@ struct Region {
       return;
 
     inc_lrc(r->parent);
+  }
+
+  void terminate_region()
+  {
+    to_collect.push_back(this);
+    collect();
   }
 
   static void collect() {

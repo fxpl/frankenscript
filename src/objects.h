@@ -53,7 +53,7 @@ class DynObject {
     return obj->region.get_ptr();
   }
 
-  bool is_local_object() { return region.get_ptr() == nullptr; }
+  bool is_local_object() { return region.get_ptr() == get_local_region(); }
 
   template <typename Pre, typename Post = Nop>
   void visit(Pre pre, Post post = {}) {
@@ -98,22 +98,23 @@ class DynObject {
     }
   }
 
-  static void remove_reference(DynObject *src, DynObject *old_dst) {
+  static void remove_reference(DynObject *src_initial, DynObject *old_dst_initial) {
     visit(
-        {src, "", old_dst},
+        {src_initial, "", old_dst_initial},
         [&](Edge e) {
           if (e.dst == nullptr)
             return false;
+
+          std::cout << "Remove reference from: " << e.src->name << " to "
+                    << e.dst->name << std::endl;
 
           auto old_dst_region = get_region(e.dst);
           auto src_region = get_region(e.src);
           bool result = e.dst->change_rc(-1) == 0;
 
           if (old_dst_region == src_region)
-            return result;
-
-          if (src_region == nullptr) {
-            Region::dec_lrc(old_dst_region);
+          {
+            std::cout << "Same region, no need to do anything" << std::endl;
             return result;
           }
 
@@ -121,8 +122,13 @@ class DynObject {
           if (old_dst_region == nullptr)
             return result;
 
+          if (e.src->is_local_object()) {
+            Region::dec_lrc(old_dst_region);
+            return result;
+          }
+
           std::cout << "Removing parent reference from region: "
-                    << old_dst->name << std::endl;
+                    << e.dst->name << std::endl;
           Region::dec_prc(old_dst_region);
           return result;
         },
@@ -140,12 +146,12 @@ class DynObject {
     if (src_region == new_dst_region)
       return;
 
-    if (src_region != nullptr) {
-      new_dst->add_to_region(src_region);
+    if (src->is_local_object()) {
+      new_dst_region->local_reference_count++;
       return;
     }
 
-    new_dst_region->local_reference_count++;
+    new_dst->add_to_region(src_region);
   }
 
   // Call after the update.
@@ -159,6 +165,7 @@ class DynObject {
     std::cout << "Change RC: " << name << " " << rc << " + " << (ssize_t)delta
               << std::endl;
     if (!is_immutable()) {
+      assert(delta == 0 || rc != 0);
       rc += delta;
       return rc;
     }
@@ -183,6 +190,7 @@ class DynObject {
         rc_of_added_objects += obj->rc;
         internal_references++;
         obj->region = {r};
+        get_local_region()->objects.erase(obj);
         r->objects.insert(obj);
         return true;
       }
@@ -210,6 +218,13 @@ class DynObject {
 public:
   DynObject(std::string name, bool global = false) : name(name) {
     count++;
+    if (global) { change_rc(-1); }
+    else 
+    {
+      auto local_region = get_local_region();
+      region = local_region;
+      local_region->objects.insert(this);
+    }
     std::cout << "Allocate: " << name << std::endl;
   }
 
@@ -221,7 +236,7 @@ public:
     }
 
     auto r = get_region(this);
-    if (r != nullptr)
+    if (!is_immutable() && r != nullptr)
       r->objects.erase(this);
     std::cout << "Deallocate: " << name << std::endl;
   }
@@ -229,16 +244,16 @@ public:
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    static DynObject frame{"frame"};
+    thread_local static DynObject frame{"frame", true};
     return &frame;
   }
 
   void inc_rc() {
     change_rc(1);
-    add_reference(nullptr, this);
+    add_reference(frame(), this);
   }
 
-  void dec_rc() { remove_reference(nullptr, this); }
+  void dec_rc() { remove_reference(frame(), this); }
 
   void freeze() {
     // TODO SCC algorithm
@@ -247,7 +262,7 @@ public:
       if (obj->is_immutable())
         return false;
 
-      // TODO remove from region if in one.
+      get_region(obj)->objects.erase(obj);
       obj->region.set_tag(ImmutableTag);
       return true;
     });
@@ -273,6 +288,14 @@ public:
   }
 
   static size_t get_count() { return count; }
+
+  static void set_local_region(Region* r) {
+    frame()->region = {r};
+  }
+
+  static Region* get_local_region() {
+    return DynObject::frame()->region.get_ptr();
+  }
 };
 
 void destruct(DynObject *obj) {
@@ -298,5 +321,4 @@ void dealloc(DynObject *obj) {
   obj->region = nullptr;
   delete obj;
 }
-
 } // namespace objects

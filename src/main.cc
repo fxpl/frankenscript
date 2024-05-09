@@ -62,6 +62,8 @@ void test()
 
   a["g"] = nullptr;
 
+  a["self"] = a;
+
   mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}});
 
   a["c"]["sub"] = g;
