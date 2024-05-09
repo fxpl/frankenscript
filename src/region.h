@@ -119,6 +119,13 @@ struct Region {
     collect();
   }
 
+  std::vector<DynObject *> get_objects() {
+    std::vector<DynObject *> result;
+    for (auto o : objects)
+      result.push_back(o);
+    return result;
+  }
+
   static void collect() {
     // Reentrancy guard.
     static thread_local bool collecting = false;

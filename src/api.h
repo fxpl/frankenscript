@@ -159,6 +159,17 @@ template <typename F> void run(F &&f) {
   f();
   std::cout << "Test complete - checking for cycles in local region..."
             << std::endl;
+  if (objects::DynObject::get_count() != initial_count) {
+    std::cout << "Cycles detected in local region." << std::endl;
+    auto objs = objects::DynObject::get_local_region()->get_objects();
+    std::vector<objects::Edge> edges;
+    for (auto obj : objs) {
+      edges.push_back({objects::DynObject::frame(), "?", obj});
+    }
+    objects::mermaid(edges);
+    std::cout << "Press a key!" << std::endl;
+    getchar();
+  }
   objects::DynObject::get_local_region()->terminate_region();
   if (objects::DynObject::get_count() != initial_count) {
     std::cout << "Memory leak detected!" << std::endl;
@@ -167,5 +178,9 @@ template <typename F> void run(F &&f) {
               << std::endl;
     std::exit(1);
   }
+  else {
+    std::cout << "No memory leaks detected!" << std::endl;
+  }
+
 };
 } // namespace api
