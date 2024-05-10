@@ -1,7 +1,11 @@
 #pragma once
 
-#include "mermaid.h"
-#include "objects.h"
+#include <iostream>
+#include <string>
+#include <initializer_list>
+#include <utility>
+
+#include "rt/rt.h"
 
 namespace api {
 using namespace objects;
@@ -22,17 +26,17 @@ class Object {
   void copy(DynObject *new_object) {
     auto old = object;
     if (new_object != nullptr)
-      new_object->inc_rc();
+      inc_rc(new_object);
     object = new_object;
     if (old != nullptr)
-      old->dec_rc();
+      dec_rc(old);
   }
 
   void move(DynObject *new_object) {
     auto old = object;
     object = new_object;
     if (old != nullptr)
-      old->dec_rc();
+      dec_rc(old);
   }
 
 public:
@@ -40,7 +44,7 @@ public:
 
   Object(Object &other) : object(other.object) {
     if (object != nullptr)
-      object->inc_rc();
+      inc_rc(object);
   }
 
   Object(Object &&other) : object(other.object) { other.object = nullptr; }
@@ -63,18 +67,18 @@ public:
   Object &operator=(Reference &other);
   Object &operator=(Reference &&other);
 
-  static Object create(std::string name) { return {new DynObject(name)}; }
+  static Object create(std::string name) { return make_object(name); }
 
   Reference operator[](std::string name);
 
   ~Object() {
     if (object != nullptr)
-      object->dec_rc();
+      dec_rc(object);
   }
 
-  void freeze() { object->freeze(); }
+  void freeze() { objects::freeze(object); }
 
-  void create_region() { object->create_region(); }
+  void create_region() { objects::create_region(object); }
 };
 
 class Reference {
@@ -84,19 +88,19 @@ class Reference {
 
   void copy(DynObject *new_object) {
     auto old = object;
-    object->set(key, new_object);
+    objects::set_copy(object, key, new_object);
   }
 
   void move(DynObject *&new_object) {
     // Underlying RC transferred to the field
-    object->set<true>(key, new_object);
+    set_move(object, key, new_object);
     // Need to remove the lrc if appropriate.
-    new_object->remove_local_reference();
+    remove_local_reference(new_object);
     // Clear the pointer to provide linearity of move.
     new_object = nullptr;
   }
 
-  DynObject *get() { return object->get(key); }
+  DynObject *get() { return objects::get(object, key); }
 
   Reference(std::string name, DynObject *object) : key(name), object(object) {}
 
@@ -122,11 +126,11 @@ public:
   }
 
   Reference &operator=(std::nullptr_t) {
-    object->set(key, nullptr);
+    objects::set_copy(object, key, nullptr);
     return *this;
   }
 
-  Reference operator[](std::string name) { return {name, object->get(key)}; }
+  Reference operator[](std::string name) { return {name, objects::get(object, key)}; }
 };
 
 Reference Object::operator[](std::string name) {
@@ -147,7 +151,7 @@ void mermaid(std::initializer_list<std::pair<std::string, Object &>> roots) {
   std::vector<objects::Edge> edges;
   for (auto &root : roots) {
     edges.push_back(
-        {objects::DynObject::frame(), root.first, root.second.object});
+        {get_frame(), root.first, root.second.object});
   }
   objects::mermaid(edges);
   std::cout << "Press a key!" << std::endl;
@@ -155,43 +159,8 @@ void mermaid(std::initializer_list<std::pair<std::string, Object &>> roots) {
 }
 
 template <typename F> void run(F &&f) {
-  objects::DynObject::set_local_region(new Region());
-  std::cout << "Running test..." << std::endl;
-  size_t initial_count = objects::DynObject::get_count();
+  size_t initial_count = objects::pre_run();
   f();
-  std::cout << "Test complete - checking for cycles in local region..."
-            << std::endl;
-  if (objects::DynObject::get_count() != initial_count) {
-    std::cout << "Cycles detected in local region." << std::endl;
-    auto objs = objects::DynObject::get_local_region()->get_objects();
-    std::vector<objects::Edge> edges;
-    for (auto obj : objs) {
-      edges.push_back({nullptr, "?", obj});
-    }
-    objects::mermaid(edges);
-    std::cout << "Press a key!" << std::endl;
-    getchar();
-  }
-  objects::DynObject::get_local_region()->terminate_region();
-  if (objects::DynObject::get_count() != initial_count) {
-    std::cout << "Memory leak detected!" << std::endl;
-    std::cout << "Initial count: " << initial_count << std::endl;
-    std::cout << "Final count: " << objects::DynObject::get_count()
-              << std::endl;
-
-    std::vector<objects::Edge> edges;
-    for (auto obj : objects::DynObject::get_objects()) {
-      edges.push_back({nullptr, "?", obj});
-    }
-    objects::mermaid(edges);
-    std::cout << "Press a key!" << std::endl;
-    getchar();
-
-    std::exit(1);
-  }
-  else {
-    std::cout << "No memory leaks detected!" << std::endl;
-  }
-
+  objects::post_run(initial_count);
 };
 } // namespace api

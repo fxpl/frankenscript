@@ -33,10 +33,10 @@ inline void mermaid(std::vector<Edge> &roots) {
   out << "graph TD" << std::endl;
   out << "id0[frame]" << std::endl;
   out << "id1[null]" << std::endl;
-  // Output all reachable edges
-  for (auto &root : roots) {
-    DynObject::visit({root.src, root.key, root.dst},
-                     [&](Edge e) {
+
+  bool unreachable = false;
+
+  auto explore = [&](Edge e) {
                        DynObject *dst = e.dst;
                        std::string key = e.key;
                        DynObject *src = e.src;
@@ -52,6 +52,7 @@ inline void mermaid(std::vector<Edge> &roots) {
                        visited[dst] = curr_id;
                        out << "id" << curr_id << "[ " << dst << "\\n"
                            << dst->name << "\\nrc=" << dst->rc << " ]"
+                           << (unreachable ? ":::unreachable" : "")
                            << std::endl;
 
                        auto region = DynObject::get_region(dst);
@@ -63,7 +64,19 @@ inline void mermaid(std::vector<Edge> &roots) {
                          immutable_objects.push_back(curr_id);
                        }
                        return true;
-                     },
+                     };
+  // Output all reachable edges
+  for (auto &root : roots) {
+    DynObject::visit({root.src, root.key, root.dst},
+                     explore,
+                     {});
+  }
+
+  unreachable = true;
+
+  for (auto &root : DynObject::all_objects) {
+    DynObject::visit({nullptr, "", root},
+                     explore,
                      {});
   }
 
@@ -106,7 +119,7 @@ inline void mermaid(std::vector<Edge> &roots) {
   // Output object count as very useful.
   out << "subgraph Count " << DynObject::get_count() << std::endl;
   out << "end" << std::endl;
-
+  out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
   // Footer (end of mermaid graph)
   out << "```" << std::endl;
 }

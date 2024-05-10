@@ -13,17 +13,10 @@
 #include "nop.h"
 #include "region.h"
 #include "tagged_pointer.h"
+#include "rt.h"
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
-
-class DynObject;
-
-struct Edge {
-  DynObject *src;
-  std::string key;
-  DynObject *dst;
-};
 
 // Representation of objects
 class DynObject {
