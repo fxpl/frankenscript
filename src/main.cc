@@ -87,7 +87,33 @@ void test()
 
   dd = nullptr;
   g = nullptr;
-  h = nullptr;
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  h = new_obj["h"];
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  new_obj["self"] = new_obj;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  a.create_region();
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  a["self"] = nullptr;
+  a = nullptr;
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  c = nullptr;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  b = nullptr;
+
+  mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
+
+  new_obj = nullptr;
 
   mermaid({{"a", a}, {"b", b}, {"c", c}, {"g", g}, {"dd", dd}, {"h", h}, {"new", new_obj}});
 }

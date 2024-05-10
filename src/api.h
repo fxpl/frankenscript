@@ -84,13 +84,15 @@ class Reference {
 
   void copy(DynObject *new_object) {
     auto old = object;
-    if (new_object != nullptr)
-      new_object->inc_rc();
     object->set(key, new_object);
   }
 
   void move(DynObject *&new_object) {
-    object->set(key, new_object);
+    // Underlying RC transferred to the field
+    object->set<true>(key, new_object);
+    // Need to remove the lrc if appropriate.
+    new_object->remove_local_reference();
+    // Clear the pointer to provide linearity of move.
     new_object = nullptr;
   }
 
@@ -176,6 +178,15 @@ template <typename F> void run(F &&f) {
     std::cout << "Initial count: " << initial_count << std::endl;
     std::cout << "Final count: " << objects::DynObject::get_count()
               << std::endl;
+
+    std::vector<objects::Edge> edges;
+    for (auto obj : objects::DynObject::get_objects()) {
+      edges.push_back({nullptr, "?", obj});
+    }
+    objects::mermaid(edges);
+    std::cout << "Press a key!" << std::endl;
+    getchar();
+
     std::exit(1);
   }
   else {

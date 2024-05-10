@@ -38,7 +38,10 @@ class DynObject {
 
   using Nop = utils::Nop<DynObject *>;
 
+  // TODO: Not concurrency safe
   inline static size_t count{0};
+  // TODO: Not concurrency safe
+  inline static std::set<DynObject *> all_objects{};
 
   size_t rc{1};
   RegionPointer region{nullptr};
@@ -147,11 +150,19 @@ class DynObject {
       return;
 
     if (src->is_local_object()) {
-      new_dst_region->local_reference_count++;
+      std::cout << "Adding reference from local object: " << src->name
+                << std::endl;
+      Region::inc_lrc(new_dst_region);
       return;
     }
 
-    new_dst->add_to_region(src_region);
+    if (new_dst->is_local_object())
+    {
+      new_dst->add_to_region(src_region);
+      return;
+    }
+
+    Region::set_parent(new_dst_region, src_region);
   }
 
   // Call after the update.
@@ -167,6 +178,8 @@ class DynObject {
     if (!is_immutable()) {
       assert(delta == 0 || rc != 0);
       rc += delta;
+      // Check not underflowing.
+      assert(rc >> 62 == 0);
       return rc;
     }
 
@@ -204,6 +217,7 @@ class DynObject {
       }
 
       Region::set_parent(obj_region, r);
+      Region::dec_lrc(obj_region);
       return false;
     });
     r->local_reference_count += rc_of_added_objects - internal_references;
@@ -218,6 +232,7 @@ class DynObject {
 public:
   DynObject(std::string name, bool global = false) : name(name) {
     count++;
+    all_objects.insert(this);
     if (global) { change_rc(-1); }
     else 
     {
@@ -230,6 +245,7 @@ public:
 
   ~DynObject() {
     count--;
+    all_objects.erase(this);
     if (change_rc(0) != 0) {
       if (this != frame())
         error("Object still has references");
@@ -270,7 +286,10 @@ public:
 
   DynObject *get(std::string name) { return fields[name]; }
 
+  template <bool move = false>
   void set(std::string name, DynObject *value) {
+    if (!move && value != nullptr)
+      value->change_rc(1);
     if (is_immutable()) {
       error("Cannot mutate immutable object");
       return;
@@ -295,6 +314,21 @@ public:
 
   static Region* get_local_region() {
     return DynObject::frame()->region.get_ptr();
+  }
+
+  void remove_local_reference() {
+    if (is_immutable())
+      return;
+
+    if (is_local_object())
+      return;
+
+    auto r = get_region(this);
+    Region::dec_lrc(r);
+  }
+
+  static std::set<DynObject *> get_objects() {
+    return all_objects;
   }
 };
 

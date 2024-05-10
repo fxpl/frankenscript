@@ -39,6 +39,7 @@ struct Region {
   static void dec_lrc(Region *r) {
     // Edge triggered LRC for parent.
     while (true) {
+      assert(r->local_reference_count != 0);
       r->local_reference_count--;
       if (r->local_reference_count != 0)
         return;
@@ -69,6 +70,7 @@ struct Region {
 
   static void dec_prc(Region *r) {
     std::cout << "Dropping parent reference: " << r << std::endl;
+    assert(r->parent_reference_count != 0);
     r->parent_reference_count--;
     if (r->parent_reference_count != 0)
       return;
@@ -88,8 +90,9 @@ struct Region {
   }
 
   static void set_parent(Region *r, Region *p) {
+    assert(r->local_reference_count != 0);
     // This edge becomes a parent edge, so remove from local reference count?
-    r->local_reference_count--; // TODO check with examples
+//    r->local_reference_count--; // TODO check with examples
     r->parent_reference_count++;
 
     // Check if already parented, if so increment the parent reference count.
