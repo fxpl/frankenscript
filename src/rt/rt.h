@@ -9,19 +9,21 @@ class DynObject;
 struct Edge {
   DynObject *src;
   std::string key;
-  DynObject *dst;
+  DynObject *target;
 };
 
 DynObject *make_object(std::string name = "");
 DynObject *get_frame();
-void inc_rc(DynObject *obj);
-void dec_rc(DynObject *obj);
-void remove_local_reference(DynObject *obj);
+
 void freeze(DynObject *obj);
-DynObject *get(DynObject *obj, std::string key);
-void set_copy(DynObject *obj, std::string key, DynObject *value);
-void set_move(DynObject *obj, std::string key, DynObject *value);
 void create_region(DynObject *objects);
+
+DynObject *get(DynObject *src, std::string key);
+DynObject *set(DynObject *dst, std::string key, DynObject *value);
+
+void add_reference(DynObject *src, DynObject *target);
+void remove_reference(DynObject *src, DynObject *target);
+void move_reference(DynObject *src, DynObject *dst, DynObject *target);
 
 size_t get_object_count();
 

@@ -12,8 +12,8 @@
 
 #include "nop.h"
 #include "region.h"
-#include "tagged_pointer.h"
 #include "rt.h"
+#include "tagged_pointer.h"
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
@@ -75,7 +75,7 @@ class DynObject {
         stack.push_back({obj, key});
     };
 
-    visit_object(e.dst);
+    visit_object(e.target);
 
     while (!stack.empty()) {
       auto [obj, key] = stack.back();
@@ -94,75 +94,45 @@ class DynObject {
     }
   }
 
-  static void remove_reference(DynObject *src_initial, DynObject *old_dst_initial) {
-    visit(
-        {src_initial, "", old_dst_initial},
-        [&](Edge e) {
-          if (e.dst == nullptr)
-            return false;
-
-          std::cout << "Remove reference from: " << e.src->name << " to "
-                    << e.dst->name << std::endl;
-
-          auto old_dst_region = get_region(e.dst);
-          auto src_region = get_region(e.src);
-          bool result = e.dst->change_rc(-1) == 0;
-
-          if (old_dst_region == src_region)
-          {
-            std::cout << "Same region, no need to do anything" << std::endl;
-            return result;
-          }
-
-          // Handle immutable case
-          if (old_dst_region == nullptr)
-            return result;
-
-          if (e.src->is_local_object()) {
-            Region::dec_lrc(old_dst_region);
-            return result;
-          }
-
-          std::cout << "Removing parent reference from region: "
-                    << e.dst->name << std::endl;
-          Region::dec_prc(old_dst_region);
-          return result;
-        },
-        [&](DynObject *obj) { delete obj; });
-
-    Region::collect();
-  }
-
-  static void add_reference(DynObject *src, DynObject *new_dst) {
-    if ((new_dst == nullptr) || new_dst->is_immutable())
-      return;
-
-    auto src_region = get_region(src);
-    auto new_dst_region = get_region(new_dst);
-    if (src_region == new_dst_region)
-      return;
-
-    if (src->is_local_object()) {
-      std::cout << "Adding reference from local object: " << src->name
-                << std::endl;
-      Region::inc_lrc(new_dst_region);
+  static void remove_region_reference(Region *src, Region *target) {
+    if (src == target) {
+      std::cout << "Same region, no need to do anything" << std::endl;
       return;
     }
 
-    if (new_dst->is_local_object())
-    {
-      new_dst->add_to_region(src_region);
+    // Handle immutable case
+    if (target == nullptr)
+      return;
+
+    if (src == get_local_region()) {
+      Region::dec_lrc(target);
       return;
     }
 
-    Region::set_parent(new_dst_region, src_region);
+    assert(target->parent == src);
+    Region::dec_prc(target);
+    return;
   }
 
-  // Call after the update.
-  static void update_notification(DynObject *src, DynObject *old_dst,
-                                  DynObject *new_dst) {
-    add_reference(src, new_dst);
-    remove_reference(src, old_dst);
+  static void add_region_reference(Region *src_region, DynObject *target) {
+    if (target->is_immutable())
+      return;
+
+    auto target_region = get_region(target);
+    if (src_region == target_region)
+      return;
+
+    if (src_region == get_local_region()) {
+      Region::inc_lrc(target_region);
+      return;
+    }
+
+    if (target_region == get_local_region()) {
+      target->add_to_region(src_region);
+      return;
+    }
+
+    Region::set_parent(target_region, src_region);
   }
 
   size_t change_rc(size_t delta) {
@@ -186,7 +156,7 @@ class DynObject {
     size_t internal_references{0};
     size_t rc_of_added_objects{0};
     visit([&](Edge e) {
-      auto obj = e.dst;
+      auto obj = e.target;
       if (obj == nullptr || obj->is_immutable())
         return false;
 
@@ -226,9 +196,9 @@ public:
   DynObject(std::string name, bool global = false) : name(name) {
     count++;
     all_objects.insert(this);
-    if (global) { change_rc(-1); }
-    else 
-    {
+    if (global) {
+      change_rc(-1);
+    } else {
       auto local_region = get_local_region();
       region = local_region;
       local_region->objects.insert(this);
@@ -257,17 +227,10 @@ public:
     return &frame;
   }
 
-  void inc_rc() {
-    change_rc(1);
-    add_reference(frame(), this);
-  }
-
-  void dec_rc() { remove_reference(frame(), this); }
-
   void freeze() {
     // TODO SCC algorithm
     visit([](Edge e) {
-      auto obj = e.dst;
+      auto obj = e.target;
       if (obj->is_immutable())
         return false;
 
@@ -277,19 +240,60 @@ public:
     });
   }
 
-  DynObject *get(std::string name) { return fields[name]; }
+  [[nodiscard]] DynObject *get(std::string name) { return fields[name]; }
 
-  template <bool move = false>
-  void set(std::string name, DynObject *value) {
-    if (!move && value != nullptr)
-      value->change_rc(1);
+  [[nodiscard]] DynObject *set(std::string name, DynObject *value) {
     if (is_immutable()) {
       error("Cannot mutate immutable object");
-      return;
     }
     DynObject *old = fields[name];
     fields[name] = value;
-    update_notification(this, old, value);
+    return old;
+  }
+
+  static void add_reference(DynObject *src, DynObject *target) {
+    if (target == nullptr)
+      return;
+
+    target->change_rc(1);
+
+    auto src_region = get_region(src);
+    add_region_reference(src_region, target);
+  }
+
+  static void remove_reference(DynObject *src_initial,
+                               DynObject *old_dst_initial) {
+    visit(
+        {src_initial, "", old_dst_initial},
+        [&](Edge e) {
+          if (e.target == nullptr)
+            return false;
+
+          std::cout << "Remove reference from: " << e.src->name << " to "
+                    << e.target->name << std::endl;
+          bool result = e.target->change_rc(-1) == 0;
+
+          remove_region_reference(get_region(e.src), get_region(e.target));
+          return result;
+        },
+        [&](DynObject *obj) { delete obj; });
+
+    Region::collect();
+  }
+
+  static void move_reference(DynObject *src, DynObject *dst,
+                             DynObject *target) {
+    if (target == nullptr || target->is_immutable())
+      return;
+
+    auto src_region = get_region(src);
+    auto dst_region = get_region(dst);
+
+    if (src_region == dst_region)
+      return;
+
+    add_region_reference(src_region, target);
+    remove_region_reference(dst_region, get_region(target));
   }
 
   void create_region() {
@@ -301,28 +305,13 @@ public:
 
   static size_t get_count() { return count; }
 
-  static void set_local_region(Region* r) {
-    frame()->region = {r};
-  }
+  static void set_local_region(Region *r) { frame()->region = {r}; }
 
-  static Region* get_local_region() {
+  static Region *get_local_region() {
     return DynObject::frame()->region.get_ptr();
   }
 
-  void remove_local_reference() {
-    if (is_immutable())
-      return;
-
-    if (is_local_object())
-      return;
-
-    auto r = get_region(this);
-    Region::dec_lrc(r);
-  }
-
-  static std::set<DynObject *> get_objects() {
-    return all_objects;
-  }
+  static std::set<DynObject *> get_objects() { return all_objects; }
 };
 
 void destruct(DynObject *obj) {
@@ -337,7 +326,8 @@ void destruct(DynObject *obj) {
       continue;
     }
 
-    obj->set(key, nullptr);
+    auto old_value = obj->set(key, nullptr);
+    remove_reference(obj, old_value);
   }
 }
 

@@ -13,25 +13,29 @@ DynObject *make_object(std::string name) { return new DynObject(name); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 
-void inc_rc(DynObject *obj) { obj->inc_rc(); }
-
-void dec_rc(DynObject *obj) { obj->dec_rc(); }
-
-void remove_local_reference(DynObject *obj) { obj->remove_local_reference(); }
 
 void freeze(DynObject *obj) { obj->freeze(); }
 
+void create_region(DynObject *object) { object->create_region(); }
+
+
 DynObject *get(DynObject *obj, std::string key) { return obj->get(key); }
 
-void set_copy(DynObject *obj, std::string key, DynObject *value) {
-  obj->set(key, value);
+DynObject *set(DynObject *obj, std::string key, DynObject *value) {
+  return obj->set(key, value);
 }
 
-void set_move(DynObject *obj, std::string key, DynObject *value) {
-  obj->set<true>(key, value);
+void add_reference(DynObject *src, DynObject *target){
+  DynObject::add_reference(src, target);
 }
 
-void create_region(DynObject *object) { object->create_region(); }
+void remove_reference(DynObject *src, DynObject *target) {
+  DynObject::remove_reference(src, target);
+}
+
+void move_reference(DynObject *src, DynObject *dst, DynObject *target) {
+  DynObject::move_reference(src, dst, target);
+}
 
 size_t pre_run() {
   objects::DynObject::set_local_region(new Region());

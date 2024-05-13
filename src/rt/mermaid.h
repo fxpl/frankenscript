@@ -37,7 +37,7 @@ inline void mermaid(std::vector<Edge> &roots) {
   bool unreachable = false;
 
   auto explore = [&](Edge e) {
-                       DynObject *dst = e.dst;
+                       DynObject *dst = e.target;
                        std::string key = e.key;
                        DynObject *src = e.src;
                        if (src != nullptr) {
@@ -67,7 +67,7 @@ inline void mermaid(std::vector<Edge> &roots) {
                      };
   // Output all reachable edges
   for (auto &root : roots) {
-    DynObject::visit({root.src, root.key, root.dst},
+    DynObject::visit({root.src, root.key, root.target},
                      explore,
                      {});
   }

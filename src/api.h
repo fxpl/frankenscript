@@ -19,43 +19,39 @@ class Object {
   friend void
   mermaid(std::initializer_list<std::pair<std::string, Object &>> roots);
 
-  DynObject *object;
+  DynObject *value;
 
-  Object(DynObject *object) : object(object) {}
+  Object(DynObject *object) : value(object) {}
 
   void copy(DynObject *new_object) {
-    auto old = object;
-    if (new_object != nullptr)
-      inc_rc(new_object);
-    object = new_object;
-    if (old != nullptr)
-      dec_rc(old);
+    add_reference(get_frame(), new_object);
+    auto old_object = value;
+    value = new_object;
+    remove_reference(get_frame(), old_object);
   }
 
-  void move(DynObject *new_object) {
-    auto old = object;
-    object = new_object;
-    if (old != nullptr)
-      dec_rc(old);
+  void move(DynObject *new_value) {
+    auto old_value = value;
+    value = new_value;
+    remove_reference(get_frame(), old_value);
   }
 
 public:
-  Object() : object(nullptr) {}
+  Object() : value(nullptr) {}
 
-  Object(Object &other) : object(other.object) {
-    if (object != nullptr)
-      inc_rc(object);
+  Object(Object &other) : value(other.value) {
+    add_reference(get_frame(), value);
   }
 
-  Object(Object &&other) : object(other.object) { other.object = nullptr; }
+  Object(Object &&other) : value(other.value) { other.value = nullptr; }
 
   Object &operator=(Object &other) {
-    copy(other.object);
+    copy(other.value);
     return *this;
   }
 
   Object &operator=(Object &&other) {
-    move(other.object);
+    move(other.value);
     return *this;
   }
 
@@ -72,46 +68,41 @@ public:
   Reference operator[](std::string name);
 
   ~Object() {
-    if (object != nullptr)
-      dec_rc(object);
+    remove_reference(get_frame(), value);
   }
 
-  void freeze() { objects::freeze(object); }
+  void freeze() { objects::freeze(value); }
 
-  void create_region() { objects::create_region(object); }
+  void create_region() { objects::create_region(value); }
 };
 
 class Reference {
   friend class Object;
   std::string key;
-  DynObject *object;
+  DynObject *src;
 
   void copy(DynObject *new_object) {
-    auto old = object;
-    objects::set_copy(object, key, new_object);
+    add_reference(src, new_object);
+    auto old = objects::set(src, key, new_object);
+    remove_reference(src, old);
   }
 
-  void move(DynObject *&new_object) {
-    // Underlying RC transferred to the field
-    set_move(object, key, new_object);
-    // Need to remove the lrc if appropriate.
-    remove_local_reference(new_object);
-    // Clear the pointer to provide linearity of move.
-    new_object = nullptr;
-  }
+  DynObject *get() { return objects::get(src, key); }
 
-  DynObject *get() { return objects::get(object, key); }
-
-  Reference(std::string name, DynObject *object) : key(name), object(object) {}
+  Reference(std::string name, DynObject *object) : key(name), src(object) {}
 
 public:
   Reference &operator=(Object &other) {
-    copy(other.object);
+    copy(other.value);
     return *this;
   }
 
   Reference &operator=(Object &&other) {
-    move(other.object);
+    auto old_value = objects::set(src, key, other.value);
+    move_reference(get_frame(), src, other.value);
+    remove_reference(src, old_value);
+    //  move semantics.
+    other.value = nullptr;
     return *this;
   }
 
@@ -126,15 +117,16 @@ public:
   }
 
   Reference &operator=(std::nullptr_t) {
-    objects::set_copy(object, key, nullptr);
+    auto old_value = objects::set(src, key, nullptr);
+    remove_reference(src, old_value);
     return *this;
   }
 
-  Reference operator[](std::string name) { return {name, objects::get(object, key)}; }
+  Reference operator[](std::string name) { return {name, objects::get(src, key)}; }
 };
 
 Reference Object::operator[](std::string name) {
-  return Reference(name, object);
+  return Reference(name, value);
 }
 
 Object &Object::operator=(Reference &other) {
@@ -151,7 +143,7 @@ void mermaid(std::initializer_list<std::pair<std::string, Object &>> roots) {
   std::vector<objects::Edge> edges;
   for (auto &root : roots) {
     edges.push_back(
-        {get_frame(), root.first, root.second.object});
+        {get_frame(), root.first, root.second.value});
   }
   objects::mermaid(edges);
   std::cout << "Press a key!" << std::endl;
