@@ -80,8 +80,7 @@ struct Region {
     // local reference count.
     if (r->local_reference_count != 0)
       dec_lrc(r->parent);
-    else
-    {
+    else {
       std::cout << "Collecting region: " << r << std::endl;
       to_collect.push_back(r);
     }
@@ -92,7 +91,7 @@ struct Region {
   static void set_parent(Region *r, Region *p) {
     assert(r->local_reference_count != 0);
     // This edge becomes a parent edge, so remove from local reference count?
-//    r->local_reference_count--; // TODO check with examples
+    //    r->local_reference_count--; // TODO check with examples
     r->parent_reference_count++;
 
     // Check if already parented, if so increment the parent reference count.
@@ -116,8 +115,7 @@ struct Region {
     inc_lrc(r->parent);
   }
 
-  void terminate_region()
-  {
+  void terminate_region() {
     to_collect.push_back(this);
     collect();
   }
@@ -141,7 +139,8 @@ struct Region {
     while (!to_collect.empty()) {
       auto r = to_collect.back();
       to_collect.pop_back();
-      // Note destruct could re-enter here, ensure we don't hold onto a pointer into to_collect.
+      // Note destruct could re-enter here, ensure we don't hold onto a pointer
+      // into to_collect.
       for (auto o : r->objects)
         destruct(o);
       for (auto o : r->objects)

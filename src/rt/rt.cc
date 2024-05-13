@@ -1,7 +1,6 @@
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
-
 
 #include "mermaid.h"
 #include "objects.h"
@@ -13,11 +12,9 @@ DynObject *make_object(std::string name) { return new DynObject(name); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 
-
 void freeze(DynObject *obj) { obj->freeze(); }
 
 void create_region(DynObject *object) { object->create_region(); }
-
 
 DynObject *get(DynObject *obj, std::string key) { return obj->get(key); }
 
@@ -25,7 +22,7 @@ DynObject *set(DynObject *obj, std::string key, DynObject *value) {
   return obj->set(key, value);
 }
 
-void add_reference(DynObject *src, DynObject *target){
+void add_reference(DynObject *src, DynObject *target) {
   DynObject::add_reference(src, target);
 }
 
