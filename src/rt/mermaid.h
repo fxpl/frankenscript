@@ -72,8 +72,8 @@ inline void mermaid(std::vector<Edge> &roots) {
                      {});
   }
 
+  // Output the unreachable parts of the graph
   unreachable = true;
-
   for (auto &root : DynObject::all_objects) {
     DynObject::visit({nullptr, "", root},
                      explore,
