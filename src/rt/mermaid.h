@@ -20,19 +20,17 @@ inline void mermaid(std::vector<Edge> &roots) {
   std::map<Region *, std::vector<std::size_t>> region_strings;
   // Keep track of the immutable objects.
   std::vector<std::size_t> immutable_objects;
-  // Add frame as local region
-  visited[DynObject::frame()] = 0;
-  region_strings[DynObject::get_local_region()] = {0};
+  // // Add frame as local region
+  // visited[DynObject::frame()] = 0;
+  // region_strings[DynObject::get_local_region()] = {0};
   // Add nullptr as immutable
-  visited[nullptr] = 1;
-  immutable_objects.push_back(1);
+  visited[nullptr] = 0;
+  immutable_objects.push_back(0);
   // Account for frame and nullptr objects.
-  size_t id = 2;
+  size_t id = 1;// was 2
   // Header
   out << "```mermaid" << std::endl;
   out << "graph TD" << std::endl;
-  out << "id0[frame]" << std::endl;
-  out << "id1[null]" << std::endl;
 
   bool unreachable = false;
 
@@ -94,7 +92,6 @@ inline void mermaid(std::vector<Edge> &roots) {
 
     if (region == DynObject::get_local_region()) {
       out << "local region" << std::endl;
-      out << "  id0" << std::endl;
     }
     else 
     {
@@ -111,6 +108,7 @@ inline void mermaid(std::vector<Edge> &roots) {
 
   // Output the immutable region.
   out << "subgraph Immutable" << std::endl;
+  out << "  id0[nullptr]" << std::endl;
   for (auto obj : immutable_objects) {
     out << "  id" << obj << std::endl;
   }

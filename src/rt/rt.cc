@@ -74,7 +74,4 @@ void post_run(size_t initial_count) {
     std::cout << "No memory leaks detected!" << std::endl;
   }
 }
-
-void set_output(std::string path);
-void mermaid(std::vector<Edge> &roots);
 } // namespace objects

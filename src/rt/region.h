@@ -90,7 +90,7 @@ struct Region {
 
   static void set_parent(Region *r, Region *p) {
     assert(r->local_reference_count != 0);
-    // This edge becomes a parent edge, so remove from local reference count?
+
     r->parent_reference_count++;
 
     // Check if already parented, if so increment the parent reference count.
@@ -100,7 +100,15 @@ struct Region {
 
     // Check if already parented to another region.
     if (r->parent != nullptr)
-      error("Region already has a parent");
+      error("Region already has a parent: Creating region DAG not supported!");
+
+    // Prevent creating a cycle
+    auto ancestors = p->parent;
+    while (ancestors != nullptr) {
+      if (ancestors == r)
+        error("Cycle created in region hierarchy");
+      ancestors = ancestors->parent;
+    }
 
     // Set the parent and increment the parent reference count.
     r->parent = p;

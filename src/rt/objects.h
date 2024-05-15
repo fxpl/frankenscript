@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -193,7 +194,7 @@ class DynObject {
   }
 
 public:
-  DynObject(std::string name, bool global = false) : name(name) {
+  DynObject(std::string name_, bool global = false) : name(name_) {
     count++;
     all_objects.insert(this);
     if (global) {
@@ -202,6 +203,12 @@ public:
       auto local_region = get_local_region();
       region = local_region;
       local_region->objects.insert(this);
+    }
+    if (name == "")
+    {
+      std::stringstream stream;
+      stream << this;
+      name = stream.str();
     }
     std::cout << "Allocate: " << name << std::endl;
   }
@@ -292,8 +299,11 @@ public:
     if (src_region == dst_region)
       return;
 
-    add_region_reference(src_region, target);
-    remove_region_reference(dst_region, get_region(target));
+    auto target_region = get_region(target);
+
+    add_region_reference(dst_region, target);
+    // Note that target_region and get_region(target) are not necessarily the same.
+    remove_region_reference(src_region, target_region);
   }
 
   void create_region() {

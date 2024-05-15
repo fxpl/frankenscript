@@ -3,8 +3,12 @@
  */
 
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "api.h"
+
+void load_trieste(int argc, char **argv);
 
 void test()
 {
@@ -119,11 +123,52 @@ void test()
 }
 
 
+bool read_up_down() {
+  while (true) {
+    char c = getchar();
+    while (c == 27) {
+      c = getchar();
+      if (c == 91) {
+        c = getchar();
+        if (c == 65) {
+          return true;
+        } else if (c == 66) {
+          return false;
+        }
+      }
+    }
+  }
+}
+
+void ui() {
+  // Written by Copilot
+  struct termios old_tio, new_tio;
+  tcgetattr(STDIN_FILENO, &old_tio); // Get terminal settings for stdin
+  new_tio = old_tio; // Keep the old settings to restore them later
+  new_tio.c_lflag &= ~ICANON & ~ECHO; // Disable canonical mode (buffered I/O)
+  tcsetattr(STDIN_FILENO, TCSANOW,
+            &new_tio); // Set the new settings immediately
+
+  for (int i = 0; i < 10; i++) {
+    if (read_up_down()) {
+      std::cout << "Up" << std::endl;
+    } else {
+      std::cout << "Down" << std::endl;
+    }
+  }
+
+  // Restore original settings before exiting
+  tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+}
 
 
-int main()
+
+
+int main(int argc, char **argv)
 {
-  api::run(test);
-  
+//  api::run(test);
+  api::set_output("mermaid.md");
+
+  load_trieste(argc, argv);
   return 0;
 }

@@ -14,6 +14,7 @@ struct Edge {
 
 DynObject *make_object(std::string name = "");
 DynObject *get_frame();
+void clear_frame();
 
 void freeze(DynObject *obj);
 void create_region(DynObject *objects);

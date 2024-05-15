@@ -24,4 +24,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable_ExcludeFromAll(trieste)
 
 set(CMAKE_CXX_STANDARD 20)
-add_executable(verona_dyn src/main.cc src/rt/rt.cc)
+
+add_library(rt OBJECT src/rt/rt.cc)
+
+add_library(lang OBJECT src/lang/lang.cc src/lang/interpreter.cc)
+target_link_libraries(lang PRIVATE trieste::trieste)
+
+add_executable(verona_dyn src/main.cc)
+target_link_libraries(verona_dyn PRIVATE rt lang)
