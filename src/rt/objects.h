@@ -137,7 +137,7 @@ class DynObject {
   }
 
   size_t change_rc(size_t delta) {
-    std::cout << "Change RC: " << name << " " << rc << " + " << (ssize_t)delta
+    std::cout << "Change RC: " << get_name() << " " << rc << " + " << (ssize_t)delta
               << std::endl;
     if (!is_immutable()) {
       assert(delta == 0 || rc != 0);
@@ -162,7 +162,7 @@ class DynObject {
         return false;
 
       if (obj->is_local_object()) {
-        std::cout << "Adding object to region: " << obj->name
+        std::cout << "Adding object to region: " << obj->get_name()
                   << " rc = " << obj->rc << std::endl;
         rc_of_added_objects += obj->rc;
         internal_references++;
@@ -174,7 +174,7 @@ class DynObject {
 
       auto obj_region = get_region(obj);
       if (obj_region == r) {
-        std::cout << "Adding internal reference to object: " << obj->name
+        std::cout << "Adding internal reference to object: " << obj->get_name()
                   << std::endl;
         internal_references++;
         return false;
@@ -204,12 +204,6 @@ public:
       region = local_region;
       local_region->objects.insert(this);
     }
-    if (name == "")
-    {
-      std::stringstream stream;
-      stream << this;
-      name = stream.str();
-    }
     std::cout << "Allocate: " << name << std::endl;
   }
 
@@ -225,6 +219,15 @@ public:
     if (!is_immutable() && r != nullptr)
       r->objects.erase(this);
     std::cout << "Deallocate: " << name << std::endl;
+  }
+
+  std::string get_name() {
+    if (!name.empty())
+      return name;
+
+    std::stringstream stream;
+    stream << this;
+    return stream.str();
   }
 
   // Place holder for the frame object.  Used in various places if we don't have
@@ -276,8 +279,8 @@ public:
           if (e.target == nullptr)
             return false;
 
-          std::cout << "Remove reference from: " << e.src->name << " to "
-                    << e.target->name << std::endl;
+          std::cout << "Remove reference from: " << e.src->get_name() << " to "
+                    << e.target->get_name() << std::endl;
           bool result = e.target->change_rc(-1) == 0;
 
           remove_region_reference(get_region(e.src), get_region(e.target));

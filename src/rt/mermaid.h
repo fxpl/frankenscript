@@ -14,7 +14,7 @@ void set_output(std::string path) { mermaid_path = path; }
 
 inline void mermaid(std::vector<Edge> &roots) {
   auto out = std::ofstream(mermaid_path);
-  // Give a nice id to each object. 
+  // Give a nice id to each object.
   std::map<DynObject *, std::size_t> visited;
   // Keep track of all the objects in a region.
   std::map<Region *, std::vector<std::size_t>> region_strings;
@@ -27,7 +27,7 @@ inline void mermaid(std::vector<Edge> &roots) {
   visited[nullptr] = 0;
   immutable_objects.push_back(0);
   // Account for frame and nullptr objects.
-  size_t id = 1;// was 2
+  size_t id = 1; // was 2
   // Header
   out << "```mermaid" << std::endl;
   out << "graph TD" << std::endl;
@@ -35,47 +35,45 @@ inline void mermaid(std::vector<Edge> &roots) {
   bool unreachable = false;
 
   auto explore = [&](Edge e) {
-                       DynObject *dst = e.target;
-                       std::string key = e.key;
-                       DynObject *src = e.src;
-                       if (src != nullptr) {
-                         out << "  id" << visited[src] << " -->|" << key
-                             << "| ";
-                       }
-                       if (visited.find(dst) != visited.end()) {
-                         out << "id" << visited[dst] << std::endl;
-                         return false;
-                       }
-                       auto curr_id = id++;
-                       visited[dst] = curr_id;
-                       out << "id" << curr_id << "[ " << dst << "\\n"
-                           << dst->name << "\\nrc=" << dst->rc << " ]"
-                           << (unreachable ? ":::unreachable" : "")
-                           << std::endl;
+    DynObject *dst = e.target;
+    std::string key = e.key;
+    DynObject *src = e.src;
+    if (src != nullptr) {
+      out << "  id" << visited[src] << " -->|" << key << "| ";
+    }
+    if (visited.find(dst) != visited.end()) {
+      out << "id" << visited[dst] << std::endl;
+      return false;
+    }
+    auto curr_id = id++;
+    visited[dst] = curr_id;
+    out << "id" << curr_id << "[ ";
+    if (dst->name.empty())
+      out << dst;
+    else
+      out << dst->name;
+    out << "\\nrc=" << dst->rc << " ]"
+        << (unreachable ? ":::unreachable" : "") << std::endl;
 
-                       auto region = DynObject::get_region(dst);
-                       if (region != nullptr) {
-                         region_strings[region].push_back(curr_id);
-                       }
+    auto region = DynObject::get_region(dst);
+    if (region != nullptr) {
+      region_strings[region].push_back(curr_id);
+    }
 
-                       if (dst->is_immutable()) {
-                         immutable_objects.push_back(curr_id);
-                       }
-                       return true;
-                     };
+    if (dst->is_immutable()) {
+      immutable_objects.push_back(curr_id);
+    }
+    return true;
+  };
   // Output all reachable edges
   for (auto &root : roots) {
-    DynObject::visit({root.src, root.key, root.target},
-                     explore,
-                     {});
+    DynObject::visit({root.src, root.key, root.target}, explore, {});
   }
 
   // Output the unreachable parts of the graph
   unreachable = true;
   for (auto &root : DynObject::all_objects) {
-    DynObject::visit({nullptr, "", root},
-                     explore,
-                     {});
+    DynObject::visit({nullptr, "", root}, explore, {});
   }
 
   // Output any region parent edges.
@@ -92,14 +90,12 @@ inline void mermaid(std::vector<Edge> &roots) {
 
     if (region == DynObject::get_local_region()) {
       out << "local region" << std::endl;
-    }
-    else 
-    {
-        out << std::endl;
-        out << "  region" << region << "{" << region
-            << "\\nlrc=" << region->local_reference_count
-            << "\\nsbrc=" << region->sub_region_reference_count
-            << "\\nprc=" << region->parent_reference_count << "}" << std::endl;
+    } else {
+      out << std::endl;
+      out << "  region" << region << "[\\" << region
+          << "\\nlrc=" << region->local_reference_count
+          << "\\nsbrc=" << region->sub_region_reference_count
+          << "\\nprc=" << region->parent_reference_count << "/]" << std::endl;
     }
     for (auto obj : objects) {
       out << "  id" << obj << std::endl;
