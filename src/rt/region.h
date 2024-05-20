@@ -15,9 +15,7 @@ void dealloc(DynObject *obj);
 struct Region {
 
   static inline thread_local std::vector<Region *> to_collect{};
-  // The local reference count is sum of the following:
-  //   * the number of references to objects in the region from local region.
-  //   * the number of direct subregions, whose LRC is non-zero
+  // The local reference count is the number of references to objects in the region from local region.
   // Using non-zero LRC for subregions ensures we cannot send a region if a
   // subregion has references into it.  Using zero and non-zero means we reduce
   // the number of updates.
@@ -32,39 +30,65 @@ struct Region {
   // tracking dynamically we can allow multiple references.
   size_t parent_reference_count{0};
 
+  // The number of direct subregions, whose LRC is non-zero
+  size_t sub_region_reference_count{0};
+
   // The objects in this region.
   // TODO: make this more efficient.
   std::set<DynObject *> objects{};
 
-  static void dec_lrc(Region *r) {
-    // Edge triggered LRC for parent.
-    while (true) {
-      assert(r->local_reference_count != 0);
-      r->local_reference_count--;
-      if (r->local_reference_count != 0)
-        return;
-      if (r->parent == nullptr)
-        break;
-      r = r->parent;
-    }
-    if (r->local_reference_count == 0) {
-      assert(r->parent == nullptr);
+  size_t combined_lrc()
+  {
+    return local_reference_count + sub_region_reference_count;
+  }
+
+  static void action(Region *r) {
+    if ((r->local_reference_count == 0) && (r->parent == nullptr)) {
       // TODO, this can be hooked to perform delayed operations like send.
+      //  Needs to check for sub_region_reference_count for send, but not deallocate.
 
       to_collect.push_back(r);
       std::cout << "Collecting region: " << r << std::endl;
     }
   }
 
-  static void inc_lrc(Region *r) {
+  static void dec_lrc(Region *r) {
+    assert(r->local_reference_count != 0);
+    r->local_reference_count--;
     // Edge triggered LRC for parent.
-    while (true) {
-      r->local_reference_count++;
-      if (r->local_reference_count != 1)
-        break;
-      if (r->parent == nullptr)
-        break;
+    if(r->combined_lrc() == 0)
+      dec_sbrc(r);
+    else
+      action(r);
+  }
+
+  static void dec_sbrc(Region *r)
+  {
+    while (r->parent == nullptr)
+    {
       r = r->parent;
+      r->sub_region_reference_count--;
+      if (r->combined_lrc() != 0)
+        break;
+    }
+    action(r);
+  }
+
+  static void inc_lrc(Region *r) {
+    r->local_reference_count++;
+    // Edge triggered LRC for parent.
+    if (r->combined_lrc() == 1)
+      inc_sbrc(r);
+  }
+
+  static void inc_sbrc(Region *r)
+  {
+    while (r->parent != nullptr)
+    {
+      r = r->parent;
+      r->sub_region_reference_count++;
+      if (r->combined_lrc() != 1)
+        break;
     }
   }
 
@@ -78,8 +102,8 @@ struct Region {
     // This is the last parent reference, so region no longer has a parent.
     // If it has internal references, then we need to decrement the parents
     // local reference count.
-    if (r->local_reference_count != 0)
-      dec_lrc(r->parent);
+    if (r->combined_lrc() != 0)
+      dec_sbrc(r);
     else {
       std::cout << "Collecting region: " << r << std::endl;
       to_collect.push_back(r);
@@ -119,7 +143,7 @@ struct Region {
     if (r->local_reference_count == 0)
       return;
 
-    inc_lrc(r->parent);
+    inc_sbrc(r);
   }
 
   void terminate_region() {

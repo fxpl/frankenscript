@@ -82,7 +82,7 @@ inline void mermaid(std::vector<Edge> &roots) {
   for (auto [region, objects] : region_strings) {
     if (region->parent == nullptr)
       continue;
-    out << "  region" << region << "  -.->|parent| region" << region->parent
+    out << "  region" << region->parent << "  <-.-o region" << region
         << std::endl;
   }
 
@@ -98,6 +98,7 @@ inline void mermaid(std::vector<Edge> &roots) {
         out << std::endl;
         out << "  region" << region << "{" << region
             << "\\nlrc=" << region->local_reference_count
+            << "\\nsbrc=" << region->sub_region_reference_count
             << "\\nprc=" << region->parent_reference_count << "}" << std::endl;
     }
     for (auto obj : objects) {

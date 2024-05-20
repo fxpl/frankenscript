@@ -7,13 +7,13 @@
 
 namespace verona::interpreter {
 
-bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
-  if (*node == Print) {
-    std::cout << *node << std::endl;
+bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
+  if (node == Print) {
+    std::cout << node << std::endl;
     return true;
   }
 
-  if (*node == CreateObject)
+  if (node == CreateObject)
   {
     std::cout << "create object" << std::endl;
     auto v = objects::make_object();
@@ -22,7 +22,7 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == Null)
+  if (node == Null)
   {
     std::cout << "null" << std::endl;
     stack.push_back(nullptr);
@@ -30,11 +30,11 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == LoadFrame)
+  if (node == LoadFrame)
   {
     std::cout << "load frame" << std::endl;
     auto frame = objects::get_frame();
-    std::string field{(*node)->location().view()};
+    std::string field{node->location().view()};
     auto v = objects::get(frame, field);
     objects::add_reference(frame, v);
     stack.push_back(v);
@@ -42,26 +42,26 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == StoreFrame)
+  if (node == StoreFrame)
   {
     std::cout << "store frame" << std::endl;
     auto frame = objects::get_frame();
     auto v = stack.back();
     stack.pop_back();
     std::cout << "pop " << v << std::endl;
-    std::string field{(*node)->location().view()};
+    std::string field{node->location().view()};
     auto v2 = objects::set(frame, field, v);
     remove_reference(frame, v2);
     return false;
   }
 
-  if (*node == LoadField)
+  if (node == LoadField)
   {
     std::cout << "load field" << std::endl;
     auto v = stack.back();
     stack.pop_back();
     std::cout << "pop " << v << std::endl;
-    std::string field{(*node)->location().view()};
+    std::string field{node->location().view()};
     auto v2 = objects::get(v, field);
     stack.push_back(v2);
     std::cout << "push " << v2 << std::endl;
@@ -70,7 +70,7 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == StoreField)
+  if (node == StoreField)
   {
     std::cout << "store field" << std::endl;
     auto v = stack.back();
@@ -79,7 +79,7 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     auto v2 = stack.back();
     stack.pop_back();
     std::cout << "pop " << v2 << std::endl;
-    std::string field{(*node)->location().view()};
+    std::string field{node->location().view()};
     auto v3 = objects::set(v2, field, v);
     move_reference(objects::get_frame(), v2, v);
     remove_reference(objects::get_frame(), v2);
@@ -87,7 +87,7 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == CreateRegion)
+  if (node == CreateRegion)
   {
     std::cout << "create region" << std::endl;
     auto v = stack.back();
@@ -98,7 +98,7 @@ bool run_stmt(trieste::NodeIt node, std::vector<objects::DynObject *> &stack) {
     return false;
   }
 
-  if (*node == FreezeObject)
+  if (node == FreezeObject)
   {
     std::cout << "freeze object" << std::endl;
     auto v = stack.back();
@@ -119,7 +119,7 @@ bool run_to_print(trieste::NodeIt &node, trieste::NodeIt end) {
   std::vector<objects::DynObject *> stack;
 
   while (node != end) {
-    if (run_stmt(node, stack))
+    if (run_stmt(*node, stack))
       return true;
     ++node;
   }
