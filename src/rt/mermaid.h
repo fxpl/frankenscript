@@ -42,7 +42,12 @@ inline void mermaid(std::vector<Edge> &roots) {
       out << "  id" << visited[src] << " -->|" << key << "| ";
     }
     if (visited.find(dst) != visited.end()) {
-      out << "id" << visited[dst] << std::endl;
+      if (visited[dst] == visited[src])
+        /// Currently required due to 
+        ///  https://github.com/mermaid-js/mermaid/issues/5820
+        out << "HasSelfEdge" << std::endl;
+      else
+        out << "id" << visited[dst] << std::endl;
       return false;
     }
     auto curr_id = id++;
