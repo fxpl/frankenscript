@@ -49,3 +49,4 @@ foreach(FILE ${ALL_FILES})
 endforeach()
 
 set_property(TEST three_regions.vpy PROPERTY WILL_FAIL true)
+set_property(TEST tobias1.vpy PROPERTY WILL_FAIL true)
