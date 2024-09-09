@@ -8,12 +8,8 @@
 #include "objects.h"
 
 namespace objects {
-// TODO: Make this nicer
-std::string mermaid_path{};
-void set_output(std::string path) { mermaid_path = path; }
 
-inline void mermaid(std::vector<Edge> &roots) {
-  auto out = std::ofstream(mermaid_path);
+void mermaid(std::vector<Edge> &roots, std::ostream &out) {
   // Give a nice id to each object.
   std::map<DynObject *, std::size_t> visited;
   // Keep track of all the objects in a region.

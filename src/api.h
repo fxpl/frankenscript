@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <initializer_list>
 #include <utility>
 
@@ -11,8 +12,6 @@ namespace api {
 using namespace objects;
 
 class Reference;
-
-void set_output(std::string path) { objects::set_output(path); }
 
 class Object {
   friend class Reference;
@@ -139,20 +138,32 @@ Object &Object::operator=(Reference &&other) {
   return *this;
 }
 
+struct UI : objects::UI
+{
+  void output(std::vector<objects::Edge> &edges, std::string message) {
+    std::ofstream out("mermaid.md");
+    objects::mermaid(edges, out);
+    std::cout << message << std::endl;
+    std::cout << "Press a key!" << std::endl;
+    getchar();
+  }
+};
+
 void mermaid(std::initializer_list<std::pair<std::string, Object &>> roots) {
+  UI ui;
   std::vector<objects::Edge> edges;
   for (auto &root : roots) {
     edges.push_back(
         {get_frame(), root.first, root.second.value});
   }
-  objects::mermaid(edges);
-  std::cout << "Press a key!" << std::endl;
-  getchar();
+  
+  ui.output(edges, "");
 }
 
 template <typename F> void run(F &&f) {
+  UI ui;
   size_t initial_count = objects::pre_run();
   f();
-  objects::post_run(initial_count);
+  objects::post_run(initial_count, ui);
 };
 } // namespace api

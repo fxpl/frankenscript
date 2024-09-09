@@ -169,15 +169,26 @@ std::pair<PassDef, std::shared_ptr<Node>> bytecode() {
   return {p, result};
 }
 
+struct CLIOptions : trieste::Options
+{
+  bool iterative = false;
+
+  void configure(CLI::App &app)
+  {
+    app.add_flag("-i,--interactive", iterative, "Run the interpreter iteratively");
+  }
+};
+
 namespace verona::interpreter {
-void run(trieste::Node node);
+void run(trieste::Node node, bool iterative);
 }
 
 void load_trieste(int argc, char **argv) {
+  CLIOptions options;
   auto [bytecodepass, result] = bytecode();
   trieste::Reader reader{"verona_dyn", {grouping(), bytecodepass}, parser()};
-  trieste::Driver driver{reader};
+  trieste::Driver driver{reader, &options};
   driver.run(argc, argv);
-  verona::interpreter::run(*result);
+  verona::interpreter::run(*result, options.iterative);
   // return *result;
 }

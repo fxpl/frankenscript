@@ -28,9 +28,14 @@ void move_reference(DynObject *src, DynObject *dst, DynObject *target);
 
 size_t get_object_count();
 
-size_t pre_run();
-void post_run(size_t count);
+struct UI
+{
+  virtual void output(std::vector<objects::Edge> &, std::string ) {}
+};
 
-void set_output(std::string path);
-void mermaid(std::vector<Edge> &roots);
+size_t pre_run();
+void post_run(size_t count, UI& ui);
+
+void mermaid(std::vector<Edge> &roots, std::ostream &out);
+
 } // namespace objects

@@ -40,7 +40,7 @@ size_t pre_run() {
   return objects::DynObject::get_count();
 }
 
-void post_run(size_t initial_count) {
+void post_run(size_t initial_count, UI& ui) {
   std::cout << "Test complete - checking for cycles in local region..."
             << std::endl;
   if (objects::DynObject::get_count() != initial_count) {
@@ -50,9 +50,7 @@ void post_run(size_t initial_count) {
     for (auto obj : objs) {
       edges.push_back({nullptr, "?", obj});
     }
-    objects::mermaid(edges);
-    std::cout << "Press a key!" << std::endl;
-    getchar();
+    ui.output(edges, "Cycles detected in local region.");
   }
   objects::DynObject::get_local_region()->terminate_region();
   if (objects::DynObject::get_count() != initial_count) {
@@ -65,9 +63,7 @@ void post_run(size_t initial_count) {
     for (auto obj : objects::DynObject::get_objects()) {
       edges.push_back({nullptr, "?", obj});
     }
-    objects::mermaid(edges);
-    std::cout << "Press a key!" << std::endl;
-    getchar();
+    ui.output(edges, "Memory leak detected!");
 
     std::exit(1);
   } else {

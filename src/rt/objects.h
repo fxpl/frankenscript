@@ -22,7 +22,7 @@ constexpr uintptr_t ImmutableTag{1};
 // Representation of objects
 class DynObject {
   friend class Reference;
-  friend void mermaid(std::vector<Edge> &roots);
+  friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
   friend void destruct(DynObject *obj);
   friend void dealloc(DynObject *obj);
 

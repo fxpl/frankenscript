@@ -14,7 +14,6 @@ void test()
 {
   using namespace api;
   
-  api::set_output("mermaid.md");
 
   auto a = Object::create("a");
   auto b = Object::create("b");
@@ -167,7 +166,6 @@ void ui() {
 int main(int argc, char **argv)
 {
 //  api::run(test);
-  api::set_output("mermaid.md");
 
   load_trieste(argc, argv);
   return 0;

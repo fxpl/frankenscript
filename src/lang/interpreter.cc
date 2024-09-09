@@ -126,17 +126,44 @@ bool run_to_print(trieste::NodeIt &node, trieste::NodeIt end) {
   return false;
 }
 
-void run(trieste::Node node) {
+class UI : public objects::UI
+{
+  bool interactive;
+  std::string path;
+  std::ofstream out;
+
+public:
+  UI(bool interactive_) : interactive(interactive_) {
+    path = "mermaid.md";
+    out.open(path);
+  }
+
+  void output(std::vector<objects::Edge> &edges, std::string message) {
+    objects::mermaid(edges, out);
+    if (interactive) {
+      out.close();
+      std::cout << "Press a key!" << std::endl;
+      getchar();
+      out.open(path);
+    }
+    else
+    {
+      out << message << std::endl;
+    }
+  }
+};
+
+void run(trieste::Node node, bool interactive = true) {
+  UI ui(interactive);
   size_t initial = objects::pre_run();
   auto it = node->begin();
   std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
   while (run_to_print(it, node->end()))
   {
-    objects::mermaid(edges);
-    getchar();
+    ui.output(edges, (*it)->str());
     it++;
   }
-  objects::post_run(initial);
+  objects::post_run(initial, ui);
 }
 
 } // namespace verona::interpreter
