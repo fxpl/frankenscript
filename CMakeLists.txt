@@ -32,3 +32,19 @@ target_link_libraries(lang PRIVATE trieste::trieste)
 
 add_executable(verona_dyn src/main.cc)
 target_link_libraries(verona_dyn PRIVATE rt lang)
+
+
+message(STATUS "Adding tests")
+FILE(GLOB ALL_FILES
+  CONFIGURE_DEPENDS
+  tests/*
+)
+
+enable_testing()
+foreach(FILE ${ALL_FILES})
+  get_filename_component(FILENAME ${FILE} NAME)
+  message(STATUS "Adding test: ${FILENAME} -- ${FILE}")
+  add_test(NAME ${FILENAME} COMMAND verona_dyn build ${FILE})
+endforeach()
+
+set_property(TEST three_regions.vpy PROPERTY WILL_FAIL true)
