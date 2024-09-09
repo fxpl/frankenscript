@@ -17,12 +17,13 @@ FetchContent_MakeAvailable(cmake_utils)
 FetchContent_Declare(
   trieste
   GIT_REPOSITORY https://github.com/microsoft/trieste
-  GIT_TAG b466068270471ccc9c5f5ddd543bd6e2fb02ad87
+  GIT_TAG 467157a167d2e929095498089f29fc9419f4ef11
   GIT_SHALLOW FALSE
 )
-
+set (TRIESTE_BUILD_SAMPLES OFF)
+set (TRIESTE_BUILD_PARSERS OFF)
+set (TRIESTE_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable_ExcludeFromAll(trieste)
-
 set(CMAKE_CXX_STANDARD 20)
 
 add_library(rt OBJECT src/rt/rt.cc)
