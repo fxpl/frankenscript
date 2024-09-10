@@ -4,13 +4,15 @@
 
 #include <iostream>
 #include <vector>
+#include <optional>
 
 namespace verona::interpreter {
 
-bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
+
+std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
   if (node == Print) {
     std::cout << node << std::endl;
-    return true;
+    return {true, {}};
   }
 
   if (node == CreateObject)
@@ -19,7 +21,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     auto v = objects::make_object();
     stack.push_back(v);
     std::cout << "push " << v << std::endl;
-    return false;
+    return {false, {}};
   }
 
   if (node == Null)
@@ -27,7 +29,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     std::cout << "null" << std::endl;
     stack.push_back(nullptr);
     std::cout << "push nullptr" << std::endl;
-    return false;
+    return {false, {}};
   }
 
   if (node == LoadFrame)
@@ -39,7 +41,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     objects::add_reference(frame, v);
     stack.push_back(v);
     std::cout << "push " << v << std::endl;
-    return false;
+    return {false, {}};
   }
 
   if (node == StoreFrame)
@@ -52,7 +54,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     std::string field{node->location().view()};
     auto v2 = objects::set(frame, field, v);
     remove_reference(frame, v2);
-    return false;
+    return {false, {}};
   }
 
   if (node == LoadField)
@@ -67,7 +69,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     std::cout << "push " << v2 << std::endl;
     objects::add_reference(objects::get_frame(), v2);
     objects::remove_reference(objects::get_frame(), v);
-    return false;
+    return {false, {}};
   }
 
   if (node == StoreField)
@@ -84,7 +86,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     move_reference(objects::get_frame(), v2, v);
     remove_reference(objects::get_frame(), v2);
     remove_reference(v2, v3);
-    return false;
+    return {false, {}};
   }
 
   if (node == CreateRegion)
@@ -95,7 +97,7 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     std::cout << "pop " << v << std::endl;
     objects::create_region(v);
     remove_reference(objects::get_frame(), v);
-    return false;
+    return {false, {}};
   }
 
   if (node == FreezeObject)
@@ -106,23 +108,84 @@ bool run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
     std::cout << "pop " << v << std::endl;
     objects::freeze(v);
     remove_reference(objects::get_frame(), v);
-    return false;
+    return {false, {}};
   }
 
-  return false;
+  if (node == Cmp)
+  {
+    std::cout << "compare objects" << std::endl;
+    auto a = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << a << std::endl;
+    auto b = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << b << std::endl;
+
+    std::string result;
+    if (a == b) {
+      result = "True";
+    } else {
+      result = "False";
+    }
+    auto frame = objects::get_frame();
+    auto v = objects::get(frame, result);
+    // This reference addition is theoretically not needed, since `True`
+    // and `False` are frozen.
+    objects::add_reference(frame, v);
+    stack.push_back(v);
+    std::cout << "push " << v << " (" << result << ")"<< std::endl;
+
+    remove_reference(objects::get_frame(), a);
+    remove_reference(objects::get_frame(), b);
+    return {false, {}};
+  }
+
+  if (node == Jump)
+  {
+    std::cout << "jump to " << node->location().view() << std::endl;
+    return {false, node->location()};
+  }
+
+  if (node == JumpFalse)
+  {
+    std::cout << "jump if stack has `False`" << std::endl;
+    auto v = stack.back();
+    stack.pop_back();
+
+    auto false_obj = objects::get(objects::get_frame(), "False");
+    std::optional<trieste::Location> loc = {};
+    if (v == false_obj) {
+      loc = node->location();
+    }
+
+    remove_reference(objects::get_frame(), v);
+    return {false, loc};
+  }
+
+  // assert(false);
+  return {false, {}};
 }
 
-bool run_to_print(trieste::NodeIt &node, trieste::NodeIt end) {
-  if (node == end)
+bool run_to_print(trieste::NodeIt &it, trieste::Node top) {
+  auto end = top->end();
+  if (it == end)
     return false;
 
   std::vector<objects::DynObject *> stack;
 
-  while (node != end) {
-    if (run_stmt(*node, stack))
+  while (it != end) {
+    const auto [is_print, jump_label] = run_stmt(*it, stack);
+    if (is_print)
       return true;
-    ++node;
+    if (jump_label) {
+      auto label_node = top->look(jump_label.value());
+      assert(label_node.size() == 1);
+      it = top->find(label_node[0]);
+    }
+    ++it;
   }
+
+  assert(stack.empty());
   return false;
 }
 
@@ -158,7 +221,7 @@ void run(trieste::Node node, bool interactive = true) {
   size_t initial = objects::pre_run();
   auto it = node->begin();
   std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
-  while (run_to_print(it, node->end()))
+  while (run_to_print(it, node))
   {
     ui.output(edges, (*it)->str());
     it++;

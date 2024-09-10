@@ -4,7 +4,7 @@ build/miniml: build
 	cd build; ninja
 
 build:
-	mkdir -p build; cd build; cmake -G Ninja ..
+	mkdir -p build; cd build; cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug
 
 buildf: 
 	mkdir -p out; touch out/$f.trieste; ./build/miniml build ./programs/$f.miniml -o ./out/$f.trieste 
