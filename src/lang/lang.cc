@@ -52,7 +52,7 @@ inline const auto grouping =
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (If <<= Eq * Block * Block)
-    | (Eq <<= (Lhs >>= lv) * (Rhs >>= rv))
+    | (Eq <<= (Lhs >>= rv) * (Rhs >>= rv))
     ;
 } // namespace verona::wf
 
@@ -139,6 +139,7 @@ trieste::Parse parser() {
         "region" >> [](auto &m) { m.add(Region); },
         "[[:alpha:]]+" >> [](auto &m) { m.add(Ident); },
         "\\[\"([[:alpha:]]+)\"\\]" >> [](auto &m) { m.add(Lookup, 1); },
+        "\\.([[:alpha:]]+)" >> [](auto &m) { m.add(Lookup, 1); },
         "==" >> [](auto &m) { m.seq(Eq); },
         "=" >> [](auto &m) { m.seq(Assign); },
         "{}" >> [](auto &m) { m.add(Empty); },
@@ -220,7 +221,7 @@ inline const trieste::wf::Wellformed flatten =
     | (Lookup <<= rv)
     | (Region <<= Ident)
     | (Freeze <<= Ident)
-    | (Eq <<= Ident * Ident)
+    | (Eq <<= (Lhs >>= rv) * (Rhs >>= rv))
     | (Label <<= Ident)[Ident];
     ;
 } // namespace verona::wf
