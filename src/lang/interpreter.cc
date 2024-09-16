@@ -140,6 +140,11 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, {}};
   }
 
+  // Noop
+  if (node == Label) {
+    return {false, {}};
+  }
+
   if (node == Jump)
   {
     std::cout << "jump to " << node->location().view() << std::endl;
@@ -162,8 +167,9 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, loc};
   }
 
-  // assert(false);
-  return {false, {}};
+  std::cerr << "unhandled bytecode" << std::endl;
+  node->str(std::cerr);
+  std::abort();
 }
 
 bool run_to_print(trieste::NodeIt &it, trieste::Node top) {
