@@ -83,7 +83,7 @@ trieste::Parse parser() {
   p("start",
     {
         // The file always has to start with zero indention
-        "\\A(    )+" >> [update_indent](auto &m) {
+        "\\A(    )+" >> [](auto &m) {
           m.error("unexpected indention");
         },
         // Empty lines should be ignored
@@ -205,7 +205,7 @@ PassDef grouping() {
             },
           (T(If)[If] << (T(Eq) * T(Block) * End)) * (--T(Else)) >>
             [](auto &_) {
-              return _(If) << Block;
+              return _(If) << _(Block);
             },
       }};
 
