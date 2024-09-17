@@ -15,12 +15,12 @@ namespace utils
 
   public:
     TaggedPointer(T* ptr) : ptr(reinterpret_cast<uintptr_t>(ptr)) {}
-    constexpr TaggedPointer(nullptr_t) : ptr(0) {}
+    constexpr TaggedPointer(std::nullptr_t) : ptr(0) {}
 
     TaggedPointer(T* ptr, uintptr_t tag) : ptr(reinterpret_cast<uintptr_t>(ptr) | tag)
     { assert(tag < 4); }
 
-    constexpr TaggedPointer(nullptr_t, uintptr_t tag) : ptr(tag) { assert(tag < 4); }
+    constexpr TaggedPointer(std::nullptr_t, std::uintptr_t tag) : ptr(tag) { assert(tag < 4); }
 
     bool operator==(TaggedPointer other) const { return ptr == other.ptr; }
     bool operator!=(TaggedPointer other) const { return ptr != other.ptr; }

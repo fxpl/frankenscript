@@ -8,7 +8,7 @@
 
 #include "api.h"
 
-void load_trieste(int argc, char **argv);
+int load_trieste(int argc, char **argv);
 
 void test()
 {
@@ -167,6 +167,5 @@ int main(int argc, char **argv)
 {
 //  api::run(test);
 
-  load_trieste(argc, argv);
-  return 0;
+  return load_trieste(argc, argv);
 }
