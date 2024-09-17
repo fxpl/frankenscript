@@ -42,6 +42,7 @@ inline const auto parser =
 
 inline const auto lv = Ident | Lookup;
 inline const auto rv = lv | Empty | Null;
+inline const auto cmp_values = Ident | Lookup | Null;
 
 inline const auto grouping =
     (Top <<= File)
@@ -52,7 +53,7 @@ inline const auto grouping =
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (If <<= Eq * Block * Block)
-    | (Eq <<= (Lhs >>= rv) * (Rhs >>= rv))
+    | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     ;
 } // namespace verona::wf
 
@@ -137,6 +138,7 @@ trieste::Parse parser() {
         "drop" >> [](auto &m) { m.add(Drop); },
         "freeze" >> [](auto &m) { m.add(Freeze); },
         "region" >> [](auto &m) { m.add(Region); },
+        "None" >> [](auto &m) { m.add(Null); },
         "[[:alpha:]]+" >> [](auto &m) { m.add(Ident); },
         "\\[\"([[:alpha:]]+)\"\\]" >> [](auto &m) { m.add(Lookup, 1); },
         "\\.([[:alpha:]]+)" >> [](auto &m) { m.add(Lookup, 1); },
@@ -154,6 +156,7 @@ trieste::Parse parser() {
 
 auto LV = T(Ident, Lookup);
 auto RV = T(Empty, Ident, Lookup, Null);
+auto CMP_V = T(Ident, Lookup, Null);
 
 PassDef grouping() {
   PassDef p{
@@ -188,8 +191,8 @@ PassDef grouping() {
           T(Assign) << ((T(Group) << LV[Lhs] * End) *
                         (T(Group) << RV[Rhs] * End) * End) >>
               [](auto &_) { return Assign << _[Lhs] << _[Rhs]; },
-          T(Eq) << ((T(Group) << LV[Lhs] * End) *
-                        (T(Group) << RV[Rhs] * End) * End) >>
+          T(Eq) << ((T(Group) << CMP_V[Lhs] * End) *
+                        (T(Group) << CMP_V[Rhs] * End) * End) >>
               [](auto &_) { return Eq << _[Lhs] << _[Rhs]; },
 
           (T(If) << (T(Group) * T(Eq)[Eq] * (T(Group) << T(Block)[Block]))) >>
@@ -221,7 +224,7 @@ inline const trieste::wf::Wellformed flatten =
     | (Lookup <<= rv)
     | (Region <<= Ident)
     | (Freeze <<= Ident)
-    | (Eq <<= (Lhs >>= rv) * (Rhs >>= rv))
+    | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Label <<= Ident)[Ident];
     ;
 } // namespace verona::wf

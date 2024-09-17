@@ -64,6 +64,14 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     stack.pop_back();
     std::cout << "pop " << v << std::endl;
     std::string field{node->location().view()};
+
+    if (!v) {
+      std::cerr << "\n" << std::endl;
+      std::cerr << "Error: Tried to access a field on `None`" << std::endl;
+      std::cerr << "       Requested field: " << field << std::endl;
+      std::abort();
+    }
+
     auto v2 = objects::get(v, field);
     stack.push_back(v2);
     std::cout << "push " << v2 << std::endl;

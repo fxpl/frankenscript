@@ -13,7 +13,7 @@ if a == f.a:
     drop b
     drop c
 else:
-    if f.a == False:
+    if f.b == None:
         e = {}
         drop e
 
