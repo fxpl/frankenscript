@@ -137,8 +137,6 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     }
     auto frame = objects::get_frame();
     auto v = objects::get(frame, result);
-    // This reference addition is theoretically not needed, since `True`
-    // and `False` are frozen.
     objects::add_reference(frame, v);
     stack.push_back(v);
     std::cout << "push " << v << " (" << result << ")"<< std::endl;

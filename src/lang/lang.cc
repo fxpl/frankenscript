@@ -132,7 +132,7 @@ trieste::Parse parser() {
           if (m.in(Group)) {
             m.pop(Group);
           }
-          
+
           m.push(Block);
         },
         "drop" >> [](auto &m) { m.add(Drop); },
