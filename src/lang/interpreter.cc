@@ -66,7 +66,7 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     std::string field{node->location().view()};
 
     if (!v) {
-      std::cerr << "\n" << std::endl;
+      std::cerr << std::endl;
       std::cerr << "Error: Tried to access a field on `None`" << std::endl;
       std::cerr << "       Requested field: " << field << std::endl;
       std::abort();
