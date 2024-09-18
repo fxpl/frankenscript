@@ -19,6 +19,54 @@
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
 
+namespace value {
+  /// @brief This class represents the value of an object when it's used in an
+  /// expression. For example, let's consider `k`
+  ///
+  /// ```
+  /// a = {}
+  /// k = "key"
+  /// a[k] = {}
+  /// ```
+  ///
+  /// In this example, `k` is a string literal. The access `a[k]` will retrieve the
+  /// string value from `k` and use it as a key in `a`.
+  ///
+  /// Note that dictionaries are still modeled in `DynObject`. This is analogous
+  /// to Python. While string values and integers are used as values in
+  /// expressions, they still have fields that store information and methods.
+  class Value {
+  public:
+    virtual ~Value() {}
+
+    virtual std::string* str_value() { return nullptr; }
+    std::string* expect_str_value() {
+      auto value = this->str_value();
+      assert(value && "expected a string, but received null");
+      return value;
+    }
+
+    /// @brief The string representation of this value to 
+    virtual std::string display_str() = 0;
+  };
+
+  /// @brief A string literal.
+  class StrValue : public Value {
+    std::string value;
+
+  public:
+    StrValue(std::string value_): value(value_) {}
+
+    std::string* str_value() { return &this->value; }
+
+    std::string display_str() {
+      std::stringstream stream;
+      stream << '"' << this->value << '"';
+      return stream.str();
+    }
+  };
+}
+
 // Representation of objects
 class DynObject {
   friend class Reference;
@@ -41,6 +89,7 @@ class DynObject {
   RegionPointer region{nullptr};
   std::map<std::string, DynObject *> fields{};
   std::string name{};
+  value::Value* value {nullptr};
 
   bool is_immutable() { return region.get_tag() == ImmutableTag; }
 
@@ -194,7 +243,7 @@ class DynObject {
   }
 
 public:
-  DynObject(std::string name_, bool global = false) : name(name_) {
+  DynObject(std::string name_, value::Value* value_, bool global = false) : name(name_), value(value_) {
     count++;
     all_objects.insert(this);
     if (global) {
@@ -218,6 +267,11 @@ public:
     auto r = get_region(this);
     if (!is_immutable() && r != nullptr)
       r->objects.erase(this);
+
+    if (this->value) {
+      delete this->value;
+      this->value = nullptr;
+    }
     std::cout << "Deallocate: " << name << std::endl;
   }
 
@@ -230,10 +284,14 @@ public:
     return stream.str();
   }
 
+  value::Value* get_value() {
+    return this->value;
+  }
+
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    thread_local static DynObject frame{"frame", true};
+    thread_local static DynObject frame{"frame", nullptr, true};
     return &frame;
   }
 

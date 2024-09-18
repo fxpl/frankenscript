@@ -17,16 +17,17 @@ inline const TokenDef Empty{"empty"};
 inline const TokenDef Drop{"drop"};
 inline const TokenDef Freeze{"freeze"};
 inline const TokenDef Region{"region"};
-inline const TokenDef Lookup{"lookup", flag::print};
+inline const TokenDef Lookup{"lookup"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
 inline const TokenDef Lhs{"lhs"};
+inline const TokenDef Key{"key"};
 
 namespace verona::wf {
 using namespace trieste::wf;
 
-inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null;
+inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null | String;
 inline const auto parse_groups = Group | Assign | If | Else | Block;
 
 inline const auto parser =
@@ -38,18 +39,20 @@ inline const auto parser =
   | (Group <<= (parse_tokens | Block)++)
   | (Block <<= (parse_tokens | parse_groups)++)
   | (Eq <<= Group * Group)
+  | (Lookup <<= Group)
   ;
 
 inline const auto lv = Ident | Lookup;
-inline const auto rv = lv | Empty | Null;
+inline const auto rv = lv | Empty | Null | String;
 inline const auto cmp_values = Ident | Lookup | Null;
+inline const auto key = Ident | Lookup | String;
 
 inline const auto grouping =
     (Top <<= File)
     | (File <<= Block)
     | (Block <<= (Freeze | Region | Assign | If)++)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
-    | (Lookup <<= rv)
+    | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (If <<= Eq * Block * Block)
@@ -140,8 +143,18 @@ trieste::Parse parser() {
         "region" >> [](auto &m) { m.add(Region); },
         "None" >> [](auto &m) { m.add(Null); },
         "[[:alpha:]]+" >> [](auto &m) { m.add(Ident); },
-        "\\[\"([[:alpha:]]+)\"\\]" >> [](auto &m) { m.add(Lookup, 1); },
-        "\\.([[:alpha:]]+)" >> [](auto &m) { m.add(Lookup, 1); },
+        "\\[" >> [](auto &m) {
+          m.push(Lookup);
+        },
+        "\\]" >> [](auto &m) {
+          m.term({Lookup});
+        },
+        "\\.([[:alpha:]]+)" >> [](auto &m) {
+          m.push(Lookup);
+          m.add(String, 1);
+          m.term({Lookup});
+        },
+        "\"([^\\n\"]+)\"" >> [](auto &m) { m.add(String, 1); },
         "==" >> [](auto &m) { m.seq(Eq); },
         "=" >> [](auto &m) { m.seq(Assign); },
         "{}" >> [](auto &m) { m.add(Empty); },
@@ -155,8 +168,9 @@ trieste::Parse parser() {
 }
 
 auto LV = T(Ident, Lookup);
-auto RV = T(Empty, Ident, Lookup, Null);
+auto RV = T(Empty, Ident, Lookup, Null, String);
 auto CMP_V = T(Ident, Lookup, Null);
+auto KEY = T(Ident, Lookup, String);
 
 PassDef grouping() {
   PassDef p{
@@ -168,8 +182,8 @@ PassDef grouping() {
           T(File) << (--T(Block) * Any++[File]) >>
             [](auto& _) { return  File << (Block << _[File]); },
 
-          In(Group) * LV[Lhs] * T(Lookup)[Lookup] >>
-              [](auto &_) { return _(Lookup) << _[Lhs]; },
+          In(Group) * LV[Lhs] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
+              [](auto &_) { return Lookup << _[Lhs] << _(Rhs); },
 
           T(Group) << ((T(Region)[Region] << End) * T(Ident)[Ident] * End) >>
               [](auto &_) {
@@ -222,7 +236,7 @@ inline const trieste::wf::Wellformed flatten =
     (Top <<= File)
     | (File <<= (Freeze | Region | Assign | Eq | Label | Jump | JumpFalse | Print)++)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
-    | (Lookup <<= rv)
+    | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
@@ -284,6 +298,7 @@ inline const trieste::wf::Wellformed bytecode =
     empty | (Top <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | Print | Cmp | Jump |
                       JumpFalse | Label)++)
+          | (CreateObject <<= (Dictionary | String))
           | (Label <<= Ident)[Ident];
 } // namespace verona::wf
 
@@ -308,11 +323,11 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                 T(Prelude) >>
                     [](auto &) {
                       return Seq
-                        << CreateObject
+                        << (CreateObject << (String ^ "True"))
                         << (StoreFrame ^ "True")
                         << (LoadFrame ^ "True")
                         << FreezeObject
-                        << CreateObject
+                        << (CreateObject << (String ^ "False"))
                         << (StoreFrame ^ "False")
                         << (LoadFrame ^ "False")
                         << FreezeObject
@@ -339,9 +354,10 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                 T(Compile) << (T(Ident)[Ident]) >>
                     [](auto &_) { return create_from(LoadFrame, _(Ident)); },
 
-                T(Compile) << (T(Lookup)[Lookup] << Any[Rhs]) >>
+                T(Compile) << (T(Lookup)[Lookup] << (Any[Op] * Any[Key] * End)) >>
                     [](auto &_) {
-                      return Seq << (Compile << _[Rhs])
+                      return Seq << (Compile << _[Op])
+                                 << (Compile << _[Key])
                                  << create_from(LoadField, _(Lookup));
                     },
 
@@ -352,12 +368,15 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                                  << create_from(Print, _(Op));
                     },
 
-                T(Compile) << (T(Assign)[Op] << ((T(Lookup)[Lookup] << Any[Lhs]) *
-                                             Any[Rhs])) >>
+                T(Compile) << (T(Assign)[Assign] << ((
+                    T(Lookup)[Lookup] << (Any[Op] * Any[Key] * End)) *
+                    Any[Rhs])) >>
                     [](auto &_) {
-                      return Seq << (Compile << _[Lhs]) << (Compile << _[Rhs])
+                      return Seq << (Compile << _[Op])
+                                 << (Compile << _[Key])
+                                 << (Compile << _[Rhs])
                                  << create_from(StoreField, _(Lookup))
-                                 << create_from(Print, _(Op));
+                                 << create_from(Print, _(Assign));
                     },
 
                 T(Compile) << (T(Freeze)[Op] << T(Ident)[Ident]) >>
@@ -375,7 +394,9 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                     },
 
                 T(Compile) << (T(Empty)) >>
-                    [](auto &) -> Node { return CreateObject; },
+                    [](auto &) -> Node { return CreateObject << Dictionary; },
+                T(Compile) << (T(String)[String]) >>
+                    [](auto &_) -> Node { return CreateObject << _(String); },
 
             }};
   p.post(trieste::Top, [result](Node n) {
