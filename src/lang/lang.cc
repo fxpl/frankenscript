@@ -209,7 +209,8 @@ PassDef grouping() {
             },
           (T(If)[If] << (T(Eq) * T(Block) * End)) * (--T(Else)) >>
             [](auto &_) {
-              return _(If) << _(Block);
+              // This adds an empty else block, if no else was written
+              return _(If) << Block;
             },
       }};
 
