@@ -64,7 +64,7 @@ struct Region {
 
   static void dec_sbrc(Region *r)
   {
-    while (r->parent == nullptr)
+    while (r->parent != nullptr)
     {
       r = r->parent;
       r->sub_region_reference_count--;
