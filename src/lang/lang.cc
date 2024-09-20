@@ -42,6 +42,7 @@ inline const auto parser =
 
 inline const auto lv = Ident | Lookup;
 inline const auto rv = lv | Empty | Null;
+inline const auto cmp_values = Ident | Lookup | Null;
 
 inline const auto grouping =
     (Top <<= File)
@@ -52,7 +53,7 @@ inline const auto grouping =
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (If <<= Eq * Block * Block)
-    | (Eq <<= (Lhs >>= lv) * (Rhs >>= rv))
+    | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     ;
 } // namespace verona::wf
 
@@ -131,14 +132,16 @@ trieste::Parse parser() {
           if (m.in(Group)) {
             m.pop(Group);
           }
-          
+
           m.push(Block);
         },
         "drop" >> [](auto &m) { m.add(Drop); },
         "freeze" >> [](auto &m) { m.add(Freeze); },
         "region" >> [](auto &m) { m.add(Region); },
+        "None" >> [](auto &m) { m.add(Null); },
         "[[:alpha:]]+" >> [](auto &m) { m.add(Ident); },
         "\\[\"([[:alpha:]]+)\"\\]" >> [](auto &m) { m.add(Lookup, 1); },
+        "\\.([[:alpha:]]+)" >> [](auto &m) { m.add(Lookup, 1); },
         "==" >> [](auto &m) { m.seq(Eq); },
         "=" >> [](auto &m) { m.seq(Assign); },
         "{}" >> [](auto &m) { m.add(Empty); },
@@ -153,6 +156,7 @@ trieste::Parse parser() {
 
 auto LV = T(Ident, Lookup);
 auto RV = T(Empty, Ident, Lookup, Null);
+auto CMP_V = T(Ident, Lookup, Null);
 
 PassDef grouping() {
   PassDef p{
@@ -187,8 +191,8 @@ PassDef grouping() {
           T(Assign) << ((T(Group) << LV[Lhs] * End) *
                         (T(Group) << RV[Rhs] * End) * End) >>
               [](auto &_) { return Assign << _[Lhs] << _[Rhs]; },
-          T(Eq) << ((T(Group) << LV[Lhs] * End) *
-                        (T(Group) << RV[Rhs] * End) * End) >>
+          T(Eq) << ((T(Group) << CMP_V[Lhs] * End) *
+                        (T(Group) << CMP_V[Rhs] * End) * End) >>
               [](auto &_) { return Eq << _[Lhs] << _[Rhs]; },
 
           (T(If) << (T(Group) * T(Eq)[Eq] * (T(Group) << T(Block)[Block]))) >>
@@ -205,7 +209,8 @@ PassDef grouping() {
             },
           (T(If)[If] << (T(Eq) * T(Block) * End)) * (--T(Else)) >>
             [](auto &_) {
-              return _(If) << _(Block);
+              // This adds an empty else block, if no else was written
+              return _(If) << Block;
             },
       }};
 
@@ -220,7 +225,7 @@ inline const trieste::wf::Wellformed flatten =
     | (Lookup <<= rv)
     | (Region <<= Ident)
     | (Freeze <<= Ident)
-    | (Eq <<= Ident * Ident)
+    | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Label <<= Ident)[Ident];
     ;
 } // namespace verona::wf

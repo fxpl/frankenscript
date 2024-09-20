@@ -3,14 +3,17 @@
 a = {}
 a["self"] = a
 
-if a == True:
-    b = {}
+f = {}
+f.a = a
+
+if a == f.a:
+    b = f.a
     c = {}
 
     drop b
     drop c
 else:
-    if c == False:
+    if f.b == None:
         e = {}
         drop e
 
@@ -19,3 +22,4 @@ else:
         drop d
 
 drop a
+drop f
