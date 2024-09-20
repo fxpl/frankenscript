@@ -26,6 +26,12 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
       obj = objects::make_object();
     } else if (payload == String) {
       obj = objects::make_object(std::string(payload->location().view()), "");
+    } else if (payload == KeyIter) {
+      auto v = stack.back();
+      stack.pop_back();
+      std::cout << "pop " << v << " (iterator source)" << std::endl;
+      obj = objects::make_iter(v);
+      remove_reference(objects::get_frame(), v);
     } else {
       assert(false && "CreateObject has to specify a value");
     }
@@ -136,7 +142,7 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, {}};
   }
 
-  if (node == Cmp)
+  if (node == Eq || node == Neq)
   {
     std::cout << "compare objects" << std::endl;
     auto a = stack.back();
@@ -146,8 +152,13 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     stack.pop_back();
     std::cout << "pop " << b << std::endl;
 
+    auto bool_result = (a == b);
+    if (node == Neq) {
+      bool_result = !bool_result;
+    }
+
     std::string result;
-    if (a == b) {
+    if (bool_result) {
       result = "True";
     } else {
       result = "False";
@@ -188,6 +199,21 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
 
     remove_reference(objects::get_frame(), v);
     return {false, loc};
+  }
+
+  if (node == IterNext)
+  {
+    std::cout << "next iterator value" << std::endl;
+    auto it = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << it << "(iterator)" << std::endl;
+    remove_reference(objects::get_frame(), it);
+
+    auto obj = objects::value::iter_next(it);
+
+    stack.push_back(obj);
+    std::cout << "push " << obj  << " (next from iter)" << std::endl;
+    return {false, {}};
   }
 
   std::cerr << "unhandled bytecode" << std::endl;

@@ -8,6 +8,12 @@
 
 namespace objects {
 
+DynObject *make_iter(DynObject *iter_src) {
+  auto iter = new DynObject("", new value::KeyIterValue(iter_src->fields));
+  assert(iter->get_value());
+
+  return iter;
+}
 DynObject *make_object(std::string value, std::string name) {
   auto obj = new DynObject(name, new value::StrValue(value));
   assert(obj->get_value());
@@ -85,4 +91,14 @@ void post_run(size_t initial_count, UI& ui) {
     std::cout << "No memory leaks detected!" << std::endl;
   }
 }
+
+namespace value {
+  DynObject *iter_next(DynObject *iter) {
+    assert(!iter->is_immutable());
+    auto value = iter->get_value();
+    assert(value && "the given `DynObject` doesn't have a value");
+    return value->iter_next();
+  }
+}
+
 } // namespace objects
