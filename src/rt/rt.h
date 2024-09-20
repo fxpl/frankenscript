@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <cassert>
 
 namespace objects {
 class DynObject;
@@ -12,6 +13,7 @@ struct Edge {
   DynObject *target;
 };
 
+DynObject *make_object(std::string str_value, std::string name);
 DynObject *make_object(std::string name = "");
 DynObject *get_frame();
 void clear_frame();
@@ -20,7 +22,9 @@ void freeze(DynObject *obj);
 void create_region(DynObject *objects);
 
 DynObject *get(DynObject *src, std::string key);
+DynObject *get(DynObject *src, DynObject *key);
 DynObject *set(DynObject *dst, std::string key, DynObject *value);
+DynObject *set(DynObject *dst, DynObject *key, DynObject *value);
 
 void add_reference(DynObject *src, DynObject *target);
 void remove_reference(DynObject *src, DynObject *target);

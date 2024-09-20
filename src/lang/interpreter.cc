@@ -18,9 +18,20 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
   if (node == CreateObject)
   {
     std::cout << "create object" << std::endl;
-    auto v = objects::make_object();
-    stack.push_back(v);
-    std::cout << "push " << v << std::endl;
+    objects::DynObject *obj = nullptr;
+    
+    assert(!node->empty() && "CreateObject has to specify the type of data");
+    auto payload = node->at(0);
+    if (payload == Dictionary) {
+      obj = objects::make_object();
+    } else if (payload == String) {
+      obj = objects::make_object(std::string(payload->location().view()), "");
+    } else {
+      assert(false && "CreateObject has to specify a value");
+    }
+
+    stack.push_back(obj);
+    std::cout << "push " << obj << std::endl;
     return {false, {}};
   }
 
@@ -59,23 +70,26 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
 
   if (node == LoadField)
   {
+    assert(stack.size() >= 2 && "the stack is too small");
     std::cout << "load field" << std::endl;
+    auto k = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << k << " (lookup-key)" << std::endl;
     auto v = stack.back();
     stack.pop_back();
-    std::cout << "pop " << v << std::endl;
-    std::string field{node->location().view()};
+    std::cout << "pop " << v << " (lookup-value)" << std::endl;
 
     if (!v) {
       std::cerr << std::endl;
       std::cerr << "Error: Tried to access a field on `None`" << std::endl;
-      std::cerr << "       Requested field: " << field << std::endl;
       std::abort();
     }
 
-    auto v2 = objects::get(v, field);
+    auto v2 = objects::get(v, k);
     stack.push_back(v2);
     std::cout << "push " << v2 << std::endl;
     objects::add_reference(objects::get_frame(), v2);
+    objects::remove_reference(objects::get_frame(), k);
     objects::remove_reference(objects::get_frame(), v);
     return {false, {}};
   }
@@ -85,13 +99,16 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     std::cout << "store field" << std::endl;
     auto v = stack.back();
     stack.pop_back();
-    std::cout << "pop " << v << std::endl;
+    std::cout << "pop " << v << " (value to store)" << std::endl;
+    auto k = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << k << " (lookup-key)" << std::endl;
     auto v2 = stack.back();
     stack.pop_back();
-    std::cout << "pop " << v2 << std::endl;
-    std::string field{node->location().view()};
-    auto v3 = objects::set(v2, field, v);
+    std::cout << "pop " << v2 << " (lookup-value)" << std::endl;
+    auto v3 = objects::set(v2, k, v);
     move_reference(objects::get_frame(), v2, v);
+    remove_reference(objects::get_frame(), k);
     remove_reference(objects::get_frame(), v2);
     remove_reference(v2, v3);
     return {false, {}};
@@ -187,8 +204,10 @@ bool run_to_print(trieste::NodeIt &it, trieste::Node top) {
 
   while (it != end) {
     const auto [is_print, jump_label] = run_stmt(*it, stack);
-    if (is_print)
+    if (is_print) {
+      assert(stack.empty());
       return true;
+    }
     if (jump_label) {
       auto label_node = top->look(jump_label.value());
       assert(label_node.size() == 1);

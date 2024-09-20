@@ -8,7 +8,12 @@
 
 namespace objects {
 
-DynObject *make_object(std::string name) { return new DynObject(name); }
+DynObject *make_object(std::string value, std::string name) {
+  auto obj = new DynObject(name, new value::StrValue(value));
+  assert(obj->get_value());
+  return obj;
+}
+DynObject *make_object(std::string name) { return new DynObject(name, nullptr); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 
@@ -16,10 +21,20 @@ void freeze(DynObject *obj) { obj->freeze(); }
 
 void create_region(DynObject *object) { object->create_region(); }
 
-DynObject *get(DynObject *obj, std::string key) { return obj->get(key); }
+DynObject *get(DynObject *obj, std::string key) {
+  return obj->get(key);
+}
+DynObject *get(DynObject *obj, DynObject *key) {
+  auto value = key->get_value();
+  assert(value);
+  return get(obj, *value->expect_str_value());
+}
 
 DynObject *set(DynObject *obj, std::string key, DynObject *value) {
   return obj->set(key, value);
+}
+DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
+  return set(obj, *key->get_value()->expect_str_value(), value);
 }
 
 void add_reference(DynObject *src, DynObject *target) {
