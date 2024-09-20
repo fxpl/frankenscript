@@ -48,7 +48,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
       out << dst;
     else
       out << dst->name;
-    out << "\\nrc=" << dst->rc << " ]"
+    out << "<br/>rc=" << dst->rc << " ]"
         << (unreachable ? ":::unreachable" : "") << std::endl;
 
     auto region = DynObject::get_region(dst);
@@ -89,9 +89,9 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
     } else {
       out << std::endl;
       out << "  region" << region << "[\\" << region
-          << "\\nlrc=" << region->local_reference_count
-          << "\\nsbrc=" << region->sub_region_reference_count
-          << "\\nprc=" << region->parent_reference_count << "/]" << std::endl;
+          << "<br/>lrc=" << region->local_reference_count
+          << "<br/>sbrc=" << region->sub_region_reference_count
+          << "<br/>prc=" << region->parent_reference_count << "/]" << std::endl;
     }
     for (auto obj : objects) {
       out << "  id" << obj << std::endl;
