@@ -10,6 +10,7 @@ using namespace trieste;
 inline const TokenDef Ident{"ident", trieste::flag::print};
 inline const TokenDef Assign{"assign"};
 inline const TokenDef For{"for"};
+inline const TokenDef List{"list"};
 inline const TokenDef If{"if"};
 inline const TokenDef Else{"else"};
 inline const TokenDef Block{"block"};
@@ -23,6 +24,7 @@ inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
 inline const TokenDef Lhs{"lhs"};
 inline const TokenDef Key{"key"};
+inline const TokenDef Value{"value"};
 
 namespace verona::wf {
 using namespace trieste::wf;
@@ -40,7 +42,8 @@ inline const auto parser =
   | (Block <<= (parse_tokens | parse_groups)++)
   | (Eq <<= Group * Group)
   | (Lookup <<= Group)
-  | (For <<= Group * Group * Group * Group)
+  | (For <<= Group * List * Group * Group)
+  | (List <<= Group++)
   ;
 
 inline const auto lv = Ident | Lookup;
@@ -57,7 +60,7 @@ inline const auto grouping =
     | (Region <<= Ident)
     | (Freeze <<= Ident)
     | (If <<= Eq * Block * Block)
-    | (For <<= Ident * (Op >>= lv) * Block)
+    | (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     ;
 } // namespace verona::wf
@@ -113,8 +116,11 @@ trieste::Parse parser() {
           m.seq(For);
         },
         "in" >> [](auto &m) { 
-          // In should always be in a group, from the entry identifier.
-          m.pop(Group);
+          // In should always be in a list from the identifiers.
+          m.term({List});
+        },
+        "," >> [](auto &m) { 
+          m.seq(List);
         },
 
         "if" >> [](auto &m) { 
@@ -245,13 +251,17 @@ PassDef grouping() {
 
           T(For)[For] << (
               (T(Group)) *
-              (T(Group) << (T(Ident)[Ident] * End)) *
+              (T(List) << (
+                (T(Group) << (T(Ident)[Key] * End)) *
+                (T(Group) << (T(Ident)[Value] * End)) *
+                End)) *
               (T(Group) << (LV[Op] * End)) *
               (T(Group) << (T(Block)[Block] * End)) *
               End) >>
             [](auto &_) {
               return create_from(For, _(For))
-                << _(Ident)
+                << _(Key)
+                << _(Value)
                 << _(Op)
                 << _(Block);
             },
@@ -323,7 +333,12 @@ PassDef flatten() {
                         << (Label << (Ident ^ join_label))
                         ;
         },
-        T(For)[For] << (T(Ident)[Ident] * LV[Op] * (T(Block) << Any++[Block]) * End) >>
+        T(For)[For] << (
+            T(Ident)[Key] *
+            T(Ident)[Value] *
+            LV[Op] *
+            (T(Block) << Any++[Block]) *
+            End) >>
           [](auto &_) {
             auto it_name = new_iter_name();
 
@@ -332,8 +347,6 @@ PassDef flatten() {
 
             auto for_str = _(For)->location().view();
             auto for_head = std::string(for_str.substr(0, for_str.find(":") + 1));
-
-            auto entry_name = _(Ident)->location();
 
             return Seq
               // Prelude
@@ -345,33 +358,23 @@ PassDef flatten() {
               << _(Op)
               << (StoreField)
               << (Print ^ ("create " + it_name))
-              << (CreateObject << Dictionary)
-              << (StoreFrame ^ entry_name)
               << ((Label ^ "start:") << (Ident ^ start_label))
-              // entry.key = iter++
-              << (Ident ^ entry_name)
-              << (String ^ "key")
+              // key = iter++
               << (Ident ^ it_name)
               << (IterNext)
-              << (StoreField)
-              // While (entry.key != null)
+              << create_from(StoreFrame, _(Key))
+              // While (key != null)
               << (Neq
-                  << (Lookup
-                      << (Ident ^ entry_name)
-                      << (String ^ "key"))
+                  << create_from(Ident, _(Key))
                   << Null)
               << (JumpFalse ^ break_label)
-              // entry.value = it.source.key
-              << (Ident ^ entry_name)
-              << (String ^ "value")
+              // value = it.source.key
               << (Lookup
                   << (Lookup
                       << (Ident ^ it_name)
                       << (String ^ "source"))
-                  << (Lookup
-                      << (Ident ^ entry_name)
-                      << (String ^ "key")))
-              << (StoreField)
+                  << create_from(Ident, _(Key)))
+              << create_from(StoreFrame, _(Value))
               << (Print ^ (for_head + " (Next)"))
               // Block
               << _[Block]
@@ -379,7 +382,7 @@ PassDef flatten() {
               << (Jump ^ start_label)
               << ((Label ^ "break:") << (Ident ^ break_label))
               << (Print ^ (for_head + " (Break)"))
-              << ((Assign ^ ("drop " + std::string(entry_name.view()))) << (Ident ^ entry_name) << Null)
+              << ((Assign ^ ("drop " + std::string(_(Value)->location().view()))) << create_from(Ident, _(Value)) << Null)
               << ((Assign ^ ("drop " + it_name)) << (Ident ^ it_name) << Null);
           },
       }

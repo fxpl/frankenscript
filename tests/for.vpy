@@ -7,8 +7,8 @@ a.set["2"] = "2"
 a.set["3"] = "3"
 
 # `entry` will be dropped at the end of the loop.
-for entry in a.set:
-    l = entry.value
+for key, value in a.set:
+    l = value
     drop l
 
 drop a

@@ -207,9 +207,9 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     auto it = stack.back();
     stack.pop_back();
     std::cout << "pop " << it << "(iterator)" << std::endl;
-    remove_reference(objects::get_frame(), it);
 
     auto obj = objects::value::iter_next(it);
+    remove_reference(objects::get_frame(), it);
 
     stack.push_back(obj);
     std::cout << "push " << obj  << " (next from iter)" << std::endl;
