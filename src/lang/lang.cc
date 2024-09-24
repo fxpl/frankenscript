@@ -190,6 +190,18 @@ auto RV = T(Empty, Ident, Lookup, Null, String);
 auto CMP_V = T(Ident, Lookup, Null);
 auto KEY = T(Ident, Lookup, String);
 
+Node create_print(size_t line, std::string text) {
+  std::stringstream ss;
+  ss << "Line " << line << ": " << text;
+  return NodeDef::create(Print, ss.str());
+}
+Node create_print(Node from, std::string text) {
+  auto [line, col] = from->location().linecol();
+  return create_print(line + 1, text);
+}
+Node create_print(Node from) {
+  return create_print(from, std::string(from->location().view()));
+}
 Node create_from(Token def, Node from) {
   return NodeDef::create(def, from->location());
 }
@@ -322,12 +334,12 @@ PassDef flatten() {
             return Seq << _(Op)
                         << (JumpFalse ^ else_label)
                         // Then block
-                        << (Print ^ (if_head + " (True)"))
+                        << create_print(_(If), if_head + " (True)")
                         << _[Lhs]
                         << (Jump ^ join_label)
                         // Else block
                         << ((Label ^ "else:") << (Ident ^ else_label))
-                        << (Print ^ (if_head + " (False)"))
+                        << create_print(_(If), if_head + " (False)")
                         << _[Rhs]
                         // Join
                         << (Label << (Ident ^ join_label))
@@ -357,7 +369,7 @@ PassDef flatten() {
               << (String ^ "source")
               << _(Op)
               << (StoreField)
-              << (Print ^ ("create " + it_name))
+              << create_print(_(For), "create " + it_name)
               << ((Label ^ "start:") << (Ident ^ start_label))
               // key = iter++
               << (Ident ^ it_name)
@@ -375,13 +387,13 @@ PassDef flatten() {
                       << (String ^ "source"))
                   << create_from(Ident, _(Key)))
               << create_from(StoreFrame, _(Value))
-              << (Print ^ (for_head + " (Next)"))
+              << create_print(_(For), for_head + " (Next)")
               // Block
               << _[Block]
               // Final cleanup
               << (Jump ^ start_label)
               << ((Label ^ "break:") << (Ident ^ break_label))
-              << (Print ^ (for_head + " (Break)"))
+              << create_print(_(For), for_head + " (Break)")
               << ((Assign ^ ("drop " + std::string(_(Value)->location().view()))) << create_from(Ident, _(Value)) << Null)
               << ((Assign ^ ("drop " + it_name)) << (Ident ^ it_name) << Null);
           },
@@ -426,7 +438,7 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                         << (StoreFrame ^ "False")
                         << (LoadFrame ^ "False")
                         << FreezeObject
-                        << (Print ^ "prelude");
+                        << create_print(0, "prelude");
                     },
 
                 T(Compile) << (Any[Lhs] * (Any * Any++)[Rhs]) >>
@@ -463,7 +475,7 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                     [](auto &_) {
                       return Seq << (Compile << _[Rhs])
                                  << create_from(StoreFrame, _(Ident))
-                                 << create_from(Print, _(Op));
+                                 << create_print(_(Op));
                     },
 
                 T(Compile) << (T(Assign)[Assign] << ((
@@ -474,21 +486,21 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                                  << (Compile << _[Key])
                                  << (Compile << _[Rhs])
                                  << create_from(StoreField, _(Lookup))
-                                 << create_from(Print, _(Assign));
+                                 << create_print(_(Assign));
                     },
 
                 T(Compile) << (T(Freeze)[Op] << T(Ident)[Ident]) >>
                     [](auto &_) {
                       return Seq << (Compile << _[Ident])
                                  << FreezeObject
-                                 << create_from(Print, _(Op));
+                                 << create_print(_(Op));
                     },
 
                 T(Compile) << (T(Region)[Op] << T(Ident)[Ident]) >>
                     [](auto &_) {
                       return Seq << (Compile << _[Ident])
                                  << CreateRegion
-                                 << create_from(Print, _(Op));
+                                 << create_print(_(Op));
                     },
 
                 T(Compile) << (T(Empty)) >>

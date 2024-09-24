@@ -11,7 +11,7 @@ namespace verona::interpreter {
 
 std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
   if (node == Print) {
-    std::cout << node << std::endl;
+    std::cout << node->location().view() << std::endl << std::endl;
     return {true, {}};
   }
 
@@ -260,15 +260,14 @@ public:
 
   void output(std::vector<objects::Edge> &edges, std::string message) {
     objects::mermaid(edges, out);
+    out << "```" << std::endl;
+    out << message << std::endl;
+    out << "```" << std::endl;
     if (interactive) {
       out.close();
       std::cout << "Press a key!" << std::endl;
       getchar();
       out.open(path);
-    }
-    else
-    {
-      out << message << std::endl;
     }
   }
 };
@@ -280,7 +279,7 @@ void run(trieste::Node node, bool interactive = true) {
   std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
   while (run_to_print(it, node))
   {
-    ui.output(edges, (*it)->str());
+    ui.output(edges, std::string((*it)->location().view()));
     it++;
   }
   objects::post_run(initial, ui);
