@@ -46,6 +46,8 @@ namespace value {
       return value;
     }
 
+    virtual DynObject* iter_next() { return nullptr; }
+
     /// @brief The string representation of this value to 
     virtual std::string display_str() = 0;
   };
@@ -65,11 +67,36 @@ namespace value {
       return stream.str();
     }
   };
+
+  /// @brief This iterates over they keys of a given map
+  class KeyIterValue : public Value {
+    std::map<std::string, DynObject *>::iterator iter;
+    std::map<std::string, DynObject *>::iterator iter_end;
+
+  public:
+    KeyIterValue(std::map<std::string, DynObject *> &fields)
+      : iter(fields.begin()), iter_end(fields.end()) {}
+
+    virtual DynObject* iter_next() {
+      DynObject *obj = nullptr;
+      if (this->iter != this->iter_end) {
+        obj = make_object(this->iter->first, "");
+        this->iter++;
+      }
+
+      return obj;
+    }
+
+    std::string display_str() {
+      return "iterator";
+    }
+  };
 }
 
 // Representation of objects
 class DynObject {
   friend class Reference;
+  friend DynObject* make_iter(DynObject *obj);
   friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
   friend void destruct(DynObject *obj);
   friend void dealloc(DynObject *obj);
@@ -90,8 +117,6 @@ class DynObject {
   std::map<std::string, DynObject *> fields{};
   std::string name{};
   value::Value* value {nullptr};
-
-  bool is_immutable() { return region.get_tag() == ImmutableTag; }
 
   static Region *get_region(DynObject *obj) {
     if ((obj == nullptr) || obj->is_immutable())
@@ -307,6 +332,9 @@ public:
       return true;
     });
   }
+
+
+  bool is_immutable() { return region.get_tag() == ImmutableTag; }
 
   [[nodiscard]] DynObject *get(std::string name) { return fields[name]; }
 

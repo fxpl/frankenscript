@@ -13,6 +13,7 @@ struct Edge {
   DynObject *target;
 };
 
+DynObject *make_iter(DynObject *iter_src);
 DynObject *make_object(std::string str_value, std::string name);
 DynObject *make_object(std::string name = "");
 DynObject *get_frame();
@@ -41,5 +42,9 @@ size_t pre_run();
 void post_run(size_t count, UI& ui);
 
 void mermaid(std::vector<Edge> &roots, std::ostream &out);
+
+namespace value {
+  DynObject *iter_next(DynObject *iter);
+}
 
 } // namespace objects
