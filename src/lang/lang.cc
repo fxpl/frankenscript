@@ -403,6 +403,7 @@ PassDef flatten() {
 
 inline const TokenDef Compile{"compile"};
 inline const TokenDef Prelude{"prelude"};
+inline const TokenDef Postlude{"postlude"};
 
 namespace verona::wf {
 using namespace trieste::wf;
@@ -424,7 +425,8 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                 T(File)[File] >>
                     [](auto &_) {
                       return Seq << Prelude
-                                 << (Compile << *_[File]);
+                                 << (Compile << *_[File])
+                                 << Postlude;
                     },
                 
                 T(Prelude) >>
@@ -439,6 +441,15 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                         << (LoadFrame ^ "False")
                         << FreezeObject
                         << create_print(0, "prelude");
+                    },
+                T(Postlude) >>
+                    [](auto &) {
+                      return Seq
+                        << Null
+                        << (StoreFrame ^ "True")
+                        << Null
+                        << (StoreFrame ^ "False")
+                        << create_print(0, "postlude");
                     },
 
                 T(Compile) << (Any[Lhs] * (Any * Any++)[Rhs]) >>
