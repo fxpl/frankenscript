@@ -259,10 +259,10 @@ public:
   }
 
   void output(std::vector<objects::Edge> &edges, std::string message) {
-    objects::mermaid(edges, out);
     out << "```" << std::endl;
     out << message << std::endl;
     out << "```" << std::endl;
+    objects::mermaid(edges, out);
     if (interactive) {
       out.close();
       std::cout << "Press a key!" << std::endl;
