@@ -48,8 +48,14 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
       out << dst;
     else
       out << dst->name;
-    out << "<br/>rc=" << dst->rc << " ]"
-        << (unreachable ? ":::unreachable" : "") << std::endl;
+    out << "<br/>rc=" << dst->rc;
+    
+    if (dst->get_value()) {
+      auto display = dst->get_value()->display_str();
+      out << "<br/>value=" << display;
+    }
+
+    out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
 
     auto region = DynObject::get_region(dst);
     if (region != nullptr) {

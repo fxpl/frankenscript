@@ -2,9 +2,9 @@
 # Construct a
 a = {}
 a.set = {}
-a.set["1"] = "1"
-a.set["2"] = "2"
-a.set["3"] = "3"
+a.set["1"] = "A"
+a.set["2"] = "B"
+a.set["3"] = "C"
 
 # `entry` will be dropped at the end of the loop.
 for key, value in a.set:

@@ -63,7 +63,7 @@ namespace value {
 
     std::string display_str() {
       std::stringstream stream;
-      stream << '"' << this->value << '"';
+      stream << "'" << this->value << "'";
       return stream.str();
     }
   };
@@ -88,7 +88,7 @@ namespace value {
     }
 
     std::string display_str() {
-      return "iterator";
+      return "&lt;iterator&gt;";
     }
   };
 }
