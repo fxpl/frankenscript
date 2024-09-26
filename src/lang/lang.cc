@@ -96,14 +96,14 @@ trieste::Parse parser() {
           m.error("unexpected indention");
         },
         // Empty lines should be ignored
-        "(?m)\\n$" >> [](auto &) {},
+        "(?m)\\r?\\n$" >> [](auto &) {},
 
         // Indention
-        "\\n((    )*)" >> [update_indent](auto &m) {
+        "\\r?\\n((    )*)" >> [update_indent](auto &m) {
           auto this_indent = m.match(1).len / TAB_SIZE;
           update_indent(m, this_indent);
         },
-        "\\n(\\t*)" >> [update_indent](auto &m) {
+        "\\r?\\n(\\t*)" >> [update_indent](auto &m) {
           auto this_indent = m.match(1).len;
           update_indent(m, this_indent);
         },
