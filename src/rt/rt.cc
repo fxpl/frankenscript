@@ -43,8 +43,9 @@ DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
   return set(obj, *key->get_value()->expect_str_value(), value);
 }
 
+// TODO [[nodiscard]]
 DynObject *set_prototype(DynObject *obj, DynObject *proto) {
-  return obj->set(PrototypeField, proto);
+  return obj->set_prototype(proto);
 }
 
 void add_reference(DynObject *src, DynObject *target) {

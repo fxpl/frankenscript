@@ -115,6 +115,8 @@ class DynObject {
 
   size_t rc{1};
   RegionPointer region{nullptr};
+  DynObject* prototype{nullptr};
+
   std::map<std::string, DynObject *> fields{};
   std::string name{};
   value::Value* value {nullptr};
@@ -149,6 +151,8 @@ class DynObject {
         stack.push_back({{obj, POST}, ""});
       for (auto &[key, field] : obj->fields)
         stack.push_back({obj, key});
+      if (obj->prototype != nullptr)
+        stack.push_back({obj, PrototypeField});
     };
 
     visit_object(e.target);
@@ -342,11 +346,13 @@ public:
     if (result != fields.end())
       return result->second;
 
+    if (name == PrototypeField)
+      return prototype;
+
     // Search the prototype chain.
     // TODO make this iterative.
-    auto prototype = fields.find(PrototypeField);
-    if (prototype != fields.end())
-      return prototype->second->get(name);
+    if (prototype != nullptr)
+      return prototype->get(name);
 
     // No field or prototype chain found.
     return nullptr;
@@ -358,6 +364,15 @@ public:
     }
     DynObject *old = fields[name];
     fields[name] = value;
+    return old;
+  }
+
+  [[nodiscard]] DynObject* set_prototype(DynObject* value) {
+    if (is_immutable()) {
+      error("Cannot mutate immutable object");
+    }
+    DynObject* old = prototype;
+    prototype = value;
     return old;
   }
 
@@ -428,18 +443,26 @@ public:
 };
 
 void destruct(DynObject *obj) {
+  auto same_region = [](DynObject *src, DynObject *target) {
+    return DynObject::get_region(src) == DynObject::get_region(target);
+  };
   for (auto &[key, field] : obj->fields) {
     if (field == nullptr)
       continue;
-    auto src_region = DynObject::get_region(obj);
-    auto dst_region = DynObject::get_region(field);
-    if (src_region == dst_region) {
+    if (same_region(obj,field)) {
       // Same region just remove the rc, but don't try to collect.
       field->change_rc(-1);
       continue;
     }
 
     auto old_value = obj->set(key, nullptr);
+    remove_reference(obj, old_value);
+  }
+
+  if (same_region(obj, obj->prototype)) {
+    obj->prototype->change_rc(-1);
+  } else {
+    auto old_value = obj->set_prototype(nullptr);
     remove_reference(obj, old_value);
   }
 }
