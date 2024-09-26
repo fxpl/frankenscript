@@ -6,8 +6,6 @@ a["self"] = a
 b["f"] = a
 drop a
 
-c["__proto__"] = b
+c = create b
 drop b
 c["g"] = c["f"]
-
-drop c

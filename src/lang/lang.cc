@@ -9,6 +9,7 @@ using namespace trieste;
 
 inline const TokenDef Ident{"ident", trieste::flag::print};
 inline const TokenDef Assign{"assign"};
+inline const TokenDef Create{"create"};
 inline const TokenDef For{"for"};
 inline const TokenDef List{"list"};
 inline const TokenDef If{"if"};
@@ -29,7 +30,7 @@ inline const TokenDef Value{"value"};
 namespace verona::wf {
 using namespace trieste::wf;
 
-inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null | String;
+inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null | String | Create;
 inline const auto parse_groups = Group | Assign | If | Else | Block | For;
 
 inline const auto parser =
@@ -47,7 +48,7 @@ inline const auto parser =
   ;
 
 inline const auto lv = Ident | Lookup;
-inline const auto rv = lv | Empty | Null | String;
+inline const auto rv = lv | Empty | Null | String | Create;
 inline const auto cmp_values = Ident | Lookup | Null;
 inline const auto key = Ident | Lookup | String;
 
@@ -59,6 +60,7 @@ inline const auto grouping =
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
     | (Freeze <<= Ident)
+    | (Create <<= Ident)
     | (If <<= Eq * Block * Block)
     | (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
@@ -157,6 +159,7 @@ trieste::Parse parser() {
           m.push(Block);
         },
         "drop" >> [](auto &m) { m.add(Drop); },
+        "create" >> [](auto &m) { m.add(Create); },
         "freeze" >> [](auto &m) { m.add(Freeze); },
         "region" >> [](auto &m) { m.add(Region); },
         "None" >> [](auto &m) { m.add(Null); },
@@ -186,7 +189,7 @@ trieste::Parse parser() {
 }
 
 auto LV = T(Ident, Lookup);
-auto RV = T(Empty, Ident, Lookup, Null, String);
+auto RV = T(Empty, Ident, Lookup, Null, String, Create);
 auto CMP_V = T(Ident, Lookup, Null);
 auto KEY = T(Ident, Lookup, String);
 
@@ -234,6 +237,12 @@ PassDef grouping() {
           T(Group) << ((T(Drop)[Drop] << End) * LV[Lhs] * End) >>
               [](auto &_) {
                 return Assign << _(Lhs) << Null;
+              },
+
+          T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
+              [](auto &_) {
+                _(Create)->extend(_(Ident)->location());
+                return Group << (_(Create) << _(Ident));
               },
 
           T(Assign) << ((T(Group) << LV[Lhs] * End) *
@@ -286,9 +295,10 @@ using namespace trieste::wf;
 inline const trieste::wf::Wellformed flatten =
     (Top <<= File)
     | (File <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
-                Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
+                Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext | Create |
                 StoreField | Lookup | String)++)
     | (CreateObject <<= (KeyIter | String | Dictionary))
+    | (Create <<= Ident)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
@@ -411,7 +421,7 @@ inline const trieste::wf::Wellformed bytecode =
     empty | (Top <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
                       Eq | Neq | Jump | JumpFalse | Label)++)
-          | (CreateObject <<= (Dictionary | String | KeyIter))
+          | (CreateObject <<= (Dictionary | String | KeyIter | Proto))
           | (Label <<= Ident)[Ident];
 } // namespace verona::wf
 
@@ -505,6 +515,12 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                       return Seq << (Compile << _[Ident])
                                  << FreezeObject
                                  << create_print(_(Op));
+                    },
+
+                T(Compile) << (T(Create)[Op] << T(Ident)[Ident]) >>
+                    [](auto &_) {
+                      return Seq << (Compile << _[Ident])
+                                 << (CreateObject << Proto);
                     },
 
                 T(Compile) << (T(Region)[Op] << T(Ident)[Ident]) >>

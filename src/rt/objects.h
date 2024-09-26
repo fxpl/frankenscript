@@ -18,6 +18,7 @@
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
+constexpr std::string PrototypeField{"__proto__"};
 
 namespace value {
   /// @brief This class represents the value of an object when it's used in an
@@ -95,8 +96,6 @@ namespace value {
 
 // Representation of objects
 class DynObject {
-  static constexpr std::string PrototypeField{"__proto__"};
-
   friend class Reference;
   friend DynObject* make_iter(DynObject *obj);
   friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
