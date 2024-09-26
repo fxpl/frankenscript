@@ -95,6 +95,8 @@ namespace value {
 
 // Representation of objects
 class DynObject {
+  static constexpr std::string PrototypeField{"__proto__"};
+
   friend class Reference;
   friend DynObject* make_iter(DynObject *obj);
   friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
@@ -336,7 +338,20 @@ public:
 
   bool is_immutable() { return region.get_tag() == ImmutableTag; }
 
-  [[nodiscard]] DynObject *get(std::string name) { return fields[name]; }
+  [[nodiscard]] DynObject *get(std::string name) {
+    auto result = fields.find(name);
+    if (result != fields.end())
+      return result->second;
+
+    // Search the prototype chain.
+    // TODO make this iterative.
+    auto prototype = fields.find(PrototypeField);
+    if (prototype != fields.end())
+      return prototype->second->get(name);
+
+    // No field or prototype chain found.
+    return nullptr;
+  }
 
   [[nodiscard]] DynObject *set(std::string name, DynObject *value) {
     if (is_immutable()) {
