@@ -11,6 +11,10 @@ inline const trieste::TokenDef Proto{"prototype"};
 inline const trieste::TokenDef Dictionary{"dictionary"};
 inline const trieste::TokenDef String{"string", trieste::flag::print};
 inline const trieste::TokenDef KeyIter{"key_iter"};
+inline const trieste::TokenDef Func{"func"};
+inline const trieste::TokenDef List{"list"};
+inline const trieste::TokenDef Arg{"arg"};
+inline const trieste::TokenDef Body{"body", trieste::flag::symtab};
 
 inline const trieste::TokenDef CreateRegion{"create_region"};
 inline const trieste::TokenDef FreezeObject{"freeze_object"};
