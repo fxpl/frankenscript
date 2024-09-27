@@ -9,17 +9,17 @@
 namespace objects {
 
 DynObject *make_iter(DynObject *iter_src) {
-  auto iter = new DynObject("", new value::KeyIterValue(iter_src->fields));
+  auto iter = new DynObject(new value::KeyIterValue(iter_src->fields));
   assert(iter->get_value());
 
   return iter;
 }
-DynObject *make_object(std::string value, std::string name) {
-  auto obj = new DynObject(name, new value::StrValue(value));
+DynObject *make_object(std::string value) {
+  auto obj = new DynObject(new value::StrValue(value));
   assert(obj->get_value());
   return obj;
 }
-DynObject *make_object(std::string name) { return new DynObject(name, nullptr); }
+DynObject *make_object() { return new DynObject(nullptr); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 

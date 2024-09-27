@@ -44,10 +44,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
     auto curr_id = id++;
     visited[dst] = curr_id;
     out << "id" << curr_id << "[ ";
-    if (dst->name.empty())
-      out << dst;
-    else
-      out << dst->name;
+    out << dst->get_name();
     out << "<br/>rc=" << dst->rc;
     
     if (dst->get_value()) {

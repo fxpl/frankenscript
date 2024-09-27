@@ -14,8 +14,8 @@ struct Edge {
 };
 
 DynObject *make_iter(DynObject *iter_src);
-DynObject *make_object(std::string str_value, std::string name);
-DynObject *make_object(std::string name = "");
+DynObject *make_object(std::string str_value);
+DynObject *make_object();
 DynObject *get_frame();
 void clear_frame();
 

@@ -25,7 +25,7 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     if (payload == Dictionary) {
       obj = objects::make_object();
     } else if (payload == String) {
-      obj = objects::make_object(std::string(payload->location().view()), "");
+      obj = objects::make_object(std::string(payload->location().view()));
     } else if (payload == KeyIter) {
       auto v = stack.back();
       stack.pop_back();

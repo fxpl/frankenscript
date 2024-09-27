@@ -81,7 +81,7 @@ namespace value {
     virtual DynObject* iter_next() {
       DynObject *obj = nullptr;
       if (this->iter != this->iter_end) {
-        obj = make_object(this->iter->first, "");
+        obj = make_object(this->iter->first);
         this->iter++;
       }
 
@@ -127,7 +127,6 @@ class DynObject {
   DynObject* prototype{nullptr};
 
   std::map<std::string, DynObject *> fields{};
-  std::string name{};
   value::Value* value {nullptr};
 
   static Region *get_region(DynObject *obj) {
@@ -238,7 +237,7 @@ class DynObject {
   }
 
 public:
-  DynObject(std::string name_, value::Value* value_, bool global = false) : name(name_), value(value_) {
+  DynObject(value::Value* value_, bool global = false) : value(value_) {
     count++;
     all_objects.insert(this);
     if (global) {
@@ -248,7 +247,7 @@ public:
       region = local_region;
       local_region->objects.insert(this);
     }
-    std::cout << "Allocate: " << name << std::endl;
+    std::cout << "Allocate: " << get_name() << std::endl;
   }
 
   ~DynObject() {
@@ -267,13 +266,10 @@ public:
       delete this->value;
       this->value = nullptr;
     }
-    std::cout << "Deallocate: " << name << std::endl;
+    std::cout << "Deallocate: " << get_name() << std::endl;
   }
 
   std::string get_name() {
-    if (!name.empty())
-      return name;
-
     std::stringstream stream;
     stream << this;
     return stream.str();
@@ -286,7 +282,7 @@ public:
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    thread_local static DynObject frame{"frame", nullptr, true};
+    thread_local static DynObject frame{nullptr, true};
     return &frame;
   }
 
