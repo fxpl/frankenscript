@@ -162,12 +162,12 @@ class DynObject {
   }
 
 public:
-  DynObject(bool global = false) {
-    count++;
-    all_objects.insert(this);
+  DynObject(DynObject* prototype_ = nullptr, bool global = false) : prototype(prototype_) {
     if (global) {
       change_rc(-1);
     } else {
+      count++;
+      all_objects.insert(this);
       auto local_region = get_local_region();
       region = local_region;
       local_region->objects.insert(this);
@@ -179,7 +179,7 @@ public:
     count--;
     all_objects.erase(this);
     if (change_rc(0) != 0) {
-      if (this != frame())
+      if (all_objects.find(this) != all_objects.end())
         error("Object still has references");
     }
 
@@ -200,21 +200,14 @@ public:
   }
 
   /// TODO remove virtual once we have primitive functions.
-  virtual std::string as_key() {
-    assert(false && "Not available as a key");
-    return {};
-  }
-
-  /// TODO remove virtual once we have primitive functions.
-  virtual DynObject* iter_next() {
-    assert(false && "Not an iterator");
+  virtual DynObject* is_primitive() {
     return nullptr;
   }
 
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    thread_local static DynObject frame{true};
+    thread_local static DynObject frame{nullptr, true};
     return &frame;
   }
 
@@ -225,7 +218,11 @@ public:
       if (obj->is_immutable())
         return false;
 
-      get_region(obj)->objects.erase(obj);
+      auto r = get_region(obj);
+      if (r != nullptr)
+      {
+        get_region(obj)->objects.erase(obj);
+      }
       obj->region.set_tag(ImmutableTag);
       return true;
     });
@@ -268,6 +265,11 @@ public:
     prototype = value;
     return old;
   }
+
+  DynObject* get_prototype() {
+    return prototype;
+  }
+
 
   static void add_reference(DynObject *src, DynObject *target) {
     if (target == nullptr)
@@ -335,12 +337,16 @@ public:
   static std::set<DynObject *> get_objects() { return all_objects; }
 };
 
+// The prototype object for strings
+// TODO put some stuff in here?
+DynObject stringPrototypeObject{nullptr, true};
+
 class StringObject : public DynObject {
   std::string value;
 
 public:
   StringObject(std::string value_)
-    : DynObject(), value(value_) {}
+    : DynObject(&stringPrototypeObject), value(value_) {}
 
   std::string get_name() {
     return value;
@@ -349,8 +355,15 @@ public:
   std::string as_key() {
     return value;
   }
+
+  DynObject* is_primitive() {
+    return this;
+  }
 };
 
+// The prototype object for iterators
+// TODO put some stuff in here?
+DynObject keyIterPrototypeObject{nullptr, true};
 
 class KeyIterObject : public DynObject {
     std::map<std::string, DynObject *>::iterator iter;
@@ -358,7 +371,7 @@ class KeyIterObject : public DynObject {
 
   public:
     KeyIterObject(std::map<std::string, DynObject *> &fields)
-      : iter(fields.begin()), iter_end(fields.end()) {}
+      : DynObject(&keyIterPrototypeObject), iter(fields.begin()), iter_end(fields.end()) {}
 
     DynObject* iter_next() {
       DynObject *obj = nullptr;
@@ -374,6 +387,9 @@ class KeyIterObject : public DynObject {
       return "&lt;iterator&gt;";
     }
 
+    DynObject* is_primitive() {
+      return this;
+    }
 };
 
 void destruct(DynObject *obj) {

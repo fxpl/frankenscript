@@ -25,21 +25,36 @@ void create_region(DynObject *object) { object->create_region(); }
 DynObject *get(DynObject *obj, std::string key) {
   return obj->get(key);
 }
-DynObject *get(DynObject *obj, DynObject *key) {
+
+std::string get_key(DynObject* key) {
   // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
-  return get(obj, key->as_key());
+  if (key->get_prototype() != &stringPrototypeObject) {
+    error("Key must be a string.");
+  }
+  StringObject *str_key = reinterpret_cast<StringObject*>(key);
+  return str_key->as_key();
+}
+
+DynObject *get(DynObject *obj, DynObject *key) {
+  return get(obj, get_key(key));
 }
 
 DynObject *set(DynObject *obj, std::string key, DynObject *value) {
   return obj->set(key, value);
 }
+
 DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
-  // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
-  return set(obj, key->as_key(), value);
+  return set(obj, get_key(key), value);
 }
 
 // TODO [[nodiscard]]
 DynObject *set_prototype(DynObject *obj, DynObject *proto) {
+  if (proto->is_primitive() != nullptr) {
+    error("Cannot set a primitive as a prototype.");
+  }
+  if (obj->is_primitive() != nullptr) {
+    error("Cannot set a prototype on a primitive object.");
+  }
   return obj->set_prototype(proto);
 }
 
@@ -95,6 +110,10 @@ void post_run(size_t initial_count, UI& ui) {
 namespace value {
   DynObject *iter_next(DynObject *iter) {
     assert(!iter->is_immutable());
+    if (iter->get_prototype() != &objects::keyIterPrototypeObject) {
+      error("Object is not an iterator.");
+    }
+
     /// TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
     return iter->iter_next();
   }
