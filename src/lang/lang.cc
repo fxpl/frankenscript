@@ -29,6 +29,8 @@ inline const TokenDef Lhs{"lhs"};
 inline const TokenDef Key{"key"};
 inline const TokenDef Value{"value"};
 
+inline const Node RetrunIdent = Ident ^ "return";
+
 namespace verona::wf {
 using namespace trieste::wf;
 
@@ -61,7 +63,7 @@ inline const auto grouping =
     (Top <<= File)
     | (File <<= Body)
     | (Body <<= Block)
-    | (Block <<= (Freeze | Region | Assign | If | For | Func | Return)++)
+    | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | Call)++)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
@@ -70,9 +72,11 @@ inline const auto grouping =
     | (If <<= Eq * Block * Block)
     | (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
-    | (Func <<= Ident * List * Body)
+    | (Func <<= Ident * Params * Body)
+    | (Call <<= (Op >>= key) * List)
     | (Return <<= rv)
-    | (List <<= Ident++)
+    | (List <<= rv++)
+    | (Params <<= Ident++)
     ;
 } // namespace verona::wf
 
@@ -253,6 +257,10 @@ Node create_print(Node from) {
 Node create_from(Token def, Node from) {
   return NodeDef::create(def, from->location());
 }
+std::string expr_header(Node expr) {
+  auto expr_str = expr->location().view();
+  return std::string(expr_str.substr(0, expr_str.find(":") + 1));
+}
 
 PassDef grouping() {
   PassDef p{
@@ -283,6 +291,22 @@ PassDef grouping() {
               [](auto &_) {
                 return Assign << _(Lhs) << Null;
               },
+          // function(arg, arg)
+          --In(Func) * (
+            T(Group)[Group] << (
+              (T(Ident)[Ident]) *
+              (T(Parens)[Parens] << (~T(List)[List])) *
+              End)) >>
+            [](auto &_) {
+                auto list = _(List);
+                if (!list) {
+                  list = create_from(List, _(Parens));
+                }
+
+                return create_from(Call, _(Group))
+                  << _(Ident)
+                  << list;
+            },
 
           T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
               [](auto &_) {
@@ -315,8 +339,8 @@ PassDef grouping() {
               return _(If) << Block;
             },
 
-          In(List) * (T(Group) << (T(Ident)[Ident] * End)) >> [](auto &_) {
-            return _(Ident);
+          In(List) * (T(Group) << (RV[Rhs] * End)) >> [](auto &_) {
+            return _(Rhs);
           },
 
           T(For)[For] << (
@@ -339,19 +363,14 @@ PassDef grouping() {
             (T(Group) << End) *
             (T(Group) << (
               (T(Ident)[Ident]) *
-              (T(Parens)[Parens] << (~T(List)[List])) *
+              (T(Parens)[Parens] << (~(T(List) << T(Ident)++[List]))) *
               End)) *
             (T(Group) << T(Block)[Block]) *
             End) >>
             [](auto &_) {
-              auto list = _(List);
-              if (!list) {
-                list = create_from(List, _(Parens));
-              }
-
               return create_from(Func, _(Func))
                 << _(Ident)
-                << list
+                << (create_from(Params, _(Parens)) << _[List])
                 << (Body << _(Block));
             },
 
@@ -368,6 +387,9 @@ PassDef grouping() {
 
   return p;
 }
+
+inline const TokenDef Compile{"compile"};
+
 namespace verona::wf {
 using namespace trieste::wf;
 inline const trieste::wf::Wellformed flatten =
@@ -375,13 +397,18 @@ inline const trieste::wf::Wellformed flatten =
     | (File <<= Body)
     | (Body <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
                 Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
-                 Create | StoreField | Lookup | String)++)
-    | (CreateObject <<= (KeyIter | String | Dictionary))
+                Create | StoreField | Lookup | String | Call)++)
+    | (CreateObject <<= (KeyIter | String | Dictionary | Func))
+    | (Func <<= Compile)
+    | (Compile <<= Body)
     | (Create <<= Ident)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
     | (Freeze <<= Ident)
+    | (Call <<= (Op >>= key) * List)
+    | (List <<= rv++)
+    | (Params <<= Ident++)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Label <<= Ident)[Ident];
@@ -417,8 +444,7 @@ PassDef flatten() {
             auto else_label = new_jump_label();
             auto join_label = new_jump_label();
 
-            auto if_str = _(If)->location().view();
-            auto if_head = std::string(if_str.substr(0, if_str.find(":") + 1));
+            auto if_head = expr_header(_(If));
 
             return Seq << _(Op)
                         << (JumpFalse ^ else_label)
@@ -446,8 +472,7 @@ PassDef flatten() {
             auto start_label = new_jump_label();
             auto break_label = new_jump_label();
 
-            auto for_str = _(For)->location().view();
-            auto for_head = std::string(for_str.substr(0, for_str.find(":") + 1));
+            auto for_head = expr_header(_(For));
 
             return Seq
               // Prelude
@@ -486,11 +511,50 @@ PassDef flatten() {
               << ((Assign ^ ("drop " + std::string(_(Value)->location().view()))) << create_from(Ident, _(Value)) << Null)
               << ((Assign ^ ("drop " + it_name)) << (Ident ^ it_name) << Null);
           },
+
+        T(Func)[Func] << (
+          T(Ident)[Ident] *
+          T(Params)[Params] *
+          (T(Body)[Body] << Any++[Block])*
+          End) >>
+          [](auto &_) {
+            auto return_label = new_jump_label();
+            auto func_head = expr_header(_(Func));
+
+            // Function setup
+            Node body = Body;
+            // body << PushFrame;
+            Node args = _(Params);
+            for (auto it = args->cbegin(); it != args->cend(); it++) {
+              body << create_from(StoreFrame, *it);
+            }
+            body << create_print(_(Func), func_head + " (Enter)");
+
+            // Function body
+            auto block = _[Block];
+            for (auto stmt : block) {
+              if (stmt == Return) {
+                body << (create_from(Assign, stmt) << RetrunIdent << stmt->at(0));
+                body << (Jump ^ return_label);
+              } else {
+                body << stmt;
+              }
+            }
+
+            // Function cleanup
+            body << ((Label ^ "return:") << (Ident ^ return_label));
+            body << create_print(_(Func), func_head + " (Exit)");
+            // body << PopFrame;
+
+            return Seq
+              << (CreateObject << (Func << (Compile << body)))
+              << (StoreFrame ^ _(Ident))
+              << create_print(_(Func), func_head);
+          },
       }
   };
 }
 
-inline const TokenDef Compile{"compile"};
 inline const TokenDef Prelude{"prelude"};
 inline const TokenDef Postlude{"postlude"};
 
@@ -499,9 +563,10 @@ using namespace trieste::wf;
 inline const trieste::wf::Wellformed bytecode =
     empty | (Body <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
-                      Eq | Neq | Jump | JumpFalse | Label)++)
-          | (CreateObject <<= (Dictionary | String | KeyIter | Proto))
+                      Eq | Neq | Jump | JumpFalse | Label | Call)++)
+          | (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func))
           | (Top <<= Body)
+          | (Func <<= Body)
           | (Label <<= Ident)[Ident];
 } // namespace verona::wf
 
@@ -517,7 +582,11 @@ PassDef bytecode() {
                         << (Compile << *_[Body])
                         << Postlude;
                     },
-                
+                T(Compile) << (T(Body)[Body] << Any++[Block]) >>
+                    [](auto &_) {
+                      return create_from(Body, _(Body)) << (Compile << _[Block]);
+                    },
+
                 T(Prelude) >>
                     [](auto &) {
                       return Seq
@@ -607,6 +676,22 @@ PassDef bytecode() {
                                  << CreateRegion
                                  << create_print(_(Op));
                     },
+                
+                T(Compile) << (
+                  T(Call)[Call] << (
+                    KEY[Op] *
+                    (T(List) << Any++[List]) *
+                    End)) >>
+                    [](auto &_) {
+                      // The print is done by the called function
+                      return Seq
+                        << (Compile << _[List])
+                        << (Compile << _(Op))
+                        << (Call ^ std::to_string(_[List].size()));
+                    },
+
+                T(Compile) << End >>
+                [](auto &) -> Node { return {}; },
 
                 T(Compile) << (T(Empty)) >>
                     [](auto &) -> Node { return CreateObject << Dictionary; },

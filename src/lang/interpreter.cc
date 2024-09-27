@@ -12,7 +12,7 @@ struct Bytecode {
   trieste::Node body;
 };
 
-std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
+std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
   if (node == Print) {
     std::cout << node->location().view() << std::endl << std::endl;
     return {true, {}};
@@ -41,6 +41,10 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
       stack.pop_back();
       // RC transferred
       objects::set_prototype(obj, v);
+    } else if (payload == Func) {
+      assert(payload->size() == 1 && "CreateObject: A bytecode function requires a body node");
+      // TODO This leaks memory
+      obj = objects::make_func(new Bytecode { payload->at(0) });
     } else {
       assert(false && "CreateObject has to specify a value");
     }
@@ -225,18 +229,41 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, {}};
   }
 
+  if (node == Call) {
+    std::cout << "function call" << std::endl;
+    auto func = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << func << "(function)" << std::endl;
+
+    std::vector<objects::DynObject *> call_stack;
+    auto arg_ctn = std::stoul(std::string(node->location().view()));
+    assert(stack.size() >= arg_ctn && "The stack doesn't have enough values for this call");
+    for (size_t ctn = 0; ctn < arg_ctn; ctn++) {
+      call_stack.push_back(stack.back());
+      stack.pop_back();
+    }
+
+    // TODO Return value
+    objects::value::call(func, call_stack, ui);
+    remove_reference(objects::get_frame(), func);
+
+    // stack.push_back(obj);
+    std::cout << "push " << "TODO obj"  << " (return value)" << std::endl;
+    return {false, {}};
+  }
+
   std::cerr << "unhandled bytecode" << std::endl;
   node->str(std::cerr);
   std::abort();
 }
 
-bool run_to_print(trieste::NodeIt &it, trieste::Node body, std::vector<objects::DynObject *> &stack) {
+bool run_to_print(trieste::NodeIt &it, trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
   auto end = body->end();
   if (it == end)
     return false;
 
   while (it != end) {
-    const auto [is_print, jump_label] = run_stmt(*it, stack);
+    const auto [is_print, jump_label] = run_stmt(*it, stack, ui);
     if (is_print) {
       return true;
     }
@@ -280,7 +307,7 @@ public:
 std::optional<objects::DynObject *> run_body(trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
   auto it = body->begin();
   std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
-  while (run_to_print(it, body, stack))
+  while (run_to_print(it, body, stack, ui))
   {
     assert(stack.empty() && "the stack must be empty to generate a valid output");
     ui->output(edges, std::string((*it)->location().view()));

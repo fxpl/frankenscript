@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include <optional>
 
 #include "../lang/interpreter.h"
 
@@ -50,6 +51,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out);
 
 namespace value {
   DynObject *iter_next(DynObject *iter);
+  std::optional<DynObject *> call(objects::DynObject *func, std::vector<objects::DynObject *> &stack, objects::UI* ui);
 }
 
 } // namespace objects

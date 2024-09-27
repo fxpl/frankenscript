@@ -119,6 +119,15 @@ namespace value {
 
     return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
   }
+
+  std::optional<DynObject *> call(objects::DynObject *func, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+    if (func->get_prototype() == &objects::bytecodeFuncPrototypeObject) {
+      return reinterpret_cast<BytecodeFuncObject*>(func)->function_apply(stack, ui);
+    } else {
+      error("Object is not a function.");
+      return {};
+    }
+  }
 }
 
 } // namespace objects
