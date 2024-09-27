@@ -505,9 +505,7 @@ inline const trieste::wf::Wellformed bytecode =
           | (Label <<= Ident)[Ident];
 } // namespace verona::wf
 
-std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
-  auto result = std::make_shared<std::optional<Node>>();
-
+PassDef bytecode() {
   PassDef p{"bytecode",
             verona::wf::bytecode,
             dir::topdown,
@@ -616,6 +614,17 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                     [](auto &_) -> Node { return CreateObject << _(String); },
 
             }};
+  return p;
+}
+
+std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass() {
+  auto result = std::make_shared<std::optional<Node>>();
+  PassDef p{
+    "interpreter",
+    verona::wf::bytecode,
+    dir::topdown | dir::once,
+    {}
+  };
   p.post(trieste::Top, [result](Node n) {
     *result = n->at(0);
     return 0;
@@ -640,8 +649,8 @@ struct CLIOptions : trieste::Options
 
 int load_trieste(int argc, char **argv) {
   CLIOptions options;
-  auto [bytecodepass, result] = bytecode();
-  trieste::Reader reader{"verona_dyn", {grouping(), flatten(), bytecodepass}, parser()};
+  auto [extract_bytecode, result] = extract_bytecode_pass();
+  trieste::Reader reader{"verona_dyn", {grouping(), flatten(), bytecode(), extract_bytecode}, parser()};
   trieste::Driver driver{reader, &options};
   auto build_res = driver.run(argc, argv);
 
