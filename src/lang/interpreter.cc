@@ -25,13 +25,19 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     if (payload == Dictionary) {
       obj = objects::make_object();
     } else if (payload == String) {
-      obj = objects::make_object(std::string(payload->location().view()), "");
+      obj = objects::make_object(std::string(payload->location().view()));
     } else if (payload == KeyIter) {
       auto v = stack.back();
       stack.pop_back();
       std::cout << "pop " << v << " (iterator source)" << std::endl;
       obj = objects::make_iter(v);
       remove_reference(objects::get_frame(), v);
+    } else if (payload == Proto) {
+      obj = objects::make_object();
+      auto v = stack.back();
+      stack.pop_back();
+      // RC transferred
+      objects::set_prototype(obj, v);
     } else {
       assert(false && "CreateObject has to specify a value");
     }

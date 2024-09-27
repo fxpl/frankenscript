@@ -14,8 +14,8 @@ struct Edge {
 };
 
 DynObject *make_iter(DynObject *iter_src);
-DynObject *make_object(std::string str_value, std::string name);
-DynObject *make_object(std::string name = "");
+DynObject *make_object(std::string str_value);
+DynObject *make_object();
 DynObject *get_frame();
 void clear_frame();
 
@@ -26,6 +26,8 @@ DynObject *get(DynObject *src, std::string key);
 DynObject *get(DynObject *src, DynObject *key);
 DynObject *set(DynObject *dst, std::string key, DynObject *value);
 DynObject *set(DynObject *dst, DynObject *key, DynObject *value);
+
+DynObject *set_prototype(DynObject *obj, DynObject *proto);
 
 void add_reference(DynObject *src, DynObject *target);
 void remove_reference(DynObject *src, DynObject *target);

@@ -9,17 +9,12 @@
 namespace objects {
 
 DynObject *make_iter(DynObject *iter_src) {
-  auto iter = new DynObject("", new value::KeyIterValue(iter_src->fields));
-  assert(iter->get_value());
-
-  return iter;
+  return new KeyIterObject(iter_src->fields);
 }
-DynObject *make_object(std::string value, std::string name) {
-  auto obj = new DynObject(name, new value::StrValue(value));
-  assert(obj->get_value());
-  return obj;
+DynObject *make_object(std::string value) {
+  return new StringObject(value);
 }
-DynObject *make_object(std::string name) { return new DynObject(name, nullptr); }
+DynObject *make_object() { return new DynObject(); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 
@@ -30,17 +25,37 @@ void create_region(DynObject *object) { object->create_region(); }
 DynObject *get(DynObject *obj, std::string key) {
   return obj->get(key);
 }
+
+std::string get_key(DynObject* key) {
+  // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
+  if (key->get_prototype() != &stringPrototypeObject) {
+    error("Key must be a string.");
+  }
+  StringObject *str_key = reinterpret_cast<StringObject*>(key);
+  return str_key->as_key();
+}
+
 DynObject *get(DynObject *obj, DynObject *key) {
-  auto value = key->get_value();
-  assert(value);
-  return get(obj, *value->expect_str_value());
+  return get(obj, get_key(key));
 }
 
 DynObject *set(DynObject *obj, std::string key, DynObject *value) {
   return obj->set(key, value);
 }
+
 DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
-  return set(obj, *key->get_value()->expect_str_value(), value);
+  return set(obj, get_key(key), value);
+}
+
+// TODO [[nodiscard]]
+DynObject *set_prototype(DynObject *obj, DynObject *proto) {
+  if (proto->is_primitive() != nullptr) {
+    error("Cannot set a primitive as a prototype.");
+  }
+  if (obj->is_primitive() != nullptr) {
+    error("Cannot set a prototype on a primitive object.");
+  }
+  return obj->set_prototype(proto);
 }
 
 void add_reference(DynObject *src, DynObject *target) {
@@ -95,9 +110,11 @@ void post_run(size_t initial_count, UI& ui) {
 namespace value {
   DynObject *iter_next(DynObject *iter) {
     assert(!iter->is_immutable());
-    auto value = iter->get_value();
-    assert(value && "the given `DynObject` doesn't have a value");
-    return value->iter_next();
+    if (iter->get_prototype() != &objects::keyIterPrototypeObject) {
+      error("Object is not an iterator.");
+    }
+
+    return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
   }
 }
 
