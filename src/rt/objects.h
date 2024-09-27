@@ -210,8 +210,8 @@ class DynObject {
     Region::set_parent(target_region, src_region);
   }
 
-  size_t change_rc(size_t delta) {
-    std::cout << "Change RC: " << get_name() << " " << rc << " + " << (ssize_t)delta
+  size_t change_rc(signed delta) {
+    std::cout << "Change RC: " << get_name() << " " << rc << " + " << delta
               << std::endl;
     if (!is_immutable()) {
       assert(delta == 0 || rc != 0);

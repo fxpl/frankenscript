@@ -34,6 +34,9 @@ target_link_libraries(lang PRIVATE trieste::trieste)
 add_executable(verona_dyn src/main.cc)
 target_link_libraries(verona_dyn PRIVATE rt lang)
 
+# Add snmallocs clang format targets
+clangformat_targets()
+
 
 message(STATUS "Adding tests")
 FILE(GLOB ALL_FILES
