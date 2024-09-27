@@ -8,6 +8,9 @@
 
 namespace verona::interpreter {
 
+struct Bytecode {
+  trieste::Node body;
+};
 
 std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack) {
   if (node == Print) {
@@ -227,28 +230,24 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
   std::abort();
 }
 
-bool run_to_print(trieste::NodeIt &it, trieste::Node top) {
-  auto end = top->end();
+bool run_to_print(trieste::NodeIt &it, trieste::Node body, std::vector<objects::DynObject *> &stack) {
+  auto end = body->end();
   if (it == end)
     return false;
-
-  std::vector<objects::DynObject *> stack;
 
   while (it != end) {
     const auto [is_print, jump_label] = run_stmt(*it, stack);
     if (is_print) {
-      assert(stack.empty());
       return true;
     }
     if (jump_label) {
-      auto label_node = top->look(jump_label.value());
+      auto label_node = body->look(jump_label.value());
       assert(label_node.size() == 1);
-      it = top->find(label_node[0]);
+      it = body->find(label_node[0]);
     }
     ++it;
   }
 
-  assert(stack.empty());
   return false;
 }
 
@@ -278,16 +277,31 @@ public:
   }
 };
 
-void run(trieste::Node node, bool interactive = true) {
-  UI ui(interactive);
-  size_t initial = objects::pre_run();
-  auto it = node->begin();
+std::optional<objects::DynObject *> run_body(trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+  auto it = body->begin();
   std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
-  while (run_to_print(it, node))
+  while (run_to_print(it, body, stack))
   {
-    ui.output(edges, std::string((*it)->location().view()));
+    assert(stack.empty() && "the stack must be empty to generate a valid output");
+    ui->output(edges, std::string((*it)->location().view()));
     it++;
   }
+  assert(stack.empty() && "the stack must be empty when the body ends");
+
+  return {};
+}
+std::optional<objects::DynObject *> run_body(Bytecode *body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+  return run_body(body->body, stack, ui);
+}
+
+void start(trieste::Node main_body, bool interactive) {
+  size_t initial = objects::pre_run();
+
+  // Our main has no arguments, menaing an empty starting stack.
+  std::vector<objects::DynObject *> stack;
+  UI ui(interactive);
+  run_body(main_body, stack, &ui);
+
   objects::post_run(initial, ui);
 }
 

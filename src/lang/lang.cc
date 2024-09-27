@@ -1,6 +1,7 @@
 #include "bytecode.h"
 #include "trieste/driver.h"
 #include "trieste/trieste.h"
+#include "interpreter.h"
 #include <optional>
 
 #define TAB_SIZE 4
@@ -623,6 +624,10 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
   return {p, result};
 }
 
+namespace verona::interpreter {
+  void start(trieste::Node main_body, bool interactive);
+}
+
 struct CLIOptions : trieste::Options
 {
   bool iterative = false;
@@ -633,10 +638,6 @@ struct CLIOptions : trieste::Options
   }
 };
 
-namespace verona::interpreter {
-void run(trieste::Node node, bool iterative);
-}
-
 int load_trieste(int argc, char **argv) {
   CLIOptions options;
   auto [bytecodepass, result] = bytecode();
@@ -645,7 +646,7 @@ int load_trieste(int argc, char **argv) {
   auto build_res = driver.run(argc, argv);
 
   if (build_res == 0 && result->has_value()) {
-    verona::interpreter::run(result->value(), options.iterative);
+    verona::interpreter::start(result->value(), options.iterative);
   }
   return build_res;
 }
