@@ -4,6 +4,8 @@
 #include <vector>
 #include <cassert>
 
+#include "../lang/interpreter.h"
+
 namespace objects {
 class DynObject;
 
@@ -13,6 +15,7 @@ struct Edge {
   DynObject *target;
 };
 
+DynObject *make_func(verona::interpreter::Bytecode *body);
 DynObject *make_iter(DynObject *iter_src);
 DynObject *make_object(std::string str_value);
 DynObject *make_object();

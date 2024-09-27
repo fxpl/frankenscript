@@ -8,6 +8,9 @@
 
 namespace objects {
 
+DynObject *make_func(verona::interpreter::Bytecode *body) {
+  return new BytecodeFuncObject(body);
+}
 DynObject *make_iter(DynObject *iter_src) {
   return new KeyIterObject(iter_src->fields);
 }

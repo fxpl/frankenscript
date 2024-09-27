@@ -15,6 +15,7 @@
 #include "region.h"
 #include "rt.h"
 #include "tagged_pointer.h"
+#include "../lang/interpreter.h"
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
@@ -210,6 +211,11 @@ public:
     return nullptr;
   }
 
+  virtual std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+    assert(false && "Not available as function");
+    return nullptr;
+  }
+
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
@@ -397,6 +403,24 @@ class KeyIterObject : public DynObject {
     DynObject* is_primitive() {
       return this;
     }
+};
+
+// The prototype object for functions
+// TODO put some stuff in here?
+DynObject funcPrototypeObject{nullptr, true};
+// The prototype object for iterators
+// TODO put some stuff in here?
+DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
+
+class BytecodeFuncObject : public DynObject {
+  // TODO: This memory is currently leaked.
+  verona::interpreter::Bytecode *body;
+public:
+  BytecodeFuncObject(verona::interpreter::Bytecode *body_) : DynObject(&bytecodeFuncPrototypeObject), body(body_) {}
+
+  std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+    return verona::interpreter::run_body(this->body, stack, ui);
+  }
 };
 
 void destruct(DynObject *obj) {
