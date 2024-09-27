@@ -94,6 +94,14 @@ namespace value {
   };
 }
 
+using NopDO = utils::Nop<DynObject *>;
+
+template <typename Pre, typename Post = NopDO>
+inline void visit(Edge e, Pre pre, Post post = {});
+
+template <typename Pre, typename Post = NopDO>
+inline void visit(DynObject* start, Pre pre, Post post = {});
+
 // Representation of objects
 class DynObject {
   friend class Reference;
@@ -101,12 +109,13 @@ class DynObject {
   friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
   friend void destruct(DynObject *obj);
   friend void dealloc(DynObject *obj);
+  template <typename Pre, typename Post>
+  friend void visit(Edge, Pre, Post);
 
   // Represents the region of specific object. Uses small pointers to
   // encode special regions.
   using RegionPointer = utils::TaggedPointer<Region>;
 
-  using Nop = utils::Nop<DynObject *>;
 
   // TODO: Not concurrency safe
   inline static size_t count{0};
@@ -129,50 +138,6 @@ class DynObject {
 
   bool is_local_object() { return region.get_ptr() == get_local_region(); }
 
-  template <typename Pre, typename Post = Nop>
-  void visit(Pre pre, Post post = {}) {
-    visit(Edge{frame(), "", this}, pre, post);
-  }
-
-  template <typename Pre, typename Post = Nop>
-  static void visit(Edge e, Pre pre, Post post = {}) {
-    if (!pre(e))
-      return;
-
-    constexpr bool HasPost = !std::is_same_v<Post, Nop>;
-    constexpr uintptr_t POST{1};
-
-    std::vector<std::pair<utils::TaggedPointer<DynObject>, std::string>> stack;
-
-    auto visit_object = [&](DynObject *obj) {
-      if (obj == nullptr)
-        return;
-      if constexpr (HasPost)
-        stack.push_back({{obj, POST}, ""});
-      for (auto &[key, field] : obj->fields)
-        stack.push_back({obj, key});
-      if (obj->prototype != nullptr)
-        stack.push_back({obj, PrototypeField});
-    };
-
-    visit_object(e.target);
-
-    while (!stack.empty()) {
-      auto [obj, key] = stack.back();
-      auto obj_ptr = obj.get_ptr();
-      stack.pop_back();
-
-      if (HasPost && obj.get_tag() == POST) {
-        post(obj_ptr);
-        continue;
-      }
-
-      DynObject *next = obj_ptr->get(key);
-      if (pre({obj_ptr, key, next})) {
-        visit_object(next);
-      }
-    }
-  }
 
   static void remove_region_reference(Region *src, Region *target) {
     if (src == target) {
@@ -235,7 +200,7 @@ class DynObject {
   void add_to_region(Region *r) {
     size_t internal_references{0};
     size_t rc_of_added_objects{0};
-    visit([&](Edge e) {
+    visit(this, [&](Edge e) {
       auto obj = e.target;
       if (obj == nullptr || obj->is_immutable())
         return false;
@@ -327,7 +292,7 @@ public:
 
   void freeze() {
     // TODO SCC algorithm
-    visit([](Edge e) {
+    visit(this, [](Edge e) {
       auto obj = e.target;
       if (obj->is_immutable())
         return false;
@@ -474,4 +439,53 @@ void dealloc(DynObject *obj) {
   obj->region = nullptr;
   delete obj;
 }
+
+template <typename Pre, typename Post>
+inline void visit(Edge e, Pre pre, Post post) {
+  if (!pre(e))
+    return;
+
+  constexpr bool HasPost = !std::is_same_v<Post, NopDO>;
+  constexpr uintptr_t POST{1};
+
+  std::vector<std::pair<utils::TaggedPointer<DynObject>, std::string>> stack;
+
+  auto visit_object = [&](DynObject *obj) {
+    if (obj == nullptr)
+      return;
+    if constexpr (HasPost)
+      stack.push_back({{obj, POST}, ""});
+    // TODO This will need to depend on the type of object.
+    for (auto &[key, field] : obj->fields)
+      stack.push_back({obj, key});
+    if (obj->prototype != nullptr)
+      stack.push_back({obj, PrototypeField});
+  };
+
+  visit_object(e.target);
+
+  while (!stack.empty()) {
+    auto [obj, key] = stack.back();
+    auto obj_ptr = obj.get_ptr();
+    stack.pop_back();
+
+    if (HasPost && obj.get_tag() == POST) {
+      post(obj_ptr);
+      continue;
+    }
+
+    DynObject *next = obj_ptr->get(key);
+    if (pre({obj_ptr, key, next})) {
+      visit_object(next);
+    }
+  }
+}
+
+
+template <typename Pre, typename Post>
+inline void visit(DynObject* start, Pre pre, Post post)
+{
+  visit(Edge{DynObject::frame(), "", start}, pre, post);
+}
+
 } // namespace objects

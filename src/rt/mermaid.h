@@ -69,13 +69,13 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
   };
   // Output all reachable edges
   for (auto &root : roots) {
-    DynObject::visit({root.src, root.key, root.target}, explore, {});
+    visit({root.src, root.key, root.target}, explore, {});
   }
 
   // Output the unreachable parts of the graph
   unreachable = true;
   for (auto &root : DynObject::all_objects) {
-    DynObject::visit({nullptr, "", root}, explore, {});
+    visit({nullptr, "", root}, explore, {});
   }
 
   // Output any region parent edges.
