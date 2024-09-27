@@ -9,17 +9,12 @@
 namespace objects {
 
 DynObject *make_iter(DynObject *iter_src) {
-  auto iter = new DynObject(new value::KeyIterValue(iter_src->fields));
-  assert(iter->get_value());
-
-  return iter;
+  return new KeyIterObject(iter_src->fields);
 }
 DynObject *make_object(std::string value) {
-  auto obj = new DynObject(new value::StrValue(value));
-  assert(obj->get_value());
-  return obj;
+  return new StringObject(value);
 }
-DynObject *make_object() { return new DynObject(nullptr); }
+DynObject *make_object() { return new DynObject(); }
 
 DynObject *get_frame() { return DynObject::frame(); }
 
@@ -31,16 +26,16 @@ DynObject *get(DynObject *obj, std::string key) {
   return obj->get(key);
 }
 DynObject *get(DynObject *obj, DynObject *key) {
-  auto value = key->get_value();
-  assert(value);
-  return get(obj, *value->expect_str_value());
+  // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
+  return get(obj, key->as_key());
 }
 
 DynObject *set(DynObject *obj, std::string key, DynObject *value) {
   return obj->set(key, value);
 }
 DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
-  return set(obj, *key->get_value()->expect_str_value(), value);
+  // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
+  return set(obj, key->as_key(), value);
 }
 
 // TODO [[nodiscard]]
@@ -100,9 +95,8 @@ void post_run(size_t initial_count, UI& ui) {
 namespace value {
   DynObject *iter_next(DynObject *iter) {
     assert(!iter->is_immutable());
-    auto value = iter->get_value();
-    assert(value && "the given `DynObject` doesn't have a value");
-    return value->iter_next();
+    /// TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
+    return iter->iter_next();
   }
 }
 

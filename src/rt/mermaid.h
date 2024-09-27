@@ -46,11 +46,6 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
     out << "id" << curr_id << "[ ";
     out << dst->get_name();
     out << "<br/>rc=" << dst->rc;
-    
-    if (dst->get_value()) {
-      auto display = dst->get_value()->display_str();
-      out << "<br/>value=" << display;
-    }
 
     out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
 

@@ -20,80 +20,6 @@ namespace objects {
 constexpr uintptr_t ImmutableTag{1};
 constexpr std::string PrototypeField{"__proto__"};
 
-namespace value {
-  /// @brief This class represents the value of an object when it's used in an
-  /// expression. For example, let's consider `k`
-  ///
-  /// ```
-  /// a = {}
-  /// k = "key"
-  /// a[k] = {}
-  /// ```
-  ///
-  /// In this example, `k` is a string literal. The access `a[k]` will retrieve the
-  /// string value from `k` and use it as a key in `a`.
-  ///
-  /// Note that dictionaries are still modeled in `DynObject`. This is analogous
-  /// to Python. While string values and integers are used as values in
-  /// expressions, they still have fields that store information and methods.
-  class Value {
-  public:
-    virtual ~Value() {}
-
-    virtual std::string* str_value() { return nullptr; }
-    std::string* expect_str_value() {
-      auto value = this->str_value();
-      assert(value && "expected a string, but received null");
-      return value;
-    }
-
-    virtual DynObject* iter_next() { return nullptr; }
-
-    /// @brief The string representation of this value to 
-    virtual std::string display_str() = 0;
-  };
-
-  /// @brief A string literal.
-  class StrValue : public Value {
-    std::string value;
-
-  public:
-    StrValue(std::string value_): value(value_) {}
-
-    std::string* str_value() { return &this->value; }
-
-    std::string display_str() {
-      std::stringstream stream;
-      stream << "'" << this->value << "'";
-      return stream.str();
-    }
-  };
-
-  /// @brief This iterates over they keys of a given map
-  class KeyIterValue : public Value {
-    std::map<std::string, DynObject *>::iterator iter;
-    std::map<std::string, DynObject *>::iterator iter_end;
-
-  public:
-    KeyIterValue(std::map<std::string, DynObject *> &fields)
-      : iter(fields.begin()), iter_end(fields.end()) {}
-
-    virtual DynObject* iter_next() {
-      DynObject *obj = nullptr;
-      if (this->iter != this->iter_end) {
-        obj = make_object(this->iter->first);
-        this->iter++;
-      }
-
-      return obj;
-    }
-
-    std::string display_str() {
-      return "&lt;iterator&gt;";
-    }
-  };
-}
-
 using NopDO = utils::Nop<DynObject *>;
 
 template <typename Pre, typename Post = NopDO>
@@ -127,7 +53,6 @@ class DynObject {
   DynObject* prototype{nullptr};
 
   std::map<std::string, DynObject *> fields{};
-  value::Value* value {nullptr};
 
   static Region *get_region(DynObject *obj) {
     if ((obj == nullptr) || obj->is_immutable())
@@ -237,7 +162,7 @@ class DynObject {
   }
 
 public:
-  DynObject(value::Value* value_, bool global = false) : value(value_) {
+  DynObject(bool global = false) {
     count++;
     all_objects.insert(this);
     if (global) {
@@ -262,27 +187,34 @@ public:
     if (!is_immutable() && r != nullptr)
       r->objects.erase(this);
 
-    if (this->value) {
-      delete this->value;
-      this->value = nullptr;
-    }
     std::cout << "Deallocate: " << get_name() << std::endl;
   }
 
-  std::string get_name() {
+  /// @brief The string representation of this value to 
+  /// TODO remove virtual once we have primitive functions.
+  virtual std::string get_name()
+  {
     std::stringstream stream;
     stream << this;
     return stream.str();
   }
 
-  value::Value* get_value() {
-    return this->value;
+  /// TODO remove virtual once we have primitive functions.
+  virtual std::string as_key() {
+    assert(false && "Not available as a key");
+    return {};
+  }
+
+  /// TODO remove virtual once we have primitive functions.
+  virtual DynObject* iter_next() {
+    assert(false && "Not an iterator");
+    return nullptr;
   }
 
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    thread_local static DynObject frame{nullptr, true};
+    thread_local static DynObject frame{true};
     return &frame;
   }
 
@@ -401,6 +333,47 @@ public:
   }
 
   static std::set<DynObject *> get_objects() { return all_objects; }
+};
+
+class StringObject : public DynObject {
+  std::string value;
+
+public:
+  StringObject(std::string value_)
+    : DynObject(), value(value_) {}
+
+  std::string get_name() {
+    return value;
+  }
+
+  std::string as_key() {
+    return value;
+  }
+};
+
+
+class KeyIterObject : public DynObject {
+    std::map<std::string, DynObject *>::iterator iter;
+    std::map<std::string, DynObject *>::iterator iter_end;
+
+  public:
+    KeyIterObject(std::map<std::string, DynObject *> &fields)
+      : iter(fields.begin()), iter_end(fields.end()) {}
+
+    DynObject* iter_next() {
+      DynObject *obj = nullptr;
+      if (this->iter != this->iter_end) {
+        obj = make_object(this->iter->first);
+        this->iter++;
+      }
+
+      return obj;
+    }
+
+    std::string get_name() {
+      return "&lt;iterator&gt;";
+    }
+
 };
 
 void destruct(DynObject *obj) {
