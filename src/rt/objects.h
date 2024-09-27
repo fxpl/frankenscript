@@ -18,7 +18,7 @@
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
-constexpr std::string PrototypeField{"__proto__"};
+const std::string PrototypeField{"__proto__"};
 
 using NopDO = utils::Nop<DynObject *>;
 
