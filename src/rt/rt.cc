@@ -114,8 +114,7 @@ namespace value {
       error("Object is not an iterator.");
     }
 
-    /// TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
-    return iter->iter_next();
+    return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
   }
 }
 

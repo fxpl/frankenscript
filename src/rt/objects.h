@@ -18,7 +18,7 @@
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
-const std::string PrototypeField{"__proto__"};
+const std::string PrototypeField{"<u>  </u>proto<u>  </u>"};
 
 using NopDO = utils::Nop<DynObject *>;
 
@@ -162,24 +162,30 @@ class DynObject {
   }
 
 public:
+  // prototype is borrowed, the caller does not need to provide an RC.
   DynObject(DynObject* prototype_ = nullptr, bool global = false) : prototype(prototype_) {
-    if (global) {
-      change_rc(-1);
-    } else {
+    if (!global) {
       count++;
       all_objects.insert(this);
       auto local_region = get_local_region();
       region = local_region;
       local_region->objects.insert(this);
     }
+    if (prototype != nullptr)
+      prototype->change_rc(1);
     std::cout << "Allocate: " << get_name() << std::endl;
   }
 
-  ~DynObject() {
-    count--;
-    all_objects.erase(this);
-    if (change_rc(0) != 0) {
-      if (all_objects.find(this) != all_objects.end())
+  // TODO This should use prototype lookup for the destructor.
+  virtual ~DynObject() {
+    // Erase from set of all objects, and remove count if found.
+    auto matched = all_objects.erase(this);
+    count -= matched;
+
+    // If it wasn't in the all_objects set, then it was a special object
+    // that we don't track for leaks, otherwise, we need to check if the
+    // RC is zero.
+    if (change_rc(0) != 0 && matched != 0) {
         error("Object still has references");
     }
 
@@ -257,6 +263,7 @@ public:
     return old;
   }
 
+  // The caller must provide an rc for value. 
   [[nodiscard]] DynObject* set_prototype(DynObject* value) {
     if (is_immutable()) {
       error("Cannot mutate immutable object");
@@ -393,6 +400,10 @@ class KeyIterObject : public DynObject {
 };
 
 void destruct(DynObject *obj) {
+  // Called from the region destructor.
+  // Remove all references to other objects.
+  // If in the same region, then just remove the RC, but don't try to collect
+  // as the whole region is being torndown including any potential cycles.
   auto same_region = [](DynObject *src, DynObject *target) {
     return DynObject::get_region(src) == DynObject::get_region(target);
   };
