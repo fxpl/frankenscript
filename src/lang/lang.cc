@@ -80,6 +80,8 @@ trieste::Parse parser() {
     m.term({Assign});
 
     if (this_indent > indent->back().indent) {
+      std::cout << "this_indent " << this_indent << std::endl;
+      std::cout << "indent->back().indent " << indent->back().indent << std::endl;
       m.error("unexpected indention");
     }
 
@@ -87,30 +89,49 @@ trieste::Parse parser() {
       m.term({Block, Group, indent->back().toc});
       indent->pop_back();
     }
+
+    if (this_indent != indent->back().indent) {
+      m.error("unexpected indention");
+    }
   };
 
   p("start",
     {
-        // The file always has to start with zero indention
-        "\\A(    )+" >> [](auto &m) {
-          m.error("unexpected indention");
-        },
         // Empty lines should be ignored
-        "(?m)\\r?\\n$" >> [](auto &) {},
-
-        // Indention
-        "\\r?\\n((    )*)" >> [update_indent](auto &m) {
-          auto this_indent = m.match(1).len / TAB_SIZE;
-          update_indent(m, this_indent);
-        },
-        "\\r?\\n(\\t*)" >> [update_indent](auto &m) {
-          auto this_indent = m.match(1).len;
-          update_indent(m, this_indent);
-        },
-        "[[:blank:]]+" >> [](auto &) {},
+        "[ \\t]*\\r?\\n" >> [](auto &) {},
 
         // Line comment
         "(?:#[^\\n]*)" >> [](auto &) {},
+
+        // Indention
+        " +" >> [update_indent](auto &m) {
+          if (m.match().len % TAB_SIZE != 0) {
+            m.error("unexpected indention");
+          }
+          auto this_indent = m.match().len / TAB_SIZE;
+          update_indent(m, this_indent);
+          m.mode("contents");
+        },
+
+        "\\t*" >> [update_indent](auto &m) {
+          auto this_indent = m.match().len;
+          update_indent(m, this_indent);
+          m.mode("contents");
+        },
+    });
+
+  p(
+    "contents",
+    {
+        // Indentation 
+        "\\r?\\n" >> [](auto &m) {
+          m.mode("start");
+        },
+
+        "[[:blank:]]+" >> [](auto &) {},
+
+        // Line comment
+        "(?:#[^\\n\\r]*)" >> [](auto &) {},
 
         "for" >> [](auto &m) { 
           m.seq(For);
