@@ -12,6 +12,10 @@ struct Bytecode {
   trieste::Node body;
 };
 
+void delete_bytecode(Bytecode* bytecode) {
+  delete bytecode;
+}
+
 std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
   if (node == Print) {
     std::cout << node->location().view() << std::endl << std::endl;
@@ -43,7 +47,6 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
       objects::set_prototype(obj, v);
     } else if (payload == Func) {
       assert(payload->size() == 1 && "CreateObject: A bytecode function requires a body node");
-      // TODO This leaks memory
       obj = objects::make_func(new Bytecode { payload->at(0) });
     } else {
       assert(false && "CreateObject has to specify a value");
@@ -230,11 +233,13 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
   }
 
   if (node == Call) {
+    // Get the operator
     std::cout << "function call" << std::endl;
     auto func = stack.back();
     stack.pop_back();
     std::cout << "pop " << func << "(function)" << std::endl;
 
+    // Copy the arguments into a new stack
     std::vector<objects::DynObject *> call_stack;
     auto arg_ctn = std::stoul(std::string(node->location().view()));
     assert(stack.size() >= arg_ctn && "The stack doesn't have enough values for this call");
@@ -243,12 +248,17 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
       stack.pop_back();
     }
 
-    // TODO Return value
-    objects::value::call(func, call_stack, ui);
+    // Call function and process return
+    auto return_value = objects::value::call(func, call_stack, ui);
     remove_reference(objects::get_frame(), func);
+    if (return_value) {
+      auto value = return_value.value();
+      stack.push_back(value);
+      std::cout << "push " << value << " (return value)" << std::endl;
+    } else {
+      std::cout << "function didn't return anything" << std::endl;
+    }
 
-    // stack.push_back(obj);
-    std::cout << "push " << "TODO obj"  << " (return value)" << std::endl;
     return {false, {}};
   }
 
@@ -260,7 +270,12 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
 
   if (node == PopFrame) {
     std::cout << "pop frame" << std::endl;
-    objects::pop_frame();
+    assert(stack.empty() && "the local stack has to be empty, after the frame was popped");
+    auto return_value = objects::pop_frame();
+    if (return_value) {
+      stack.push_back(return_value.value());
+    }
+
     return {false, {}};
   }
 
@@ -325,7 +340,13 @@ std::optional<objects::DynObject *> run_body(trieste::Node body, std::vector<obj
     ui->output(edges, std::string((*it)->location().view()));
     it++;
   }
-  assert(stack.empty() && "the stack must be empty when the body ends");
+
+  assert(stack.size() <= 1 && "the stack can't have more than a single return value, at the end of the body");
+  if (stack.size() == 1) {
+    auto return_value = stack.back();
+    stack.pop_back();
+    return return_value;
+  }
 
   return {};
 }
@@ -336,7 +357,7 @@ std::optional<objects::DynObject *> run_body(Bytecode *body, std::vector<objects
 void start(trieste::Node main_body, bool interactive) {
   size_t initial = objects::pre_run();
 
-  // Our main has no arguments, menaing an empty starting stack.
+  // Our main has no arguments, meaning it has an empty starting stack.
   std::vector<objects::DynObject *> stack;
   UI ui(interactive);
   run_body(main_body, stack, &ui);

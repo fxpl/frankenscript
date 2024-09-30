@@ -55,7 +55,7 @@ inline const auto parser =
   ;
 
 inline const auto lv = Ident | Lookup;
-inline const auto rv = lv | Empty | Null | String | Create;
+inline const auto rv = lv | Empty | Null | String | Create | Call;
 inline const auto cmp_values = Ident | Lookup | Null;
 inline const auto key = Ident | Lookup | String;
 
@@ -155,7 +155,9 @@ trieste::Parse parser() {
           m.push(Parens);
         },
         "\\)" >> [](auto &m) {
-          m.term({List, Parens});
+          m.term({List});
+          m.extend_before(Parens);
+          m.term({Parens});
         },
         "return" >> [](auto &m) {
           m.seq(Return);
@@ -238,7 +240,7 @@ trieste::Parse parser() {
 }
 
 auto LV = T(Ident, Lookup);
-auto RV = T(Empty, Ident, Lookup, Null, String, Create);
+auto RV = T(Empty, Ident, Lookup, Null, String, Create, Call);
 auto CMP_V = T(Ident, Lookup, Null);
 auto KEY = T(Ident, Lookup, String);
 
@@ -315,7 +317,7 @@ PassDef grouping() {
               },
 
           T(Assign) << ((T(Group) << LV[Lhs] * End) *
-                        (T(Group) << RV[Rhs] * End) * End) >>
+                        ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) * End) >>
               [](auto &_) { return Assign << _[Lhs] << _[Rhs]; },
           T(Eq) << ((T(Group) << CMP_V[Lhs] * End) *
                         (T(Group) << CMP_V[Rhs] * End) * End) >>
@@ -350,7 +352,7 @@ PassDef grouping() {
               (T(Group) << (T(Block)[Block] * End)) *
               End) >>
             [](auto &_) {
-              // This function for now only has a block, as a lowering pass still needs to
+              // This function only has a block for now, as a lowering pass still needs to
               // do some modifications until it's a "full" body.
               return create_from(For, _(For))
                 << _(Key)

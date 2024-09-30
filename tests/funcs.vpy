@@ -7,6 +7,8 @@ def no_args():
     return a
 
 
-no_args()
+_ = no_args()
 
 three_args("A", "B", "C")
+
+a = {}

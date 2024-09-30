@@ -30,7 +30,6 @@ inline void visit(Edge e, Pre pre, Post post = {});
 template <typename Pre, typename Post = NopDO>
 inline void visit(DynObject* start, Pre pre, Post post = {});
 
-
 // Representation of objects
 class DynObject {
   friend class Reference;
@@ -215,11 +214,6 @@ public:
     return nullptr;
   }
 
-  virtual std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) {
-    assert(false && "Not available as function");
-    return nullptr;
-  }
-
   inline static void push_frame(DynObject* frame) {
     frame_stack.push_back(frame);
   }
@@ -239,9 +233,10 @@ public:
     // and return `nullprt` if it wasn't found.
     auto result = frame->fields.find("return");
     if (result != frame->fields.end()) {
+      result->second->change_rc(1);
       return_value = result->second;
     }
-    
+
     frame_stack.pop_back();
     remove_reference(frame_stack.back(), frame);
 
@@ -442,13 +437,22 @@ DynObject funcPrototypeObject{nullptr, true};
 // TODO put some stuff in here?
 DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
 
-class BytecodeFuncObject : public DynObject {
-  // TODO: This memory is currently leaked.
+class FuncObject : public DynObject {
+public:
+  FuncObject(DynObject* prototype_, bool global = false) : DynObject(prototype_, global) {}
+  virtual std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) = 0;
+};
+
+class BytecodeFuncObject : public FuncObject {
   verona::interpreter::Bytecode *body;
 public:
-  BytecodeFuncObject(verona::interpreter::Bytecode *body_) : DynObject(&bytecodeFuncPrototypeObject), body(body_) {}
+  BytecodeFuncObject(verona::interpreter::Bytecode *body_) : FuncObject(&bytecodeFuncPrototypeObject), body(body_) {}
+  ~BytecodeFuncObject() {
+    verona::interpreter::delete_bytecode(this->body);
+    this->body = nullptr;
+  }
 
-  std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+  std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) override {
     return verona::interpreter::run_body(this->body, stack, ui);
   }
 };

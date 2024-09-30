@@ -25,6 +25,7 @@ inline const trieste::TokenDef Label{"label"};
 inline const trieste::TokenDef Eq{"=="};
 inline const trieste::TokenDef Neq{"!="};
 /// Stack: <arg_0>, <arg_1>, <arg_2>, <func_obj>
+/// For `function(a, b, c)` the stack would be: `a, b, c, function`
 inline const trieste::TokenDef Call{"call"};
 /// Unconditional Jump
 inline const trieste::TokenDef Jump{"jump", trieste::flag::print};

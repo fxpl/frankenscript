@@ -19,7 +19,6 @@ DynObject *make_object(std::string value) {
 }
 DynObject *make_object() { return new DynObject(); }
 
-// thread_local std::vector<DynObject *> DynObject::frame_stack = { new DynObject{nullptr, true} };
 thread_local std::vector<DynObject *> DynObject::frame_stack = { FrameObject::create_first_stack() };
 
 void push_frame() {
