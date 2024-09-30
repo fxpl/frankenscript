@@ -397,7 +397,7 @@ inline const trieste::wf::Wellformed flatten =
     | (File <<= Body)
     | (Body <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
                 Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
-                Create | StoreField | Lookup | String | Call)++)
+                Create | StoreField | Lookup | String | Call | PushFrame | PopFrame)++)
     | (CreateObject <<= (KeyIter | String | Dictionary | Func))
     | (Func <<= Compile)
     | (Compile <<= Body)
@@ -523,7 +523,7 @@ PassDef flatten() {
 
             // Function setup
             Node body = Body;
-            // body << PushFrame;
+            body << PushFrame;
             Node args = _(Params);
             for (auto it = args->cbegin(); it != args->cend(); it++) {
               body << create_from(StoreFrame, *it);
@@ -544,7 +544,7 @@ PassDef flatten() {
             // Function cleanup
             body << ((Label ^ "return:") << (Ident ^ return_label));
             body << create_print(_(Func), func_head + " (Exit)");
-            // body << PopFrame;
+            body << PopFrame;
 
             return Seq
               << (CreateObject << (Func << (Compile << body)))
@@ -563,7 +563,7 @@ using namespace trieste::wf;
 inline const trieste::wf::Wellformed bytecode =
     empty | (Body <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
-                      Eq | Neq | Jump | JumpFalse | Label | Call)++)
+                      Eq | Neq | Jump | JumpFalse | Label | Call | PushFrame | PopFrame)++)
           | (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func))
           | (Top <<= Body)
           | (Func <<= Body)
@@ -619,7 +619,7 @@ PassDef bytecode() {
                 // The node doesn't require additional processing and should be copied
                 T(Compile) << T(
                   Null, Label, Print, Jump, JumpFalse, CreateObject,
-                  StoreFrame, LoadFrame, IterNext, StoreField)[Op] >>
+                  StoreFrame, LoadFrame, IterNext, StoreField, PushFrame, PopFrame)[Op] >>
                     [](auto &_) -> Node { return _(Op); },
 
                 T(Compile) << (T(Eq, Neq)[Op] << (Any[Lhs] * Any[Rhs])) >>

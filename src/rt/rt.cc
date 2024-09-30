@@ -19,7 +19,17 @@ DynObject *make_object(std::string value) {
 }
 DynObject *make_object() { return new DynObject(); }
 
+// thread_local std::vector<DynObject *> DynObject::frame_stack = { new DynObject{nullptr, true} };
+thread_local std::vector<DynObject *> DynObject::frame_stack = { FrameObject::create_first_stack() };
+
+void push_frame() {
+  auto parent = DynObject::frame();
+  DynObject::push_frame(new FrameObject(parent));
+}
 DynObject *get_frame() { return DynObject::frame(); }
+std::optional<DynObject *> pop_frame() {
+  return DynObject::pop_frame();
+}
 
 void freeze(DynObject *obj) { obj->freeze(); }
 

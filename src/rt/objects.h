@@ -20,6 +20,7 @@
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
 const std::string PrototypeField{"<u>  </u>proto<u>  </u>"};
+const std::string ParentField{"<u>  </u>parent<u>  </u>"};
 
 using NopDO = utils::Nop<DynObject *>;
 
@@ -28,6 +29,7 @@ inline void visit(Edge e, Pre pre, Post post = {});
 
 template <typename Pre, typename Post = NopDO>
 inline void visit(DynObject* start, Pre pre, Post post = {});
+
 
 // Representation of objects
 class DynObject {
@@ -38,6 +40,8 @@ class DynObject {
   friend void dealloc(DynObject *obj);
   template <typename Pre, typename Post>
   friend void visit(Edge, Pre, Post);
+
+  thread_local static std::vector<objects::DynObject *> frame_stack;
 
   // Represents the region of specific object. Uses small pointers to
   // encode special regions.
@@ -216,11 +220,32 @@ public:
     return nullptr;
   }
 
+  inline static void push_frame(DynObject* frame) {
+    frame_stack.push_back(frame);
+  }
+
   // Place holder for the frame object.  Used in various places if we don't have
   // an entry point.
   inline static DynObject *frame() {
-    thread_local static DynObject frame{nullptr, true};
-    return &frame;
+    return frame_stack.back();
+  }
+
+  inline static std::optional<DynObject*> pop_frame() {
+    std::optional<DynObject*> return_value = {};
+
+    auto frame = frame_stack.back();
+
+    // We don't want to use `get` as that would also search the prototype
+    // and return `nullprt` if it wasn't found.
+    auto result = frame->fields.find("return");
+    if (result != frame->fields.end()) {
+      return_value = result->second;
+    }
+    
+    frame_stack.pop_back();
+    remove_reference(frame_stack.back(), frame);
+
+    return return_value;
   }
 
   void freeze() {
@@ -344,7 +369,12 @@ public:
   static void set_local_region(Region *r) { frame()->region = {r}; }
 
   static Region *get_local_region() {
-    return DynObject::frame()->region.get_ptr();
+    auto frame = DynObject::frame();
+    if (frame->region) {
+      return frame->region.get_ptr();
+    }
+
+    return frame->get(ParentField)->get_local_region();
   }
 
   static std::set<DynObject *> get_objects() { return all_objects; }
@@ -408,7 +438,7 @@ class KeyIterObject : public DynObject {
 // The prototype object for functions
 // TODO put some stuff in here?
 DynObject funcPrototypeObject{nullptr, true};
-// The prototype object for iterators
+// The prototype object for bytecode functions
 // TODO put some stuff in here?
 DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
 
@@ -420,6 +450,26 @@ public:
 
   std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) {
     return verona::interpreter::run_body(this->body, stack, ui);
+  }
+};
+
+// The prototype object for functions
+// TODO put some stuff in here?
+DynObject framePrototypeObject{nullptr, true};
+
+class FrameObject : public DynObject {
+  FrameObject() : DynObject(&framePrototypeObject, true) {}
+public:
+  FrameObject(DynObject* parent_frame) : DynObject(&framePrototypeObject) {
+    if (parent_frame) {
+      auto old_value = this->set(ParentField, parent_frame);
+      objects::add_reference(this, parent_frame);
+      assert(!old_value);
+    }
+  }
+
+  static FrameObject* create_first_stack() {
+    return new FrameObject();
   }
 };
 

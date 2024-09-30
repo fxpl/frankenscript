@@ -252,6 +252,18 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, {}};
   }
 
+  if (node == PushFrame) {
+    std::cout << "push frame" << std::endl;
+    objects::push_frame();
+    return {false, {}};
+  }
+
+  if (node == PopFrame) {
+    std::cout << "pop frame" << std::endl;
+    objects::pop_frame();
+    return {false, {}};
+  }
+
   std::cerr << "unhandled bytecode" << std::endl;
   node->str(std::cerr);
   std::abort();
@@ -306,10 +318,10 @@ public:
 
 std::optional<objects::DynObject *> run_body(trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
   auto it = body->begin();
-  std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
   while (run_to_print(it, body, stack, ui))
   {
     assert(stack.empty() && "the stack must be empty to generate a valid output");
+    std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
     ui->output(edges, std::string((*it)->location().view()));
     it++;
   }

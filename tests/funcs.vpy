@@ -10,6 +10,3 @@ def no_args():
 no_args()
 
 three_args("A", "B", "C")
-
-drop three_args
-drop no_args
