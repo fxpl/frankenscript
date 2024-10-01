@@ -625,11 +625,13 @@ PassDef bytecode() {
                         << (StoreFrame ^ "False")
                         << (LoadFrame ^ "False")
                         << FreezeObject
+                        << PushFrame
                         << create_print(0, "prelude");
                     },
                 T(Postlude) >>
                     [](auto &) {
                       return Seq
+                        << PopFrame
                         << Null
                         << (StoreFrame ^ "True")
                         << Null
