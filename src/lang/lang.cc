@@ -29,8 +29,6 @@ inline const TokenDef Lhs{"lhs"};
 inline const TokenDef Key{"key"};
 inline const TokenDef Value{"value"};
 
-inline const Node RetrunIdent = Ident ^ "return";
-
 namespace verona::wf {
 using namespace trieste::wf;
 
@@ -43,13 +41,13 @@ inline const auto parser =
   | (Assign <<= Group++)
   | (If <<= Group * Eq * Group)
   | (Else <<= Group * Group)
-  | (Group <<= (parse_tokens | Block)++)
+  | (Group <<= (parse_tokens | Block | List)++)
   | (Block <<= (parse_tokens | parse_groups)++)
   | (Eq <<= Group * Group)
   | (Lookup <<= Group)
   | (For <<= Group * List * Group * Group)
   | (List <<= Group++)
-  | (Parens <<= List++)
+  | (Parens <<= (Group | List)++)
   | (Func <<= Group * Group * Group)
   | (Return <<= Group * Group)
   ;
@@ -78,6 +76,9 @@ inline const auto grouping =
     | (List <<= rv++)
     | (Params <<= Ident++)
     ;
+inline const auto stmt_prints =
+  grouping
+  | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | Call | ClearStack | Print)++);
 } // namespace verona::wf
 
 struct Indent {
@@ -155,9 +156,8 @@ trieste::Parse parser() {
           m.push(Parens);
         },
         "\\)" >> [](auto &m) {
-          m.term({List});
-          m.extend_before(Parens);
-          m.term({Parens});
+          m.term({List, Parens});
+          m.extend(Parens);
         },
         "return" >> [](auto &m) {
           m.seq(Return);
@@ -390,6 +390,29 @@ PassDef grouping() {
   return p;
 }
 
+PassDef stmt_prints() {
+  PassDef p{
+      "stmt_prints",
+      verona::wf::stmt_prints,
+      dir::bottomup | dir::once,
+      {
+        In(Block) * T(Call)[Call] >>
+          [](auto &_) {
+            return Seq
+              << _(Call)
+              << ClearStack
+              << create_print(_(Call));
+          },
+      }
+  };
+
+  return p;
+}
+
+Node return_ident() {
+  return Ident ^ "return";
+}
+
 inline const TokenDef Compile{"compile"};
 
 namespace verona::wf {
@@ -399,7 +422,8 @@ inline const trieste::wf::Wellformed flatten =
     | (File <<= Body)
     | (Body <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
                 Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
-                Create | StoreField | Lookup | String | Call | PushFrame | PopFrame)++)
+                Create | StoreField | Lookup | String | Call | PushFrame | PopFrame |
+                ClearStack)++)
     | (CreateObject <<= (KeyIter | String | Dictionary | Func))
     | (Func <<= Compile)
     | (Compile <<= Body)
@@ -536,7 +560,7 @@ PassDef flatten() {
             auto block = _[Block];
             for (auto stmt : block) {
               if (stmt == Return) {
-                body << (create_from(Assign, stmt) << RetrunIdent << stmt->at(0));
+                body << (create_from(Assign, stmt) << return_ident() << stmt->at(0));
                 body << (Jump ^ return_label);
               } else {
                 body << stmt;
@@ -565,7 +589,8 @@ using namespace trieste::wf;
 inline const trieste::wf::Wellformed bytecode =
     empty | (Body <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
-                      Eq | Neq | Jump | JumpFalse | Label | Call | PushFrame | PopFrame)++)
+                      Eq | Neq | Jump | JumpFalse | Label | Call | PushFrame | PopFrame |
+                      ClearStack)++)
           | (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func))
           | (Top <<= Body)
           | (Func <<= Body)
@@ -621,7 +646,8 @@ PassDef bytecode() {
                 // The node doesn't require additional processing and should be copied
                 T(Compile) << T(
                   Null, Label, Print, Jump, JumpFalse, CreateObject,
-                  StoreFrame, LoadFrame, IterNext, StoreField, PushFrame, PopFrame)[Op] >>
+                  StoreFrame, LoadFrame, IterNext, StoreField, PushFrame,
+                  PopFrame, ClearStack)[Op] >>
                     [](auto &_) -> Node { return _(Op); },
 
                 T(Compile) << (T(Eq, Neq)[Op] << (Any[Lhs] * Any[Rhs])) >>
@@ -737,7 +763,7 @@ struct CLIOptions : trieste::Options
 int load_trieste(int argc, char **argv) {
   CLIOptions options;
   auto [extract_bytecode, result] = extract_bytecode_pass();
-  trieste::Reader reader{"verona_dyn", {grouping(), flatten(), bytecode(), extract_bytecode}, parser()};
+  trieste::Reader reader{"verona_dyn", {grouping(), stmt_prints(), flatten(), bytecode(), extract_bytecode}, parser()};
   trieste::Driver driver{reader, &options};
   auto build_res = driver.run(argc, argv);
 

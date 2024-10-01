@@ -6,9 +6,17 @@ def no_args():
     a = "string value"
     return a
 
+def b_literal():
+    return "B"
 
-_ = no_args()
+# Store the return value
+value = no_args()
+drop value
 
-three_args("A", "B", "C")
+# Ignore the return value
+no_args()
+
+three_args("A", b_literal(), "C")
 
 a = {}
+drop a

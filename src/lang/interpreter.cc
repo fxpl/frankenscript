@@ -279,6 +279,17 @@ std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node,
     return {false, {}};
   }
 
+  if (node == ClearStack) {
+    if (!stack.empty()) {
+      std::cout << "clearning " << stack.size() << " objects from the stack" << std::endl;
+      while (!stack.empty()) {
+        remove_reference(objects::get_frame(), stack.back());
+        stack.pop_back();
+      }
+    }
+    return {false, {}};
+  }
+
   std::cerr << "unhandled bytecode" << std::endl;
   node->str(std::cerr);
   std::abort();
