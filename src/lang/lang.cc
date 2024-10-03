@@ -21,7 +21,6 @@ inline const TokenDef Freeze{"freeze"};
 inline const TokenDef Region{"region"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
-inline const TokenDef Return{"return"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
@@ -49,7 +48,7 @@ inline const auto parser =
   | (List <<= Group++)
   | (Parens <<= (Group | List)++)
   | (Func <<= Group * Group * Group)
-  | (Return <<= Group * Group)
+  | (Return <<= Group++)
   ;
 
 inline const auto lv = Ident | Lookup;
@@ -61,7 +60,7 @@ inline const auto grouping =
     (Top <<= File)
     | (File <<= Body)
     | (Body <<= Block)
-    | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | Call)++)
+    | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call)++)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
@@ -72,13 +71,13 @@ inline const auto grouping =
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Func <<= Ident * Params * Body)
     | (Call <<= (Op >>= key) * List)
-    | (Return <<= rv)
+    | (ReturnValue <<= rv)
     | (List <<= rv++)
     | (Params <<= Ident++)
     ;
 inline const auto stmt_prints =
   grouping
-  | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | Call | ClearStack | Print)++);
+  | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call | ClearStack | Print)++);
 } // namespace verona::wf
 
 struct Indent {
@@ -378,10 +377,16 @@ PassDef grouping() {
 
             T(Return)[Return] << (
               (T(Group) << End) *
+              End) >>
+              [](auto &_) {
+                return create_from(Return, _(Return));
+            },
+            T(Return)[Return] << (
+              (T(Group) << End) *
               (T(Group) << (RV[Rhs] * End)) *
               End) >>
               [](auto &_) {
-                return create_from(Return, _(Return)) << _(Rhs);
+                return create_from(ReturnValue, _(Return)) << _(Rhs);
             },
 
       }};
@@ -422,7 +427,7 @@ inline const trieste::wf::Wellformed flatten =
     | (File <<= Body)
     | (Body <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
                 Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
-                Create | StoreField | Lookup | String | Call | PushFrame | PopFrame |
+                Create | StoreField | Lookup | String | Call | Return | ReturnValue |
                 ClearStack)++)
     | (CreateObject <<= (KeyIter | String | Dictionary | Func))
     | (Func <<= Compile)
@@ -544,14 +549,12 @@ PassDef flatten() {
           (T(Body)[Body] << Any++[Block])*
           End) >>
           [](auto &_) {
-            auto return_label = new_jump_label();
             auto func_head = expr_header(_(Func));
 
             // Function setup
             Node body = Body;
-            body << PushFrame;
             Node args = _(Params);
-            for (auto it = args->cbegin(); it != args->cend(); it++) {
+            for (auto it = args->begin(); it != args->end(); it++) {
               body << create_from(StoreFrame, *it);
             }
             body << create_print(_(Func), func_head + " (Enter)");
@@ -559,19 +562,20 @@ PassDef flatten() {
             // Function body
             auto block = _[Block];
             for (auto stmt : block) {
-              if (stmt == Return) {
+              if (stmt == ReturnValue) {
                 body << (create_from(Assign, stmt) << return_ident() << stmt->at(0));
-                body << (Jump ^ return_label);
+                body << (LoadFrame ^ "return");
+                body << create_from(ReturnValue, stmt);
+              } else if (stmt == Return) {
+                body << create_print(stmt);
+                body << stmt;
               } else {
                 body << stmt;
               }
             }
+            body << create_print(_(Func), func_head + " (Exit)");
 
             // Function cleanup
-            body << ((Label ^ "return:") << (Ident ^ return_label));
-            body << create_print(_(Func), func_head + " (Exit)");
-            body << PopFrame;
-
             return Seq
               << (CreateObject << (Func << (Compile << body)))
               << (StoreFrame ^ _(Ident))
@@ -589,7 +593,7 @@ using namespace trieste::wf;
 inline const trieste::wf::Wellformed bytecode =
     empty | (Body <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
-                      Eq | Neq | Jump | JumpFalse | Label | Call | PushFrame | PopFrame |
+                      Eq | Neq | Jump | JumpFalse | Label | Call | Return | ReturnValue |
                       ClearStack)++)
           | (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func))
           | (Top <<= Body)
@@ -625,13 +629,11 @@ PassDef bytecode() {
                         << (StoreFrame ^ "False")
                         << (LoadFrame ^ "False")
                         << FreezeObject
-                        << PushFrame
                         << create_print(0, "prelude");
                     },
                 T(Postlude) >>
                     [](auto &) {
                       return Seq
-                        << PopFrame
                         << Null
                         << (StoreFrame ^ "True")
                         << Null
@@ -648,8 +650,8 @@ PassDef bytecode() {
                 // The node doesn't require additional processing and should be copied
                 T(Compile) << T(
                   Null, Label, Print, Jump, JumpFalse, CreateObject,
-                  StoreFrame, LoadFrame, IterNext, StoreField, PushFrame,
-                  PopFrame, ClearStack)[Op] >>
+                  StoreFrame, LoadFrame, IterNext, StoreField, Return,
+                  ReturnValue, ClearStack)[Op] >>
                     [](auto &_) -> Node { return _(Op); },
 
                 T(Compile) << (T(Eq, Neq)[Op] << (Any[Lhs] * Any[Rhs])) >>

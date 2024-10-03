@@ -5,9 +5,13 @@
 #include <iostream>
 #include <vector>
 #include <optional>
+#include <variant>
 
 namespace verona::interpreter {
 
+// ==============================================
+// Public UI
+// ==============================================
 struct Bytecode {
   trieste::Node body;
 };
@@ -16,305 +20,339 @@ void delete_bytecode(Bytecode* bytecode) {
   delete bytecode;
 }
 
-std::tuple<bool, std::optional<trieste::Location>> run_stmt(trieste::Node& node, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
-  if (node == Print) {
-    std::cout << node->location().view() << std::endl << std::endl;
-    return {true, {}};
+// ==============================================
+// Statement Effects
+// ==============================================
+struct ExecNext {};
+struct ExecJump {
+  trieste::Location target;
+};
+struct ExecFunc {
+  trieste::Node body;
+  size_t arg_ctn;
+};
+struct ExecReturn {
+  std::optional<objects::DynObject *> value;
+};
+
+// ==============================================
+// Interpreter/state
+// ==============================================
+struct InterpreterFrame {
+  std::vector<objects::DynObject *> stack;
+  trieste::NodeIt ip;
+  trieste::Node body;
+  // Used for sanity checks
+  objects::DynObject *frame;
+};
+
+class Interpreter {
+  objects::UI* ui;
+  std::vector<InterpreterFrame *> frame_stack;
+  // This is the top level stack
+  std::vector<objects::DynObject *> stack;
+
+  objects::DynObject* pop(char const* data_info) {
+    auto v = stack.back();
+    stack.pop_back();
+    std::cout << "pop " << v << " (" << data_info << ")" << std::endl;
+    return v;
   }
 
-  if (node == CreateObject)
-  {
-    std::cout << "create object" << std::endl;
-    objects::DynObject *obj = nullptr;
+  std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn> run_stmt(trieste::Node& node) {
+    // ==========================================
+    // Operators that shouldn't be printed
+    // ==========================================
+    if (node == Print) {
+      // Console output
+      std::cout << node->location().view() << std::endl << std::endl;
+
+      // Mermaid output
+      std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
+      ui->output(edges, std::string(node->location().view()));
+
+      // Continue
+      return ExecNext {};
+    }
+    if (node == Label) {
+      return ExecNext {};
+    }
+
+    // ==========================================
+    // Operators that should be printed
+    // ==========================================
+    std::cout << "Op: " << node->type().str() << std::endl;
+    if (node == CreateObject)
+    {
+      objects::DynObject *obj = nullptr;
+      
+      assert(!node->empty() && "CreateObject has to specify the type of data");
+      auto payload = node->at(0);
+      if (payload == Dictionary) {
+        obj = objects::make_object();
+      } else if (payload == String) {
+        obj = objects::make_object(std::string(payload->location().view()));
+      } else if (payload == KeyIter) {
+        auto v = pop("iterator source");
+        obj = objects::make_iter(v);
+        remove_reference(objects::get_frame(), v);
+      } else if (payload == Proto) {
+        obj = objects::make_object();
+        // RC transferred
+        objects::set_prototype(obj, pop("prototype source"));
+      } else if (payload == Func) {
+        assert(payload->size() == 1 && "CreateObject: A bytecode function requires a body node");
+        obj = objects::make_func(new Bytecode { payload->at(0) });
+      } else {
+        assert(false && "CreateObject has to specify a value");
+      }
+
+      stack.push_back(obj);
+      std::cout << "push " << obj << std::endl;
+      return ExecNext {};
+    }
     
-    assert(!node->empty() && "CreateObject has to specify the type of data");
-    auto payload = node->at(0);
-    if (payload == Dictionary) {
-      obj = objects::make_object();
-    } else if (payload == String) {
-      obj = objects::make_object(std::string(payload->location().view()));
-    } else if (payload == KeyIter) {
-      auto v = stack.back();
-      stack.pop_back();
-      std::cout << "pop " << v << " (iterator source)" << std::endl;
-      obj = objects::make_iter(v);
+    if (node == Null)
+    {
+      stack.push_back(nullptr);
+      std::cout << "push nullptr" << std::endl;
+      return ExecNext {};
+    }
+
+    if (node == LoadFrame)
+    {
+      auto frame = objects::get_frame();
+      std::string field{node->location().view()};
+      auto v = objects::get(frame, field);
+      objects::add_reference(frame, v);
+      stack.push_back(v);
+      std::cout << "push " << v << std::endl;
+      return ExecNext {};
+    }
+
+    if (node == StoreFrame)
+    {
+      auto frame = objects::get_frame();
+      auto v = pop("value to store");
+      std::string field{node->location().view()};
+      auto v2 = objects::set(frame, field, v);
+      remove_reference(frame, v2);
+      return ExecNext {};
+    }
+
+    if (node == LoadField)
+    {
+      assert(stack.size() >= 2 && "the stack is too small");
+      auto k = pop("lookup-key");
+      auto v = pop("lookup-value");
+
+      if (!v) {
+        std::cerr << std::endl;
+        std::cerr << "Error: Tried to access a field on `None`" << std::endl;
+        std::abort();
+      }
+
+      auto v2 = objects::get(v, k);
+      stack.push_back(v2);
+      std::cout << "push " << v2 << std::endl;
+      objects::add_reference(objects::get_frame(), v2);
+      objects::remove_reference(objects::get_frame(), k);
+      objects::remove_reference(objects::get_frame(), v);
+      return ExecNext {};
+    }
+
+    if (node == StoreField)
+    {
+      auto v = pop("value to store");
+      auto k = pop("lookup-key");
+      auto v2 = pop("lookup-value");
+      auto v3 = objects::set(v2, k, v);
+      move_reference(objects::get_frame(), v2, v);
+      remove_reference(objects::get_frame(), k);
+      remove_reference(objects::get_frame(), v2);
+      remove_reference(v2, v3);
+      return ExecNext {};
+    }
+
+    if (node == CreateRegion)
+    {
+      auto v = pop("region source");
+      objects::create_region(v);
       remove_reference(objects::get_frame(), v);
-    } else if (payload == Proto) {
-      obj = objects::make_object();
-      auto v = stack.back();
-      stack.pop_back();
-      // RC transferred
-      objects::set_prototype(obj, v);
-    } else if (payload == Func) {
-      assert(payload->size() == 1 && "CreateObject: A bytecode function requires a body node");
-      obj = objects::make_func(new Bytecode { payload->at(0) });
-    } else {
-      assert(false && "CreateObject has to specify a value");
+      return ExecNext {};
     }
 
-    stack.push_back(obj);
-    std::cout << "push " << obj << std::endl;
-    return {false, {}};
-  }
-
-  if (node == Null)
-  {
-    std::cout << "null" << std::endl;
-    stack.push_back(nullptr);
-    std::cout << "push nullptr" << std::endl;
-    return {false, {}};
-  }
-
-  if (node == LoadFrame)
-  {
-    std::cout << "load frame" << std::endl;
-    auto frame = objects::get_frame();
-    std::string field{node->location().view()};
-    auto v = objects::get(frame, field);
-    objects::add_reference(frame, v);
-    stack.push_back(v);
-    std::cout << "push " << v << std::endl;
-    return {false, {}};
-  }
-
-  if (node == StoreFrame)
-  {
-    std::cout << "store frame" << std::endl;
-    auto frame = objects::get_frame();
-    auto v = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v << std::endl;
-    std::string field{node->location().view()};
-    auto v2 = objects::set(frame, field, v);
-    remove_reference(frame, v2);
-    return {false, {}};
-  }
-
-  if (node == LoadField)
-  {
-    assert(stack.size() >= 2 && "the stack is too small");
-    std::cout << "load field" << std::endl;
-    auto k = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << k << " (lookup-key)" << std::endl;
-    auto v = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v << " (lookup-value)" << std::endl;
-
-    if (!v) {
-      std::cerr << std::endl;
-      std::cerr << "Error: Tried to access a field on `None`" << std::endl;
-      std::abort();
+    if (node == FreezeObject)
+    {
+      auto v = pop("object to freeze");
+      objects::freeze(v);
+      remove_reference(objects::get_frame(), v);
+      return ExecNext {};
     }
 
-    auto v2 = objects::get(v, k);
-    stack.push_back(v2);
-    std::cout << "push " << v2 << std::endl;
-    objects::add_reference(objects::get_frame(), v2);
-    objects::remove_reference(objects::get_frame(), k);
-    objects::remove_reference(objects::get_frame(), v);
-    return {false, {}};
-  }
+    if (node == Eq || node == Neq)
+    {
+      auto b = pop("Rhs");
+      auto a = pop("Lhs");
 
-  if (node == StoreField)
-  {
-    std::cout << "store field" << std::endl;
-    auto v = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v << " (value to store)" << std::endl;
-    auto k = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << k << " (lookup-key)" << std::endl;
-    auto v2 = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v2 << " (lookup-value)" << std::endl;
-    auto v3 = objects::set(v2, k, v);
-    move_reference(objects::get_frame(), v2, v);
-    remove_reference(objects::get_frame(), k);
-    remove_reference(objects::get_frame(), v2);
-    remove_reference(v2, v3);
-    return {false, {}};
-  }
+      auto bool_result = (a == b);
+      if (node == Neq) {
+        bool_result = !bool_result;
+      }
 
-  if (node == CreateRegion)
-  {
-    std::cout << "create region" << std::endl;
-    auto v = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v << std::endl;
-    objects::create_region(v);
-    remove_reference(objects::get_frame(), v);
-    return {false, {}};
-  }
+      std::string result;
+      if (bool_result) {
+        result = "True";
+      } else {
+        result = "False";
+      }
+      auto frame = objects::get_frame();
+      auto v = objects::get(frame, result);
+      objects::add_reference(frame, v);
+      stack.push_back(v);
+      std::cout << "push " << v << " (" << result << ")"<< std::endl;
 
-  if (node == FreezeObject)
-  {
-    std::cout << "freeze object" << std::endl;
-    auto v = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << v << std::endl;
-    objects::freeze(v);
-    remove_reference(objects::get_frame(), v);
-    return {false, {}};
-  }
-
-  if (node == Eq || node == Neq)
-  {
-    std::cout << "compare objects" << std::endl;
-    auto a = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << a << std::endl;
-    auto b = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << b << std::endl;
-
-    auto bool_result = (a == b);
-    if (node == Neq) {
-      bool_result = !bool_result;
+      remove_reference(objects::get_frame(), a);
+      remove_reference(objects::get_frame(), b);
+      return ExecNext {};
     }
 
-    std::string result;
-    if (bool_result) {
-      result = "True";
-    } else {
-      result = "False";
-    }
-    auto frame = objects::get_frame();
-    auto v = objects::get(frame, result);
-    objects::add_reference(frame, v);
-    stack.push_back(v);
-    std::cout << "push " << v << " (" << result << ")"<< std::endl;
-
-    remove_reference(objects::get_frame(), a);
-    remove_reference(objects::get_frame(), b);
-    return {false, {}};
-  }
-
-  // Noop
-  if (node == Label) {
-    return {false, {}};
-  }
-
-  if (node == Jump)
-  {
-    std::cout << "jump to " << node->location().view() << std::endl;
-    return {false, node->location()};
-  }
-
-  if (node == JumpFalse)
-  {
-    std::cout << "jump if stack has `False`" << std::endl;
-    auto v = stack.back();
-    stack.pop_back();
-
-    auto false_obj = objects::get(objects::get_frame(), "False");
-    std::optional<trieste::Location> loc = {};
-    if (v == false_obj) {
-      loc = node->location();
+    if (node == Jump)
+    {
+      return ExecJump { node->location() };
     }
 
-    remove_reference(objects::get_frame(), v);
-    return {false, loc};
-  }
-
-  if (node == IterNext)
-  {
-    std::cout << "next iterator value" << std::endl;
-    auto it = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << it << "(iterator)" << std::endl;
-
-    auto obj = objects::value::iter_next(it);
-    remove_reference(objects::get_frame(), it);
-
-    stack.push_back(obj);
-    std::cout << "push " << obj  << " (next from iter)" << std::endl;
-    return {false, {}};
-  }
-
-  if (node == Call) {
-    // Get the operator
-    std::cout << "function call" << std::endl;
-    auto func = stack.back();
-    stack.pop_back();
-    std::cout << "pop " << func << "(function)" << std::endl;
-
-    // Copy the arguments into a new stack
-    std::vector<objects::DynObject *> call_stack;
-    auto arg_ctn = std::stoul(std::string(node->location().view()));
-    assert(stack.size() >= arg_ctn && "The stack doesn't have enough values for this call");
-    for (size_t ctn = 0; ctn < arg_ctn; ctn++) {
-      call_stack.push_back(stack.back());
-      stack.pop_back();
-    }
-
-    // Call function and process return
-    auto return_value = objects::value::call(func, call_stack, ui);
-    remove_reference(objects::get_frame(), func);
-    if (return_value) {
-      auto value = return_value.value();
-      stack.push_back(value);
-      std::cout << "push " << value << " (return value)" << std::endl;
-    } else {
-      std::cout << "function didn't return anything" << std::endl;
-    }
-
-    return {false, {}};
-  }
-
-  if (node == PushFrame) {
-    std::cout << "push frame" << std::endl;
-    objects::push_frame();
-    return {false, {}};
-  }
-
-  if (node == PopFrame) {
-    std::cout << "pop frame" << std::endl;
-    assert(stack.empty() && "the local stack has to be empty, after the frame was popped");
-    auto return_value = objects::pop_frame();
-    if (return_value) {
-      stack.push_back(return_value.value());
-    }
-
-    return {false, {}};
-  }
-
-  if (node == ClearStack) {
-    if (!stack.empty()) {
-      std::cout << "clearning " << stack.size() << " objects from the stack" << std::endl;
-      while (!stack.empty()) {
-        remove_reference(objects::get_frame(), stack.back());
-        stack.pop_back();
+    if (node == JumpFalse)
+    {
+      auto v = pop("jump condition");
+      auto false_obj = objects::get(objects::get_frame(), "False");
+      auto jump = (v == false_obj);
+      remove_reference(objects::get_frame(), v);
+      if (jump) {
+        return ExecJump { node->location() };
+      } else {
+        return ExecNext {};
       }
     }
-    return {false, {}};
+
+    if (node == IterNext)
+    {
+      auto it = pop("iterator");
+
+      auto obj = objects::value::iter_next(it);
+      remove_reference(objects::get_frame(), it);
+
+      stack.push_back(obj);
+      std::cout << "push " << obj  << " (next from iter)" << std::endl;
+      return ExecNext {};
+    }
+
+    if (node == ClearStack) {
+      if (!stack.empty()) {
+        while (!stack.empty()) {
+          remove_reference(objects::get_frame(), stack.back());
+          stack.pop_back();
+        }
+      }
+      return ExecNext {};
+    }
+
+    if (node == Call) {
+      auto func = pop("function");
+      auto arg_ctn = std::stoul(std::string(node->location().view()));
+      auto action = ExecFunc { objects::value::get_bytecode(func)->body , arg_ctn };
+      remove_reference(objects::get_frame(), func);
+      return action;
+    }
+
+    if (node == Return) {
+      return ExecReturn {};
+    }
+
+    if (node == ReturnValue) {
+      auto value = pop("return value");
+      // RC is transfered to the stack of the parent frame
+      return ExecReturn { value };
+    }
+
+    std::cerr << "unhandled bytecode" << std::endl;
+    node->str(std::cerr);
+    std::abort();
   }
 
-  std::cerr << "unhandled bytecode" << std::endl;
-  node->str(std::cerr);
-  std::abort();
-}
+public:
+  Interpreter(objects::UI* ui_): ui(ui_) {}
 
-bool run_to_print(trieste::NodeIt &it, trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
-  auto end = body->end();
-  if (it == end)
-    return false;
+  void run(trieste::Node main) {
+    // Push the main frame, to later clear the locally defined functions and vars
+    objects::push_frame();
 
-  while (it != end) {
-    const auto [is_print, jump_label] = run_stmt(*it, stack, ui);
-    if (is_print) {
-      return true;
+    auto it = main->begin();
+    auto body = main;
+
+    while (it != body->end()) {
+      const auto action = run_stmt(*it);
+
+      if (std::holds_alternative<ExecNext>(action)) {
+        it++;
+      } else if (std::holds_alternative<ExecJump>(action)) {
+        auto jump = std::get<ExecJump>(action);
+        auto label_node = body->look(jump.target);
+        assert(label_node.size() == 1);
+        it = body->find(label_node[0]);
+        // Skip the label node
+        it++;
+      } else if (std::holds_alternative<ExecFunc>(action)) {
+        auto func = std::get<ExecFunc>(action);
+
+        // Make sure the stored it, continues after the call
+        it++;
+
+        // Store the current frame
+        auto parent_frame = new InterpreterFrame { std::move(stack), it, body, objects::get_frame() };
+        frame_stack.push_back(parent_frame);
+        objects::push_frame();
+
+        // Setup the new frame
+        body = func.body;
+        it = body->begin();
+        stack = {};
+        for (size_t i = 0; i < func.arg_ctn; i++) {
+          stack.push_back(parent_frame->stack.back());
+          parent_frame->stack.pop_back();
+        }
+      } else if (std::holds_alternative<ExecReturn>(action)) {
+        it = body->end();
+      } else {
+        assert(false && "unhandeled statement action");
+      }
+
+      if (it == body->end() && !frame_stack.empty()) {
+        // Handle frame stack poping
+        auto frame = frame_stack.back();
+        frame_stack.pop_back();
+        objects::pop_frame();
+
+        assert(frame->frame == objects::get_frame() && "the interpreter and object frames need to be synced");
+
+        it = frame->ip;
+        body = frame->body;
+        stack = frame->stack;
+        delete frame;
+
+        if (std::holds_alternative<ExecReturn>(action)) {
+          auto return_ = std::get<ExecReturn>(action);
+          if (return_.value.has_value()) {
+            stack.push_back(return_.value.value());
+          }
+        }
+      }
     }
-    if (jump_label) {
-      auto label_node = body->look(jump_label.value());
-      assert(label_node.size() == 1);
-      it = body->find(label_node[0]);
-    }
-    ++it;
+
+    // Pop the main frame, to clear local functions and variables
+    objects::pop_frame();
   }
-
-  return false;
-}
+};
 
 class UI : public objects::UI
 {
@@ -342,36 +380,12 @@ public:
   }
 };
 
-std::optional<objects::DynObject *> run_body(trieste::Node body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
-  auto it = body->begin();
-  while (run_to_print(it, body, stack, ui))
-  {
-    assert(stack.empty() && "the stack must be empty to generate a valid output");
-    std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
-    ui->output(edges, std::string((*it)->location().view()));
-    it++;
-  }
-
-  assert(stack.size() <= 1 && "the stack can't have more than a single return value, at the end of the body");
-  if (stack.size() == 1) {
-    auto return_value = stack.back();
-    stack.pop_back();
-    return return_value;
-  }
-
-  return {};
-}
-std::optional<objects::DynObject *> run_body(Bytecode *body, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
-  return run_body(body->body, stack, ui);
-}
-
 void start(trieste::Node main_body, bool interactive) {
   size_t initial = objects::pre_run();
 
-  // Our main has no arguments, meaning it has an empty starting stack.
-  std::vector<objects::DynObject *> stack;
   UI ui(interactive);
-  run_body(main_body, stack, &ui);
+  Interpreter inter(&ui);
+  inter.run(main_body);
 
   objects::post_run(initial, ui);
 }

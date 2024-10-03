@@ -26,8 +26,8 @@ void push_frame() {
   DynObject::push_frame(new FrameObject(parent));
 }
 DynObject *get_frame() { return DynObject::frame(); }
-std::optional<DynObject *> pop_frame() {
-  return DynObject::pop_frame();
+void pop_frame() {
+  DynObject::pop_frame();
 }
 
 void freeze(DynObject *obj) { obj->freeze(); }
@@ -129,9 +129,9 @@ namespace value {
     return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
   }
 
-  std::optional<DynObject *> call(objects::DynObject *func, std::vector<objects::DynObject *> &stack, objects::UI* ui) {
+  verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func) {
     if (func->get_prototype() == &objects::bytecodeFuncPrototypeObject) {
-      return reinterpret_cast<BytecodeFuncObject*>(func)->function_apply(stack, ui);
+      return reinterpret_cast<BytecodeFuncObject*>(func)->get_bytecode();
     } else {
       error("Object is not a function.");
       return {};

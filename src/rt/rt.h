@@ -25,9 +25,8 @@ DynObject *make_object();
 void push_frame();
 /// @brief Returns the current frame at the top of the frame stack.
 DynObject *get_frame();
-/// @brief This pops the current frame. It might return the `DynObject *` specified
-/// as the return value of this function.
-std::optional<DynObject *> pop_frame();
+/// @brief This pops the current frame.
+void pop_frame();
 
 void freeze(DynObject *obj);
 void create_region(DynObject *objects);
@@ -57,7 +56,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out);
 
 namespace value {
   DynObject *iter_next(DynObject *iter);
-  std::optional<DynObject *> call(objects::DynObject *func, std::vector<objects::DynObject *> &stack, objects::UI* ui);
+  verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func);
 }
 
 } // namespace objects

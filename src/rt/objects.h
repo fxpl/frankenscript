@@ -224,23 +224,10 @@ public:
     return frame_stack.back();
   }
 
-  inline static std::optional<DynObject*> pop_frame() {
-    std::optional<DynObject*> return_value = {};
-
+  inline static void pop_frame() {
     auto frame = frame_stack.back();
-
-    // We don't want to use `get` as that would also search the prototype
-    // and return `nullprt` if it wasn't found.
-    auto result = frame->fields.find("return");
-    if (result != frame->fields.end()) {
-      result->second->change_rc(1);
-      return_value = result->second;
-    }
-
     frame_stack.pop_back();
     remove_reference(frame_stack.back(), frame);
-
-    return return_value;
   }
 
   void freeze() {
@@ -440,7 +427,6 @@ DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
 class FuncObject : public DynObject {
 public:
   FuncObject(DynObject* prototype_, bool global = false) : DynObject(prototype_, global) {}
-  virtual std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) = 0;
 };
 
 class BytecodeFuncObject : public FuncObject {
@@ -452,8 +438,8 @@ public:
     this->body = nullptr;
   }
 
-  std::optional<DynObject*> function_apply(std::vector<objects::DynObject *> &stack, objects::UI* ui) override {
-    return verona::interpreter::run_body(this->body, stack, ui);
+  verona::interpreter::Bytecode* get_bytecode() {
+    return this->body;
   }
 };
 
