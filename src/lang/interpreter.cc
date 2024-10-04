@@ -324,7 +324,7 @@ public:
       } else if (std::holds_alternative<ExecReturn>(action)) {
         it = body->end();
       } else {
-        assert(false && "unhandeled statement action");
+        assert(false && "unhandled statement action");
       }
 
       if (it == body->end() && !frame_stack.empty()) {

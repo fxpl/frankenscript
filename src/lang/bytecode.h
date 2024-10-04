@@ -24,7 +24,9 @@ inline const trieste::TokenDef Null{"null"};
 inline const trieste::TokenDef Label{"label"};
 inline const trieste::TokenDef Eq{"=="};
 inline const trieste::TokenDef Neq{"!="};
-/// Stack: <arg_0>::<arg_1>::<arg_2>::<func_obj>
+/// Stack: []::<arg_0>::<arg_1>::<arg_2>::<func_obj>
+/// (Growing from left to right, with [] representing the empty stack)
+///
 /// For `function(a, b, c)` the stack would be: `a, b, c, function`
 inline const trieste::TokenDef Call{"call"};
 /// This clears any potentual values from the current stack.
