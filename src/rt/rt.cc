@@ -6,77 +6,77 @@
 #include "rt.h"
 #include "env.h"
 
-namespace objects {
+namespace rt {
 
-DynObject *make_func(verona::interpreter::Bytecode *body) {
-  return new rt::env::BytecodeFuncObject(body);
+objects::DynObject *make_func(verona::interpreter::Bytecode *body) {
+  return new env::BytecodeFuncObject(body);
 }
-DynObject *make_iter(DynObject *iter_src) {
-  return new rt::env::KeyIterObject(iter_src->fields);
+objects::DynObject *make_iter(objects::DynObject *iter_src) {
+  return new env::KeyIterObject(iter_src->fields);
 }
-DynObject *make_str(std::string value) {
-  return new rt::env::StringObject(value);
+objects::DynObject *make_str(std::string value) {
+  return new env::StringObject(value);
 }
-DynObject *make_object() {
-  return new DynObject();
-}
-
-DynObject *make_frame(DynObject *parent) {
-  return new rt::env::FrameObject(parent);
+objects::DynObject *make_object() {
+  return new objects::DynObject();
 }
 
-thread_local RegionPointer DynObject::local_region = new Region();
+objects::DynObject *make_frame(objects::DynObject *parent) {
+  return new env::FrameObject(parent);
+}
 
-void freeze(DynObject *obj) { obj->freeze(); }
+thread_local objects::RegionPointer objects::DynObject::local_region = new Region();
 
-void create_region(DynObject *object) { object->create_region(); }
+void freeze(objects::DynObject *obj) { obj->freeze(); }
 
-DynObject *get(DynObject *obj, std::string key) {
+void create_region(objects::DynObject *object) { object->create_region(); }
+
+objects::DynObject *get(objects::DynObject *obj, std::string key) {
   return obj->get(key);
 }
 
-std::string get_key(DynObject* key) {
+std::string get_key(objects::DynObject* key) {
   // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
-  if (key->get_prototype() != &rt::env::stringPrototypeObject) {
-    rt::ui::error("Key must be a string.");
+  if (key->get_prototype() != &env::stringPrototypeObject) {
+    ui::error("Key must be a string.");
   }
-  rt::env::StringObject *str_key = reinterpret_cast<rt::env::StringObject*>(key);
+  env::StringObject *str_key = reinterpret_cast<env::StringObject*>(key);
   return str_key->as_key();
 }
 
-DynObject *get(DynObject *obj, DynObject *key) {
+objects::DynObject *get(objects::DynObject *obj, objects::DynObject *key) {
   return get(obj, get_key(key));
 }
 
-DynObject *set(DynObject *obj, std::string key, DynObject *value) {
+objects::DynObject *set(objects::DynObject *obj, std::string key, objects::DynObject *value) {
   return obj->set(key, value);
 }
 
-DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
+objects::DynObject *set(objects::DynObject *obj, objects::DynObject *key, objects::DynObject *value) {
   return set(obj, get_key(key), value);
 }
 
 // TODO [[nodiscard]]
-DynObject *set_prototype(DynObject *obj, DynObject *proto) {
+objects::DynObject *set_prototype(objects::DynObject *obj, objects::DynObject *proto) {
   if (proto->is_primitive() != nullptr) {
-    rt::ui::error("Cannot set a primitive as a prototype.");
+    ui::error("Cannot set a primitive as a prototype.");
   }
   if (obj->is_primitive() != nullptr) {
-    rt::ui::error("Cannot set a prototype on a primitive object.");
+    ui::error("Cannot set a prototype on a primitive object.");
   }
   return obj->set_prototype(proto);
 }
 
-void add_reference(DynObject *src, DynObject *target) {
-  DynObject::add_reference(src, target);
+void add_reference(objects::DynObject *src, objects::DynObject *target) {
+  objects::DynObject::add_reference(src, target);
 }
 
-void remove_reference(DynObject *src, DynObject *target) {
-  DynObject::remove_reference(src, target);
+void remove_reference(objects::DynObject *src, objects::DynObject *target) {
+  objects::DynObject::remove_reference(src, target);
 }
 
-void move_reference(DynObject *src, DynObject *dst, DynObject *target) {
-  DynObject::move_reference(src, dst, target);
+void move_reference(objects::DynObject *src, objects::DynObject *dst, objects::DynObject *target) {
+  objects::DynObject::move_reference(src, dst, target);
 }
 
 size_t pre_run() {
@@ -84,7 +84,7 @@ size_t pre_run() {
   return objects::DynObject::get_count();
 }
 
-void post_run(size_t initial_count, rt::ui::UI& ui) {
+void post_run(size_t initial_count, ui::UI& ui) {
   std::cout << "Test complete - checking for cycles in local region..."
             << std::endl;
   if (objects::DynObject::get_count() != initial_count) {
@@ -115,24 +115,22 @@ void post_run(size_t initial_count, rt::ui::UI& ui) {
   }
 }
 
-namespace value {
-  DynObject *iter_next(DynObject *iter) {
-    assert(!iter->is_immutable());
-    if (iter->get_prototype() != &rt::env::keyIterPrototypeObject) {
-      rt::ui::error("Object is not an iterator.");
-    }
-
-    return reinterpret_cast<rt::env::KeyIterObject*>(iter)->iter_next();
+objects::DynObject *iter_next(objects::DynObject *iter) {
+  assert(!iter->is_immutable());
+  if (iter->get_prototype() != &env::keyIterPrototypeObject) {
+    ui::error("Object is not an iterator.");
   }
 
-  verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func) {
-    if (func->get_prototype() == &rt::env::bytecodeFuncPrototypeObject) {
-      return reinterpret_cast<rt::env::BytecodeFuncObject*>(func)->get_bytecode();
-    } else {
-      rt::ui::error("Object is not a function.");
-      return {};
-    }
+  return reinterpret_cast<env::KeyIterObject*>(iter)->iter_next();
+}
+
+verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func) {
+  if (func->get_prototype() == &env::bytecodeFuncPrototypeObject) {
+    return reinterpret_cast<env::BytecodeFuncObject*>(func)->get_bytecode();
+  } else {
+    ui::error("Object is not a function.");
+    return {};
   }
 }
 
-} // namespace objects
+} // namespace rt

@@ -13,27 +13,18 @@
 
 #include "visit.h"
 #include "region.h"
-#include "../../utils/nop.h"
 #include "../rt.h"
 #include "../../lang/interpreter.h"
 
-namespace objects {
+namespace rt::objects {
 constexpr uintptr_t ImmutableTag{1};
 const std::string PrototypeField{"<u>  </u>proto<u>  </u>"};
 const std::string ParentField{"<u>  </u>parent<u>  </u>"};
 
-using NopDO = utils::Nop<DynObject *>;
-
-template <typename Pre, typename Post = NopDO>
-inline void visit(Edge e, Pre pre, Post post = {});
-
-template <typename Pre, typename Post = NopDO>
-inline void visit(DynObject* start, Pre pre, Post post = {});
-
 // Representation of objects
 class DynObject {
   friend class Reference;
-  friend DynObject* make_iter(DynObject *obj);
+  friend objects::DynObject* rt::make_iter(objects::DynObject *obj);
   friend void rt::ui::mermaid(std::vector<objects::Edge> &roots, std::ostream &out);
   friend void destruct(DynObject *obj);
   friend void dealloc(DynObject *obj);
@@ -184,7 +175,7 @@ public:
     // that we don't track for leaks, otherwise, we need to check if the
     // RC is zero.
     if (change_rc(0) != 0 && matched != 0) {
-      rt::ui::error("Object still has references");
+      ui::error("Object still has references");
     }
 
     auto r = get_region(this);
@@ -247,7 +238,7 @@ public:
 
   [[nodiscard]] DynObject *set(std::string name, DynObject *value) {
     if (is_immutable()) {
-      rt::ui::error("Cannot mutate immutable object");
+      ui::error("Cannot mutate immutable object");
     }
     DynObject *old = fields[name];
     fields[name] = value;
@@ -257,7 +248,7 @@ public:
   // The caller must provide an rc for value. 
   [[nodiscard]] DynObject* set_prototype(DynObject* value) {
     if (is_immutable()) {
-      rt::ui::error("Cannot mutate immutable object");
+      ui::error("Cannot mutate immutable object");
     }
     DynObject* old = prototype;
     prototype = value;
@@ -417,4 +408,4 @@ inline void visit(DynObject* start, Pre pre, Post post)
   visit(Edge{nullptr, "", start}, pre, post);
 }
 
-} // namespace objects
+} // namespace rtobjects

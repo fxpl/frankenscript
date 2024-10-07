@@ -13,7 +13,7 @@ public:
   FrameObject(objects::DynObject* parent_frame) : objects::DynObject(&framePrototypeObject) {
     if (parent_frame) {
       auto old_value = this->set(objects::ParentField, parent_frame);
-      objects::add_reference(this, parent_frame);
+      add_reference(this, parent_frame);
       assert(!old_value);
     }
   }
@@ -89,7 +89,7 @@ class KeyIterObject : public objects::DynObject {
     objects::DynObject* iter_next() {
       objects::DynObject *obj = nullptr;
       if (this->iter != this->iter_end) {
-        obj = objects::make_str(this->iter->first);
+        obj = make_str(this->iter->first);
         this->iter++;
       }
 

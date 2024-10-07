@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
+#include "../../utils/nop.h"
 
-namespace objects {
+namespace rt::objects {
 class DynObject;
 
 struct Edge {
@@ -10,4 +11,12 @@ struct Edge {
   std::string key;
   DynObject *target;
 };
+
+using NopDO = utils::Nop<DynObject *>;
+
+template <typename Pre, typename Post = NopDO>
+inline void visit(Edge e, Pre pre, Post post = {});
+
+template <typename Pre, typename Post = NopDO>
+inline void visit(DynObject* start, Pre pre, Post post = {});
 }

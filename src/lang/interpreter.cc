@@ -32,7 +32,7 @@ struct ExecFunc {
   size_t arg_ctn;
 };
 struct ExecReturn {
-  std::optional<objects::DynObject *> value;
+  std::optional<rt::objects::DynObject *> value;
 };
 
 // ==============================================
@@ -41,11 +41,11 @@ struct ExecReturn {
 struct InterpreterFrame {
   trieste::NodeIt ip;
   trieste::Node body;
-  objects::DynObject *frame;
-  std::vector<objects::DynObject *> stack;
+  rt::objects::DynObject *frame;
+  std::vector<rt::objects::DynObject *> stack;
 
   ~InterpreterFrame() {
-    objects::remove_reference(frame, frame);
+    rt::remove_reference(frame, frame);
   }
 };
 
@@ -54,12 +54,12 @@ class Interpreter {
   std::vector<InterpreterFrame *> frame_stack;
 
   InterpreterFrame *push_stack_frame(trieste::Node body) {
-    objects::DynObject * parent_obj = nullptr;
+    rt::objects::DynObject * parent_obj = nullptr;
     if (!frame_stack.empty()) {
       parent_obj = frame_stack.back()->frame;
     }
 
-    auto frame = new InterpreterFrame { body->begin(), body, objects::make_frame(parent_obj), {} };
+    auto frame = new InterpreterFrame { body->begin(), body, rt::make_frame(parent_obj), {} };
     frame_stack.push_back(frame);
     return frame;
   }
@@ -78,14 +78,14 @@ class Interpreter {
     return frame_stack[frame_stack.size() - 2];
   }
 
-  std::vector<objects::DynObject *>& stack() {
+  std::vector<rt::objects::DynObject *>& stack() {
     return frame_stack.back()->stack;
   }
-  objects::DynObject *frame() {
+  rt::objects::DynObject *frame() {
     return frame_stack.back()->frame;
   }
 
-  objects::DynObject* pop(char const* data_info) {
+  rt::objects::DynObject* pop(char const* data_info) {
     auto v = stack().back();
     stack().pop_back();
     std::cout << "pop " << v << " (" << data_info << ")" << std::endl;
@@ -101,7 +101,7 @@ class Interpreter {
       std::cout << node->location().view() << std::endl << std::endl;
 
       // Mermaid output
-      std::vector<objects::Edge> edges{{nullptr, "?", frame()}};
+      std::vector<rt::objects::Edge> edges{{nullptr, "?", frame()}};
       ui->output(edges, std::string(node->location().view()));
 
       // Continue
@@ -117,25 +117,25 @@ class Interpreter {
     std::cout << "Op: " << node->type().str() << std::endl;
     if (node == CreateObject)
     {
-      objects::DynObject *obj = nullptr;
-      
+      rt::objects::DynObject *obj = nullptr;
+
       assert(!node->empty() && "CreateObject has to specify the type of data");
       auto payload = node->at(0);
       if (payload == Dictionary) {
-        obj = objects::make_object();
+        obj = rt::make_object();
       } else if (payload == String) {
-        obj = objects::make_str(std::string(payload->location().view()));
+        obj = rt::make_str(std::string(payload->location().view()));
       } else if (payload == KeyIter) {
         auto v = pop("iterator source");
-        obj = objects::make_iter(v);
-        remove_reference(frame(), v);
+        obj = rt::make_iter(v);
+        rt::remove_reference(frame(), v);
       } else if (payload == Proto) {
-        obj = objects::make_object();
+        obj = rt::make_object();
         // RC transferred
-        objects::set_prototype(obj, pop("prototype source"));
+        rt::set_prototype(obj, pop("prototype source"));
       } else if (payload == Func) {
         assert(payload->size() == 1 && "CreateObject: A bytecode function requires a body node");
-        obj = objects::make_func(new Bytecode { payload->at(0) });
+        obj = rt::make_func(new Bytecode { payload->at(0) });
       } else {
         assert(false && "CreateObject has to specify a value");
       }
@@ -155,8 +155,8 @@ class Interpreter {
     if (node == LoadFrame)
     {
       std::string field{node->location().view()};
-      auto v = objects::get(frame(), field);
-      objects::add_reference(frame(), v);
+      auto v = rt::get(frame(), field);
+      rt::add_reference(frame(), v);
       stack().push_back(v);
       std::cout << "push " << v << std::endl;
       return ExecNext {};
@@ -166,8 +166,8 @@ class Interpreter {
     {
       auto v = pop("value to store");
       std::string field{node->location().view()};
-      auto v2 = objects::set(frame(), field, v);
-      remove_reference(frame(), v2);
+      auto v2 = rt::set(frame(), field, v);
+      rt::remove_reference(frame(), v2);
       return ExecNext {};
     }
 
@@ -183,12 +183,12 @@ class Interpreter {
         std::abort();
       }
 
-      auto v2 = objects::get(v, k);
+      auto v2 = rt::get(v, k);
       stack().push_back(v2);
       std::cout << "push " << v2 << std::endl;
-      objects::add_reference(frame(), v2);
-      objects::remove_reference(frame(), k);
-      objects::remove_reference(frame(), v);
+      rt::add_reference(frame(), v2);
+      rt::remove_reference(frame(), k);
+      rt::remove_reference(frame(), v);
       return ExecNext {};
     }
 
@@ -197,27 +197,27 @@ class Interpreter {
       auto v = pop("value to store");
       auto k = pop("lookup-key");
       auto v2 = pop("lookup-value");
-      auto v3 = objects::set(v2, k, v);
-      move_reference(frame(), v2, v);
-      remove_reference(frame(), k);
-      remove_reference(frame(), v2);
-      remove_reference(v2, v3);
+      auto v3 = rt::set(v2, k, v);
+      rt::move_reference(frame(), v2, v);
+      rt::remove_reference(frame(), k);
+      rt::remove_reference(frame(), v2);
+      rt::remove_reference(v2, v3);
       return ExecNext {};
     }
 
     if (node == CreateRegion)
     {
       auto v = pop("region source");
-      objects::create_region(v);
-      remove_reference(frame(), v);
+      rt::create_region(v);
+      rt::remove_reference(frame(), v);
       return ExecNext {};
     }
 
     if (node == FreezeObject)
     {
       auto v = pop("object to freeze");
-      objects::freeze(v);
-      remove_reference(frame(), v);
+      rt::freeze(v);
+      rt::remove_reference(frame(), v);
       return ExecNext {};
     }
 
@@ -237,13 +237,13 @@ class Interpreter {
       } else {
         result = "False";
       }
-      auto v = objects::get(frame(), result);
-      objects::add_reference(frame(), v);
+      auto v = rt::get(frame(), result);
+      rt::add_reference(frame(), v);
       stack().push_back(v);
       std::cout << "push " << v << " (" << result << ")"<< std::endl;
 
-      remove_reference(frame(), a);
-      remove_reference(frame(), b);
+      rt::remove_reference(frame(), a);
+      rt::remove_reference(frame(), b);
       return ExecNext {};
     }
 
@@ -255,9 +255,9 @@ class Interpreter {
     if (node == JumpFalse)
     {
       auto v = pop("jump condition");
-      auto false_obj = objects::get(frame(), "False");
+      auto false_obj = rt::get(frame(), "False");
       auto jump = (v == false_obj);
-      remove_reference(frame(), v);
+      rt::remove_reference(frame(), v);
       if (jump) {
         return ExecJump { node->location() };
       } else {
@@ -269,8 +269,8 @@ class Interpreter {
     {
       auto it = pop("iterator");
 
-      auto obj = objects::value::iter_next(it);
-      remove_reference(frame(), it);
+      auto obj = rt::iter_next(it);
+      rt::remove_reference(frame(), it);
 
       stack().push_back(obj);
       std::cout << "push " << obj  << " (next from iter)" << std::endl;
@@ -280,7 +280,7 @@ class Interpreter {
     if (node == ClearStack) {
       if (!stack().empty()) {
         while (!stack().empty()) {
-          remove_reference(frame(), stack().back());
+          rt::remove_reference(frame(), stack().back());
           stack().pop_back();
         }
       }
@@ -290,8 +290,8 @@ class Interpreter {
     if (node == Call) {
       auto func = pop("function");
       auto arg_ctn = std::stoul(std::string(node->location().view()));
-      auto action = ExecFunc { objects::value::get_bytecode(func)->body , arg_ctn };
-      remove_reference(frame(), func);
+      auto action = ExecFunc { rt::get_bytecode(func)->body , arg_ctn };
+      rt::remove_reference(frame(), func);
       return action;
     }
 
@@ -354,7 +354,7 @@ public:
           if (return_.value.has_value()) {
             auto parent = parent_stack_frame();
             auto value = return_.value.value();
-            objects::move_reference(frame->frame, parent->frame, value);
+            rt::move_reference(frame->frame, parent->frame, value);
             parent->stack.push_back(value);
           }
         }
@@ -377,7 +377,7 @@ public:
     out.open(path);
   }
 
-  void output(std::vector<objects::Edge> &edges, std::string message) {
+  void output(std::vector<rt::objects::Edge> &edges, std::string message) {
     out << "```" << std::endl;
     out << message << std::endl;
     out << "```" << std::endl;
@@ -392,13 +392,13 @@ public:
 };
 
 void start(trieste::Node main_body, bool interactive) {
-  size_t initial = objects::pre_run();
+  size_t initial = rt::pre_run();
 
   UI ui(interactive);
   Interpreter inter(&ui);
   inter.run(main_body);
 
-  objects::post_run(initial, ui);
+  rt::post_run(initial, ui);
 }
 
 } // namespace verona::interpreter
