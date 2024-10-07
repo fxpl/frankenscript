@@ -1,24 +1,23 @@
-#pragma once
-
 #include <fstream>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "objects/dyn_object.h"
+#include "../ui.h"
+#include "../objects/dyn_object.h"
 
-namespace objects {
+namespace rt::ui {
 
-void mermaid(std::vector<Edge> &roots, std::ostream &out) {
+void mermaid(std::vector<objects::Edge> &roots, std::ostream &out) {
   // Give a nice id to each object.
-  std::map<DynObject *, std::size_t> visited;
+  std::map<objects::DynObject *, std::size_t> visited;
   // Keep track of all the objects in a region.
-  std::map<Region *, std::vector<std::size_t>> region_strings;
+  std::map<objects::Region *, std::vector<std::size_t>> region_strings;
   // Keep track of the immutable objects.
   std::vector<std::size_t> immutable_objects;
   // // Add frame as local region
-  // visited[DynObject::frame()] = 0;
-  // region_strings[DynObject::get_local_region()] = {0};
+  // visited[objects::DynObject::frame()] = 0;
+  // region_strings[objects::DynObject::get_local_region()] = {0};
   // Add nullptr as immutable
   visited[nullptr] = 0;
   immutable_objects.push_back(0);
@@ -30,10 +29,10 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
 
   bool unreachable = false;
 
-  auto explore = [&](Edge e) {
-    DynObject *dst = e.target;
+  auto explore = [&](objects::Edge e) {
+    objects::DynObject *dst = e.target;
     std::string key = e.key;
-    DynObject *src = e.src;
+    objects::DynObject *src = e.src;
     if (src != nullptr) {
       out << "  id" << visited[src] << " -->|" << key << "| ";
     }
@@ -49,7 +48,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
 
     out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
 
-    auto region = DynObject::get_region(dst);
+    auto region = objects::DynObject::get_region(dst);
     if (region != nullptr) {
       region_strings[region].push_back(curr_id);
     }
@@ -61,13 +60,13 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
   };
   // Output all reachable edges
   for (auto &root : roots) {
-    visit({root.src, root.key, root.target}, explore);
+    objects::visit({root.src, root.key, root.target}, explore);
   }
 
   // Output the unreachable parts of the graph
   unreachable = true;
-  for (auto &root : DynObject::all_objects) {
-    visit({nullptr, "", root}, explore);
+  for (auto &root : objects::DynObject::all_objects) {
+    objects::visit({nullptr, "", root}, explore);
   }
 
   // Output any region parent edges.
@@ -82,7 +81,7 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
   for (auto [region, objects] : region_strings) {
     out << "subgraph  ";
 
-    if (region == DynObject::get_local_region()) {
+    if (region == objects::DynObject::get_local_region()) {
       out << "local region" << std::endl;
     } else {
       out << std::endl;
@@ -106,10 +105,10 @@ void mermaid(std::vector<Edge> &roots, std::ostream &out) {
   out << "end" << std::endl;
 
   // Output object count as very useful.
-  out << "subgraph Count " << DynObject::get_count() << std::endl;
+  out << "subgraph Count " << objects::DynObject::get_count() << std::endl;
   out << "end" << std::endl;
   out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
   // Footer (end of mermaid graph)
   out << "```" << std::endl;
 }
-} // namespace objects
+} // namespace rt::ui

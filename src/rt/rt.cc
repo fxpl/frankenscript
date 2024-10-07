@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 
-#include "mermaid.h"
 #include "objects/dyn_object.h"
 #include "rt.h"
 #include "env.h"
@@ -39,7 +38,7 @@ DynObject *get(DynObject *obj, std::string key) {
 std::string get_key(DynObject* key) {
   // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
   if (key->get_prototype() != &rt::env::stringPrototypeObject) {
-    error("Key must be a string.");
+    rt::ui::error("Key must be a string.");
   }
   rt::env::StringObject *str_key = reinterpret_cast<rt::env::StringObject*>(key);
   return str_key->as_key();
@@ -60,10 +59,10 @@ DynObject *set(DynObject *obj, DynObject *key, DynObject *value) {
 // TODO [[nodiscard]]
 DynObject *set_prototype(DynObject *obj, DynObject *proto) {
   if (proto->is_primitive() != nullptr) {
-    error("Cannot set a primitive as a prototype.");
+    rt::ui::error("Cannot set a primitive as a prototype.");
   }
   if (obj->is_primitive() != nullptr) {
-    error("Cannot set a prototype on a primitive object.");
+    rt::ui::error("Cannot set a prototype on a primitive object.");
   }
   return obj->set_prototype(proto);
 }
@@ -85,7 +84,7 @@ size_t pre_run() {
   return objects::DynObject::get_count();
 }
 
-void post_run(size_t initial_count, UI& ui) {
+void post_run(size_t initial_count, rt::ui::UI& ui) {
   std::cout << "Test complete - checking for cycles in local region..."
             << std::endl;
   if (objects::DynObject::get_count() != initial_count) {
@@ -120,7 +119,7 @@ namespace value {
   DynObject *iter_next(DynObject *iter) {
     assert(!iter->is_immutable());
     if (iter->get_prototype() != &rt::env::keyIterPrototypeObject) {
-      error("Object is not an iterator.");
+      rt::ui::error("Object is not an iterator.");
     }
 
     return reinterpret_cast<rt::env::KeyIterObject*>(iter)->iter_next();
@@ -130,7 +129,7 @@ namespace value {
     if (func->get_prototype() == &rt::env::bytecodeFuncPrototypeObject) {
       return reinterpret_cast<rt::env::BytecodeFuncObject*>(func)->get_bytecode();
     } else {
-      error("Object is not a function.");
+      rt::ui::error("Object is not a function.");
       return {};
     }
   }

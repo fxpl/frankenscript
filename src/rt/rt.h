@@ -2,19 +2,12 @@
 
 #include <string>
 #include <vector>
-#include <cassert>
-#include <optional>
 
 #include "../lang/interpreter.h"
+#include "objects/visit.h"
+#include "ui.h"
 
 namespace objects {
-class DynObject;
-
-struct Edge {
-  DynObject *src;
-  std::string key;
-  DynObject *target;
-};
 
 DynObject *make_func(verona::interpreter::Bytecode *body);
 DynObject *make_iter(DynObject *iter_src);
@@ -36,17 +29,8 @@ void add_reference(DynObject *src, DynObject *target);
 void remove_reference(DynObject *src, DynObject *target);
 void move_reference(DynObject *src, DynObject *dst, DynObject *target);
 
-size_t get_object_count();
-
-struct UI
-{
-  virtual void output(std::vector<objects::Edge> &, std::string ) {}
-};
-
 size_t pre_run();
-void post_run(size_t count, UI& ui);
-
-void mermaid(std::vector<Edge> &roots, std::ostream &out);
+void post_run(size_t count, rt::ui::UI& ui);
 
 namespace value {
   DynObject *iter_next(DynObject *iter);

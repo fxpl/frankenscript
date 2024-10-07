@@ -11,8 +11,9 @@
 #include <utility>
 #include <vector>
 
-#include "../../utils/nop.h"
+#include "visit.h"
 #include "region.h"
+#include "../../utils/nop.h"
 #include "../rt.h"
 #include "../../lang/interpreter.h"
 
@@ -33,7 +34,7 @@ inline void visit(DynObject* start, Pre pre, Post post = {});
 class DynObject {
   friend class Reference;
   friend DynObject* make_iter(DynObject *obj);
-  friend void mermaid(std::vector<Edge> &roots, std::ostream &out);
+  friend void rt::ui::mermaid(std::vector<objects::Edge> &roots, std::ostream &out);
   friend void destruct(DynObject *obj);
   friend void dealloc(DynObject *obj);
   template <typename Pre, typename Post>
@@ -183,7 +184,7 @@ public:
     // that we don't track for leaks, otherwise, we need to check if the
     // RC is zero.
     if (change_rc(0) != 0 && matched != 0) {
-        error("Object still has references");
+      rt::ui::error("Object still has references");
     }
 
     auto r = get_region(this);
@@ -246,7 +247,7 @@ public:
 
   [[nodiscard]] DynObject *set(std::string name, DynObject *value) {
     if (is_immutable()) {
-      error("Cannot mutate immutable object");
+      rt::ui::error("Cannot mutate immutable object");
     }
     DynObject *old = fields[name];
     fields[name] = value;
@@ -256,7 +257,7 @@ public:
   // The caller must provide an rc for value. 
   [[nodiscard]] DynObject* set_prototype(DynObject* value) {
     if (is_immutable()) {
-      error("Cannot mutate immutable object");
+      rt::ui::error("Cannot mutate immutable object");
     }
     DynObject* old = prototype;
     prototype = value;
@@ -332,7 +333,7 @@ public:
   static std::set<DynObject *> get_objects() { return all_objects; }
 };
 
-void destruct(DynObject *obj) {
+inline void destruct(DynObject *obj) {
   // Called from the region destructor.
   // Remove all references to other objects.
   // If in the same region, then just remove the RC, but don't try to collect
@@ -361,7 +362,7 @@ void destruct(DynObject *obj) {
   }
 }
 
-void dealloc(DynObject *obj) {
+inline void dealloc(DynObject *obj) {
   // Called from the region destructor.
   // So remove from region if in one.
   // This ensures we don't try to remove it from the set that is being iterated.

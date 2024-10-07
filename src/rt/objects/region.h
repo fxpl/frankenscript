@@ -3,7 +3,7 @@
 #include <cassert>
 #include <set>
 
-#include "../output.h"
+#include "../ui.h"
 #include "../../utils/tagged_pointer.h"
 
 namespace objects {
@@ -125,13 +125,13 @@ struct Region {
 
     // Check if already parented to another region.
     if (r->parent != nullptr)
-      error("Region already has a parent: Creating region DAG not supported!");
+      rt::ui::error("Region already has a parent: Creating region DAG not supported!");
 
     // Prevent creating a cycle
     auto ancestors = p->parent;
     while (ancestors != nullptr) {
       if (ancestors == r)
-        error("Cycle created in region hierarchy");
+        rt::ui::error("Cycle created in region hierarchy");
       ancestors = ancestors->parent;
     }
 

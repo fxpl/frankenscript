@@ -50,7 +50,7 @@ struct InterpreterFrame {
 };
 
 class Interpreter {
-  objects::UI* ui;
+  rt::ui::UI* ui;
   std::vector<InterpreterFrame *> frame_stack;
 
   InterpreterFrame *push_stack_frame(trieste::Node body) {
@@ -311,7 +311,7 @@ class Interpreter {
   }
 
 public:
-  Interpreter(objects::UI* ui_): ui(ui_) {}
+  Interpreter(rt::ui::UI* ui_): ui(ui_) {}
 
   void run(trieste::Node main) {
     auto frame = push_stack_frame(main);
@@ -365,7 +365,7 @@ public:
   }
 };
 
-class UI : public objects::UI
+class UI : public rt::ui::UI
 {
   bool interactive;
   std::string path;
@@ -381,7 +381,7 @@ public:
     out << "```" << std::endl;
     out << message << std::endl;
     out << "```" << std::endl;
-    objects::mermaid(edges, out);
+    rt::ui::mermaid(edges, out);
     if (interactive) {
       out.close();
       std::cout << "Press a key!" << std::endl;
