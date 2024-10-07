@@ -20,13 +20,7 @@ DynObject *make_func(verona::interpreter::Bytecode *body);
 DynObject *make_iter(DynObject *iter_src);
 DynObject *make_object(std::string str_value);
 DynObject *make_object();
-
-/// @brief This pushes a new frame onto the frame stack
-void push_frame();
-/// @brief Returns the current frame at the top of the frame stack.
-DynObject *get_frame();
-/// @brief This pops the current frame.
-void pop_frame();
+DynObject *make_frame(DynObject *parent);
 
 void freeze(DynObject *obj);
 void create_region(DynObject *objects);

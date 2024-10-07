@@ -4,6 +4,7 @@
 #include <set>
 
 #include "output.h"
+#include "tagged_pointer.h"
 
 namespace objects {
 class DynObject;
@@ -185,4 +186,9 @@ struct Region {
     collecting = false;
   }
 };
+
+// Represents the region of specific object. Uses small pointers to
+// encode special regions.
+using RegionPointer = utils::TaggedPointer<Region>;
+
 } // namespace objects

@@ -39,22 +39,55 @@ struct ExecReturn {
 // Interpreter/state
 // ==============================================
 struct InterpreterFrame {
-  std::vector<objects::DynObject *> stack;
   trieste::NodeIt ip;
   trieste::Node body;
-  // Used for sanity checks
   objects::DynObject *frame;
+  std::vector<objects::DynObject *> stack;
+
+  ~InterpreterFrame() {
+    objects::remove_reference(frame, frame);
+  }
 };
 
 class Interpreter {
   objects::UI* ui;
   std::vector<InterpreterFrame *> frame_stack;
-  // This is the top level stack
-  std::vector<objects::DynObject *> stack;
+
+  InterpreterFrame *push_stack_frame(trieste::Node body) {
+    objects::DynObject * parent_obj = nullptr;
+    if (!frame_stack.empty()) {
+      parent_obj = frame_stack.back()->frame;
+    }
+
+    auto frame = new InterpreterFrame { body->begin(), body, objects::make_frame(parent_obj), {} };
+    frame_stack.push_back(frame);
+    return frame;
+  }
+  InterpreterFrame *pop_stack_frame() {
+    auto frame = frame_stack.back();
+    frame_stack.pop_back();
+    delete frame;
+
+    if (frame_stack.empty()) {
+      return nullptr;
+    } else {
+      return frame_stack.back();
+    }
+  }
+  InterpreterFrame *parent_stack_frame() {
+    return frame_stack[frame_stack.size() - 2];
+  }
+
+  std::vector<objects::DynObject *>& stack() {
+    return frame_stack.back()->stack;
+  }
+  objects::DynObject *frame() {
+    return frame_stack.back()->frame;
+  }
 
   objects::DynObject* pop(char const* data_info) {
-    auto v = stack.back();
-    stack.pop_back();
+    auto v = stack().back();
+    stack().pop_back();
     std::cout << "pop " << v << " (" << data_info << ")" << std::endl;
     return v;
   }
@@ -68,7 +101,7 @@ class Interpreter {
       std::cout << node->location().view() << std::endl << std::endl;
 
       // Mermaid output
-      std::vector<objects::Edge> edges{{nullptr, "?", objects::get_frame()}};
+      std::vector<objects::Edge> edges{{nullptr, "?", frame()}};
       ui->output(edges, std::string(node->location().view()));
 
       // Continue
@@ -95,7 +128,7 @@ class Interpreter {
       } else if (payload == KeyIter) {
         auto v = pop("iterator source");
         obj = objects::make_iter(v);
-        remove_reference(objects::get_frame(), v);
+        remove_reference(frame(), v);
       } else if (payload == Proto) {
         obj = objects::make_object();
         // RC transferred
@@ -107,42 +140,40 @@ class Interpreter {
         assert(false && "CreateObject has to specify a value");
       }
 
-      stack.push_back(obj);
+      stack().push_back(obj);
       std::cout << "push " << obj << std::endl;
       return ExecNext {};
     }
     
     if (node == Null)
     {
-      stack.push_back(nullptr);
+      stack().push_back(nullptr);
       std::cout << "push nullptr" << std::endl;
       return ExecNext {};
     }
 
     if (node == LoadFrame)
     {
-      auto frame = objects::get_frame();
       std::string field{node->location().view()};
-      auto v = objects::get(frame, field);
-      objects::add_reference(frame, v);
-      stack.push_back(v);
+      auto v = objects::get(frame(), field);
+      objects::add_reference(frame(), v);
+      stack().push_back(v);
       std::cout << "push " << v << std::endl;
       return ExecNext {};
     }
 
     if (node == StoreFrame)
     {
-      auto frame = objects::get_frame();
       auto v = pop("value to store");
       std::string field{node->location().view()};
-      auto v2 = objects::set(frame, field, v);
-      remove_reference(frame, v2);
+      auto v2 = objects::set(frame(), field, v);
+      remove_reference(frame(), v2);
       return ExecNext {};
     }
 
     if (node == LoadField)
     {
-      assert(stack.size() >= 2 && "the stack is too small");
+      assert(stack().size() >= 2 && "the stack is too small");
       auto k = pop("lookup-key");
       auto v = pop("lookup-value");
 
@@ -153,11 +184,11 @@ class Interpreter {
       }
 
       auto v2 = objects::get(v, k);
-      stack.push_back(v2);
+      stack().push_back(v2);
       std::cout << "push " << v2 << std::endl;
-      objects::add_reference(objects::get_frame(), v2);
-      objects::remove_reference(objects::get_frame(), k);
-      objects::remove_reference(objects::get_frame(), v);
+      objects::add_reference(frame(), v2);
+      objects::remove_reference(frame(), k);
+      objects::remove_reference(frame(), v);
       return ExecNext {};
     }
 
@@ -167,9 +198,9 @@ class Interpreter {
       auto k = pop("lookup-key");
       auto v2 = pop("lookup-value");
       auto v3 = objects::set(v2, k, v);
-      move_reference(objects::get_frame(), v2, v);
-      remove_reference(objects::get_frame(), k);
-      remove_reference(objects::get_frame(), v2);
+      move_reference(frame(), v2, v);
+      remove_reference(frame(), k);
+      remove_reference(frame(), v2);
       remove_reference(v2, v3);
       return ExecNext {};
     }
@@ -178,7 +209,7 @@ class Interpreter {
     {
       auto v = pop("region source");
       objects::create_region(v);
-      remove_reference(objects::get_frame(), v);
+      remove_reference(frame(), v);
       return ExecNext {};
     }
 
@@ -186,7 +217,7 @@ class Interpreter {
     {
       auto v = pop("object to freeze");
       objects::freeze(v);
-      remove_reference(objects::get_frame(), v);
+      remove_reference(frame(), v);
       return ExecNext {};
     }
 
@@ -206,14 +237,13 @@ class Interpreter {
       } else {
         result = "False";
       }
-      auto frame = objects::get_frame();
-      auto v = objects::get(frame, result);
-      objects::add_reference(frame, v);
-      stack.push_back(v);
+      auto v = objects::get(frame(), result);
+      objects::add_reference(frame(), v);
+      stack().push_back(v);
       std::cout << "push " << v << " (" << result << ")"<< std::endl;
 
-      remove_reference(objects::get_frame(), a);
-      remove_reference(objects::get_frame(), b);
+      remove_reference(frame(), a);
+      remove_reference(frame(), b);
       return ExecNext {};
     }
 
@@ -225,9 +255,9 @@ class Interpreter {
     if (node == JumpFalse)
     {
       auto v = pop("jump condition");
-      auto false_obj = objects::get(objects::get_frame(), "False");
+      auto false_obj = objects::get(frame(), "False");
       auto jump = (v == false_obj);
-      remove_reference(objects::get_frame(), v);
+      remove_reference(frame(), v);
       if (jump) {
         return ExecJump { node->location() };
       } else {
@@ -240,18 +270,18 @@ class Interpreter {
       auto it = pop("iterator");
 
       auto obj = objects::value::iter_next(it);
-      remove_reference(objects::get_frame(), it);
+      remove_reference(frame(), it);
 
-      stack.push_back(obj);
+      stack().push_back(obj);
       std::cout << "push " << obj  << " (next from iter)" << std::endl;
       return ExecNext {};
     }
 
     if (node == ClearStack) {
-      if (!stack.empty()) {
-        while (!stack.empty()) {
-          remove_reference(objects::get_frame(), stack.back());
-          stack.pop_back();
+      if (!stack().empty()) {
+        while (!stack().empty()) {
+          remove_reference(frame(), stack().back());
+          stack().pop_back();
         }
       }
       return ExecNext {};
@@ -261,7 +291,7 @@ class Interpreter {
       auto func = pop("function");
       auto arg_ctn = std::stoul(std::string(node->location().view()));
       auto action = ExecFunc { objects::value::get_bytecode(func)->body , arg_ctn };
-      remove_reference(objects::get_frame(), func);
+      remove_reference(frame(), func);
       return action;
     }
 
@@ -284,73 +314,54 @@ public:
   Interpreter(objects::UI* ui_): ui(ui_) {}
 
   void run(trieste::Node main) {
-    // Push the main frame, to later clear the locally defined functions and vars
-    objects::push_frame();
+    auto frame = push_stack_frame(main);
 
-    auto it = main->begin();
-    auto body = main;
-
-    while (it != body->end()) {
-      const auto action = run_stmt(*it);
+    while (frame) {
+      const auto action = run_stmt(*frame->ip);
 
       if (std::holds_alternative<ExecNext>(action)) {
-        it++;
+        frame->ip++;
       } else if (std::holds_alternative<ExecJump>(action)) {
         auto jump = std::get<ExecJump>(action);
-        auto label_node = body->look(jump.target);
+        auto label_node = frame->body->look(jump.target);
         assert(label_node.size() == 1);
-        it = body->find(label_node[0]);
+        frame->ip = frame->body->find(label_node[0]);
         // Skip the label node
-        it++;
+        frame->ip++;
       } else if (std::holds_alternative<ExecFunc>(action)) {
         auto func = std::get<ExecFunc>(action);
 
-        // Make sure the stored it, continues after the call
-        it++;
+        // Make sure the stored ip, continues after the call
+        frame->ip++;
 
-        // Store the current frame
-        auto parent_frame = new InterpreterFrame { std::move(stack), it, body, objects::get_frame() };
-        frame_stack.push_back(parent_frame);
-        objects::push_frame();
+        frame = push_stack_frame(func.body);
+        auto parent_frame = parent_stack_frame();
 
         // Setup the new frame
-        body = func.body;
-        it = body->begin();
-        stack = {};
         for (size_t i = 0; i < func.arg_ctn; i++) {
-          stack.push_back(parent_frame->stack.back());
+          frame->stack.push_back(parent_frame->stack.back());
           parent_frame->stack.pop_back();
         }
       } else if (std::holds_alternative<ExecReturn>(action)) {
-        it = body->end();
+        frame->ip = frame->body->end();
       } else {
         assert(false && "unhandled statement action");
       }
 
-      if (it == body->end() && !frame_stack.empty()) {
-        // Handle frame stack poping
-        auto frame = frame_stack.back();
-        frame_stack.pop_back();
-        objects::pop_frame();
-
-        assert(frame->frame == objects::get_frame() && "the interpreter and object frames need to be synced");
-
-        it = frame->ip;
-        body = frame->body;
-        stack = frame->stack;
-        delete frame;
-
+      if (frame->ip == frame->body->end()) {
         if (std::holds_alternative<ExecReturn>(action)) {
           auto return_ = std::get<ExecReturn>(action);
           if (return_.value.has_value()) {
-            stack.push_back(return_.value.value());
+            auto parent = parent_stack_frame();
+            auto value = return_.value.value();
+            objects::move_reference(frame->frame, parent->frame, value);
+            parent->stack.push_back(value);
           }
         }
+
+        frame = pop_stack_frame();
       }
     }
-
-    // Pop the main frame, to clear local functions and variables
-    objects::pop_frame();
   }
 };
 

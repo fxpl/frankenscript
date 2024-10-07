@@ -19,16 +19,11 @@ DynObject *make_object(std::string value) {
 }
 DynObject *make_object() { return new DynObject(); }
 
-thread_local std::vector<DynObject *> DynObject::frame_stack = { FrameObject::create_first_stack() };
+DynObject *make_frame(DynObject *parent) {
+  return new FrameObject(parent);
+}
 
-void push_frame() {
-  auto parent = DynObject::frame();
-  DynObject::push_frame(new FrameObject(parent));
-}
-DynObject *get_frame() { return DynObject::frame(); }
-void pop_frame() {
-  DynObject::pop_frame();
-}
+thread_local RegionPointer DynObject::local_region = new Region();
 
 void freeze(DynObject *obj) { obj->freeze(); }
 
@@ -83,7 +78,6 @@ void move_reference(DynObject *src, DynObject *dst, DynObject *target) {
 }
 
 size_t pre_run() {
-  objects::DynObject::set_local_region(new Region());
   std::cout << "Running test..." << std::endl;
   return objects::DynObject::get_count();
 }

@@ -14,7 +14,6 @@
 #include "nop.h"
 #include "region.h"
 #include "rt.h"
-#include "tagged_pointer.h"
 #include "../lang/interpreter.h"
 
 namespace objects {
@@ -40,12 +39,7 @@ class DynObject {
   template <typename Pre, typename Post>
   friend void visit(Edge, Pre, Post);
 
-  thread_local static std::vector<objects::DynObject *> frame_stack;
-
-  // Represents the region of specific object. Uses small pointers to
-  // encode special regions.
-  using RegionPointer = utils::TaggedPointer<Region>;
-
+  thread_local static RegionPointer local_region;
 
   // TODO: Not concurrency safe
   inline static size_t count{0};
@@ -214,22 +208,6 @@ public:
     return nullptr;
   }
 
-  inline static void push_frame(DynObject* frame) {
-    frame_stack.push_back(frame);
-  }
-
-  // Place holder for the frame object.  Used in various places if we don't have
-  // an entry point.
-  inline static DynObject *frame() {
-    return frame_stack.back();
-  }
-
-  inline static void pop_frame() {
-    auto frame = frame_stack.back();
-    frame_stack.pop_back();
-    remove_reference(frame_stack.back(), frame);
-  }
-
   void freeze() {
     // TODO SCC algorithm
     visit(this, [](Edge e) {
@@ -348,15 +326,8 @@ public:
 
   static size_t get_count() { return count; }
 
-  static void set_local_region(Region *r) { frame()->region = {r}; }
-
   static Region *get_local_region() {
-    auto frame = DynObject::frame();
-    if (frame->region) {
-      return frame->region.get_ptr();
-    }
-
-    return frame->get(ParentField)->get_local_region();
+    return local_region;
   }
 
   static std::set<DynObject *> get_objects() { return all_objects; }
@@ -541,11 +512,10 @@ inline void visit(Edge e, Pre pre, Post post) {
   }
 }
 
-
 template <typename Pre, typename Post>
 inline void visit(DynObject* start, Pre pre, Post post)
 {
-  visit(Edge{DynObject::frame(), "", start}, pre, post);
+  visit(Edge{nullptr, "", start}, pre, post);
 }
 
 } // namespace objects
