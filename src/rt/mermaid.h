@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "objects.h"
+#include "objects/dyn_object.h"
 
 namespace objects {
 

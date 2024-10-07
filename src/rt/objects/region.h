@@ -3,8 +3,8 @@
 #include <cassert>
 #include <set>
 
-#include "output.h"
-#include "tagged_pointer.h"
+#include "../output.h"
+#include "../../utils/tagged_pointer.h"
 
 namespace objects {
 class DynObject;

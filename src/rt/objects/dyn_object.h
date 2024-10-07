@@ -11,10 +11,10 @@
 #include <utility>
 #include <vector>
 
-#include "nop.h"
+#include "../../utils/nop.h"
 #include "region.h"
-#include "rt.h"
-#include "../lang/interpreter.h"
+#include "../rt.h"
+#include "../../lang/interpreter.h"
 
 namespace objects {
 constexpr uintptr_t ImmutableTag{1};
@@ -59,7 +59,6 @@ class DynObject {
   }
 
   bool is_local_object() { return region.get_ptr() == get_local_region(); }
-
 
   static void remove_region_reference(Region *src, Region *target) {
     if (src == target) {
@@ -331,107 +330,6 @@ public:
   }
 
   static std::set<DynObject *> get_objects() { return all_objects; }
-};
-
-// The prototype object for strings
-// TODO put some stuff in here?
-DynObject stringPrototypeObject{nullptr, true};
-
-class StringObject : public DynObject {
-  std::string value;
-
-public:
-  StringObject(std::string value_)
-    : DynObject(&stringPrototypeObject), value(value_) {}
-
-  std::string get_name() {
-    return value;
-  }
-
-  std::string as_key() {
-    return value;
-  }
-
-  DynObject* is_primitive() {
-    return this;
-  }
-};
-
-// The prototype object for iterators
-// TODO put some stuff in here?
-DynObject keyIterPrototypeObject{nullptr, true};
-
-class KeyIterObject : public DynObject {
-    std::map<std::string, DynObject *>::iterator iter;
-    std::map<std::string, DynObject *>::iterator iter_end;
-
-  public:
-    KeyIterObject(std::map<std::string, DynObject *> &fields)
-      : DynObject(&keyIterPrototypeObject), iter(fields.begin()), iter_end(fields.end()) {}
-
-    DynObject* iter_next() {
-      DynObject *obj = nullptr;
-      if (this->iter != this->iter_end) {
-        obj = make_object(this->iter->first);
-        this->iter++;
-      }
-
-      return obj;
-    }
-
-    std::string get_name() {
-      return "&lt;iterator&gt;";
-    }
-
-    DynObject* is_primitive() {
-      return this;
-    }
-};
-
-// The prototype object for functions
-// TODO put some stuff in here?
-DynObject funcPrototypeObject{nullptr, true};
-// The prototype object for bytecode functions
-// TODO put some stuff in here?
-DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
-
-class FuncObject : public DynObject {
-public:
-  FuncObject(DynObject* prototype_, bool global = false) : DynObject(prototype_, global) {}
-};
-
-class BytecodeFuncObject : public FuncObject {
-  verona::interpreter::Bytecode *body;
-public:
-  BytecodeFuncObject(verona::interpreter::Bytecode *body_) : FuncObject(&bytecodeFuncPrototypeObject), body(body_) {}
-  ~BytecodeFuncObject() {
-    verona::interpreter::delete_bytecode(this->body);
-    this->body = nullptr;
-  }
-
-  verona::interpreter::Bytecode* get_bytecode() {
-    return this->body;
-  }
-};
-
-// The prototype object for functions
-// TODO put some stuff in here?
-DynObject framePrototypeObject{nullptr, true};
-
-class FrameObject : public DynObject {
-  FrameObject() : DynObject(&framePrototypeObject, true) {}
-public:
-  FrameObject(DynObject* parent_frame) : DynObject(&framePrototypeObject) {
-    if (parent_frame) {
-      auto old_value = this->set(ParentField, parent_frame);
-      objects::add_reference(this, parent_frame);
-      assert(!old_value);
-    }
-  }
-
-  static FrameObject* create_first_stack() {
-    return new FrameObject();
-  }
 };
 
 void destruct(DynObject *obj) {

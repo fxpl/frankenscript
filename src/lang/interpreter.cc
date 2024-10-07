@@ -124,7 +124,7 @@ class Interpreter {
       if (payload == Dictionary) {
         obj = objects::make_object();
       } else if (payload == String) {
-        obj = objects::make_object(std::string(payload->location().view()));
+        obj = objects::make_str(std::string(payload->location().view()));
       } else if (payload == KeyIter) {
         auto v = pop("iterator source");
         obj = objects::make_iter(v);

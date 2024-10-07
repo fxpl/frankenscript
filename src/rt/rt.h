@@ -18,7 +18,7 @@ struct Edge {
 
 DynObject *make_func(verona::interpreter::Bytecode *body);
 DynObject *make_iter(DynObject *iter_src);
-DynObject *make_object(std::string str_value);
+DynObject *make_str(std::string str_value);
 DynObject *make_object();
 DynObject *make_frame(DynObject *parent);
 

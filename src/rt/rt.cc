@@ -3,24 +3,27 @@
 #include <vector>
 
 #include "mermaid.h"
-#include "objects.h"
+#include "objects/dyn_object.h"
 #include "rt.h"
+#include "env.h"
 
 namespace objects {
 
 DynObject *make_func(verona::interpreter::Bytecode *body) {
-  return new BytecodeFuncObject(body);
+  return new rt::env::BytecodeFuncObject(body);
 }
 DynObject *make_iter(DynObject *iter_src) {
-  return new KeyIterObject(iter_src->fields);
+  return new rt::env::KeyIterObject(iter_src->fields);
 }
-DynObject *make_object(std::string value) {
-  return new StringObject(value);
+DynObject *make_str(std::string value) {
+  return new rt::env::StringObject(value);
 }
-DynObject *make_object() { return new DynObject(); }
+DynObject *make_object() {
+  return new DynObject();
+}
 
 DynObject *make_frame(DynObject *parent) {
-  return new FrameObject(parent);
+  return new rt::env::FrameObject(parent);
 }
 
 thread_local RegionPointer DynObject::local_region = new Region();
@@ -35,10 +38,10 @@ DynObject *get(DynObject *obj, std::string key) {
 
 std::string get_key(DynObject* key) {
   // TODO Add some checking.  This is need to lookup the correct function in the prototype chain.
-  if (key->get_prototype() != &stringPrototypeObject) {
+  if (key->get_prototype() != &rt::env::stringPrototypeObject) {
     error("Key must be a string.");
   }
-  StringObject *str_key = reinterpret_cast<StringObject*>(key);
+  rt::env::StringObject *str_key = reinterpret_cast<rt::env::StringObject*>(key);
   return str_key->as_key();
 }
 
@@ -116,16 +119,16 @@ void post_run(size_t initial_count, UI& ui) {
 namespace value {
   DynObject *iter_next(DynObject *iter) {
     assert(!iter->is_immutable());
-    if (iter->get_prototype() != &objects::keyIterPrototypeObject) {
+    if (iter->get_prototype() != &rt::env::keyIterPrototypeObject) {
       error("Object is not an iterator.");
     }
 
-    return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
+    return reinterpret_cast<rt::env::KeyIterObject*>(iter)->iter_next();
   }
 
   verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func) {
-    if (func->get_prototype() == &objects::bytecodeFuncPrototypeObject) {
-      return reinterpret_cast<BytecodeFuncObject*>(func)->get_bytecode();
+    if (func->get_prototype() == &rt::env::bytecodeFuncPrototypeObject) {
+      return reinterpret_cast<rt::env::BytecodeFuncObject*>(func)->get_bytecode();
     } else {
       error("Object is not a function.");
       return {};
