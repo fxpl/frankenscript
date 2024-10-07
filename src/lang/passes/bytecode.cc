@@ -1,8 +1,5 @@
 #include "../lang.h"
 
-inline const TokenDef Prelude{"prelude"};
-inline const TokenDef Postlude{"postlude"};
-
 PassDef bytecode() {
   PassDef p{"bytecode",
             verona::wf::bytecode,
@@ -10,37 +7,11 @@ PassDef bytecode() {
             {
                 T(File) << T(Body)[Body] >>
                     [](auto &_) {
-                      return Body
-                        << Prelude
-                        << (Compile << *_[Body])
-                        << Postlude;
+                      return Body << (Compile << *_[Body]);
                     },
                 T(Compile) << (T(Body)[Body] << Any++[Block]) >>
                     [](auto &_) {
                       return create_from(Body, _(Body)) << (Compile << _[Block]);
-                    },
-
-                T(Prelude) >>
-                    [](auto &) {
-                      return Seq
-                        << (CreateObject << (String ^ "True"))
-                        << (StoreFrame ^ "True")
-                        << (LoadFrame ^ "True")
-                        << FreezeObject
-                        << (CreateObject << (String ^ "False"))
-                        << (StoreFrame ^ "False")
-                        << (LoadFrame ^ "False")
-                        << FreezeObject
-                        << create_print(0, "prelude");
-                    },
-                T(Postlude) >>
-                    [](auto &) {
-                      return Seq
-                        << Null
-                        << (StoreFrame ^ "True")
-                        << Null
-                        << (StoreFrame ^ "False")
-                        << create_print(0, "postlude");
                     },
 
                 T(Compile) << (Any[Lhs] * (Any * Any++)[Rhs]) >>

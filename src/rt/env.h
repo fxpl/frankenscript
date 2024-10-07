@@ -58,8 +58,8 @@ class StringObject : public objects::DynObject {
   std::string value;
 
 public:
-  StringObject(std::string value_)
-    : objects::DynObject(&stringPrototypeObject), value(value_) {}
+  StringObject(std::string value_, bool global = false)
+    : objects::DynObject(&stringPrototypeObject, global), value(value_) {}
 
   std::string get_name() {
     return value;
@@ -73,6 +73,9 @@ public:
     return this;
   }
 };
+
+StringObject TrueObject{"True", true};
+StringObject FalseObject{"False", true};
 
 // The prototype object for iterators
 // TODO put some stuff in here?

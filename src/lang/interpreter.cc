@@ -231,16 +231,17 @@ class Interpreter {
         bool_result = !bool_result;
       }
 
-      std::string result;
+      const char* result_str;
+      rt::objects::DynObject* result;
       if (bool_result) {
-        result = "True";
+        result = rt::get_true();
+        result_str = "true";
       } else {
-        result = "False";
+        result = rt::get_false();
+        result_str = "false";
       }
-      auto v = rt::get(frame(), result);
-      rt::add_reference(frame(), v);
-      stack().push_back(v);
-      std::cout << "push " << v << " (" << result << ")"<< std::endl;
+      stack().push_back(result);
+      std::cout << "push " << result << " (" << result_str << ")" << std::endl;
 
       rt::remove_reference(frame(), a);
       rt::remove_reference(frame(), b);
@@ -255,9 +256,7 @@ class Interpreter {
     if (node == JumpFalse)
     {
       auto v = pop("jump condition");
-      auto false_obj = rt::get(frame(), "False");
-      auto jump = (v == false_obj);
-      rt::remove_reference(frame(), v);
+      auto jump = (v == rt::get_false());
       if (jump) {
         return ExecJump { node->location() };
       } else {

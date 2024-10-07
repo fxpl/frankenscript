@@ -67,6 +67,13 @@ objects::DynObject *set_prototype(objects::DynObject *obj, objects::DynObject *p
   return obj->set_prototype(proto);
 }
 
+objects::DynObject *get_true() {
+  return &env::TrueObject;
+}
+objects::DynObject *get_false() {
+  return &env::FalseObject;
+}
+
 void add_reference(objects::DynObject *src, objects::DynObject *target) {
   objects::DynObject::add_reference(src, target);
 }

@@ -25,6 +25,9 @@ objects::DynObject *set(objects::DynObject *dst, objects::DynObject *key, object
 
 objects::DynObject *set_prototype(objects::DynObject *obj, objects::DynObject *proto);
 
+objects::DynObject *get_true();
+objects::DynObject *get_false();
+
 void add_reference(objects::DynObject *src, objects::DynObject *target);
 void remove_reference(objects::DynObject *src, objects::DynObject *target);
 void move_reference(objects::DynObject *src, objects::DynObject *dst, objects::DynObject *target);
