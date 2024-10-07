@@ -1,6 +1,7 @@
 #include "bytecode.h"
 #include "trieste/driver.h"
 #include "trieste/trieste.h"
+#include "interpreter.h"
 #include <optional>
 
 #define TAB_SIZE 4
@@ -11,7 +12,6 @@ inline const TokenDef Ident{"ident", trieste::flag::print};
 inline const TokenDef Assign{"assign"};
 inline const TokenDef Create{"create"};
 inline const TokenDef For{"for"};
-inline const TokenDef List{"list"};
 inline const TokenDef If{"if"};
 inline const TokenDef Else{"else"};
 inline const TokenDef Block{"block"};
@@ -20,6 +20,7 @@ inline const TokenDef Drop{"drop"};
 inline const TokenDef Freeze{"freeze"};
 inline const TokenDef Region{"region"};
 inline const TokenDef Lookup{"lookup"};
+inline const TokenDef Parens{"parens"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
@@ -30,8 +31,8 @@ inline const TokenDef Value{"value"};
 namespace verona::wf {
 using namespace trieste::wf;
 
-inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null | String | Create;
-inline const auto parse_groups = Group | Assign | If | Else | Block | For;
+inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze | Drop | Null | String | Create | Parens;
+inline const auto parse_groups = Group | Assign | If | Else | Block | For | Func | List | Return;
 
 inline const auto parser =
   (Top <<= File)
@@ -39,23 +40,27 @@ inline const auto parser =
   | (Assign <<= Group++)
   | (If <<= Group * Eq * Group)
   | (Else <<= Group * Group)
-  | (Group <<= (parse_tokens | Block)++)
+  | (Group <<= (parse_tokens | Block | List)++)
   | (Block <<= (parse_tokens | parse_groups)++)
   | (Eq <<= Group * Group)
   | (Lookup <<= Group)
   | (For <<= Group * List * Group * Group)
   | (List <<= Group++)
+  | (Parens <<= (Group | List)++)
+  | (Func <<= Group * Group * Group)
+  | (Return <<= Group++)
   ;
 
 inline const auto lv = Ident | Lookup;
-inline const auto rv = lv | Empty | Null | String | Create;
+inline const auto rv = lv | Empty | Null | String | Create | Call;
 inline const auto cmp_values = Ident | Lookup | Null;
 inline const auto key = Ident | Lookup | String;
 
 inline const auto grouping =
     (Top <<= File)
-    | (File <<= Block)
-    | (Block <<= (Freeze | Region | Assign | If | For)++)
+    | (File <<= Body)
+    | (Body <<= Block)
+    | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call)++)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
@@ -64,7 +69,15 @@ inline const auto grouping =
     | (If <<= Eq * Block * Block)
     | (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
+    | (Func <<= Ident * Params * Body)
+    | (Call <<= (Op >>= key) * List)
+    | (ReturnValue <<= rv)
+    | (List <<= rv++)
+    | (Params <<= Ident++)
     ;
+inline const auto stmt_prints =
+  grouping
+  | (Block <<= (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call | ClearStack | Print)++);
 } // namespace verona::wf
 
 struct Indent {
@@ -79,7 +92,7 @@ trieste::Parse parser() {
   indent->push_back({0, File});
 
   auto update_indent = [indent](detail::Make& m, size_t this_indent) {
-    m.term({Assign});
+    m.term({Assign, Return});
 
     if (this_indent > indent->back().indent) {
       std::cout << "this_indent " << this_indent << std::endl;
@@ -135,6 +148,20 @@ trieste::Parse parser() {
         // Line comment
         "(?:#[^\\n\\r]*)" >> [](auto &) {},
 
+        "def" >> [](auto &m) {
+          m.seq(Func);
+        },
+        "\\(" >> [](auto &m) {
+          m.push(Parens);
+        },
+        "\\)" >> [](auto &m) {
+          m.term({List, Parens});
+          m.extend(Parens);
+        },
+        "return" >> [](auto &m) {
+          m.seq(Return);
+        },
+
         "for" >> [](auto &m) { 
           m.seq(For);
         },
@@ -163,6 +190,8 @@ trieste::Parse parser() {
             toc = Else;
           } else if (m.in(For)) {
             toc = For;
+          } else if (m.in(Func)) {
+            toc = Func;
           } else {
             m.error("unexpected colon");
             return;
@@ -184,14 +213,14 @@ trieste::Parse parser() {
         "freeze" >> [](auto &m) { m.add(Freeze); },
         "region" >> [](auto &m) { m.add(Region); },
         "None" >> [](auto &m) { m.add(Null); },
-        "[[:alpha:]]+" >> [](auto &m) { m.add(Ident); },
+        "[0-9A-Za-z_]+" >> [](auto &m) { m.add(Ident); },
         "\\[" >> [](auto &m) {
           m.push(Lookup);
         },
         "\\]" >> [](auto &m) {
           m.term({Lookup});
         },
-        "\\.([[:alpha:]]+)" >> [](auto &m) {
+        "\\.([0-9A-Za-z_]+)" >> [](auto &m) {
           m.push(Lookup);
           m.add(String, 1);
           m.term({Lookup});
@@ -210,7 +239,7 @@ trieste::Parse parser() {
 }
 
 auto LV = T(Ident, Lookup);
-auto RV = T(Empty, Ident, Lookup, Null, String, Create);
+auto RV = T(Empty, Ident, Lookup, Null, String, Create, Call);
 auto CMP_V = T(Ident, Lookup, Null);
 auto KEY = T(Ident, Lookup, String);
 
@@ -229,6 +258,10 @@ Node create_print(Node from) {
 Node create_from(Token def, Node from) {
   return NodeDef::create(def, from->location());
 }
+std::string expr_header(Node expr) {
+  auto expr_str = expr->location().view();
+  return std::string(expr_str.substr(0, expr_str.find(":") + 1));
+}
 
 PassDef grouping() {
   PassDef p{
@@ -236,9 +269,9 @@ PassDef grouping() {
       verona::wf::grouping,
       dir::bottomup,
       {
-          // Normalize so that all expressions are inside blocks.
-          T(File) << (--T(Block) * Any++[File]) >>
-            [](auto& _) { return  File << (Block << _[File]); },
+          // Normalize so that all expressions are inside bodies and blocks.
+          T(File) << (--T(Body) * Any++[File]) >>
+            [](auto& _) { return  File << (Body << (Block << _[File])); },
 
           In(Group) * LV[Lhs] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
               [](auto &_) { return Lookup << _[Lhs] << _(Rhs); },
@@ -259,6 +292,22 @@ PassDef grouping() {
               [](auto &_) {
                 return Assign << _(Lhs) << Null;
               },
+          // function(arg, arg)
+          --In(Func) * (
+            T(Group)[Group] << (
+              (T(Ident)[Ident]) *
+              (T(Parens)[Parens] << (~T(List)[List])) *
+              End)) >>
+            [](auto &_) {
+                auto list = _(List);
+                if (!list) {
+                  list = create_from(List, _(Parens));
+                }
+
+                return create_from(Call, _(Group))
+                  << _(Ident)
+                  << list;
+            },
 
           T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
               [](auto &_) {
@@ -267,7 +316,7 @@ PassDef grouping() {
               },
 
           T(Assign) << ((T(Group) << LV[Lhs] * End) *
-                        (T(Group) << RV[Rhs] * End) * End) >>
+                        ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) * End) >>
               [](auto &_) { return Assign << _[Lhs] << _[Rhs]; },
           T(Eq) << ((T(Group) << CMP_V[Lhs] * End) *
                         (T(Group) << CMP_V[Rhs] * End) * End) >>
@@ -291,39 +340,106 @@ PassDef grouping() {
               return _(If) << Block;
             },
 
+          In(List) * (T(Group) << (RV[Rhs] * End)) >> [](auto &_) {
+            return _(Rhs);
+          },
+
           T(For)[For] << (
               (T(Group)) *
-              (T(List) << (
-                (T(Group) << (T(Ident)[Key] * End)) *
-                (T(Group) << (T(Ident)[Value] * End)) *
-                End)) *
+              (T(List) << (T(Ident)[Key] * T(Ident)[Value] * End)) *
               (T(Group) << (LV[Op] * End)) *
               (T(Group) << (T(Block)[Block] * End)) *
               End) >>
             [](auto &_) {
+              // This function only has a block for now, as a lowering pass still needs to
+              // do some modifications until it's a "full" body.
               return create_from(For, _(For))
                 << _(Key)
                 << _(Value)
                 << _(Op)
                 << _(Block);
             },
+          
+          T(Func)[Func] << (
+            (T(Group) << End) *
+            (T(Group) << (
+              (T(Ident)[Ident]) *
+              (T(Parens)[Parens] << (~(T(List) << T(Ident)++[List]))) *
+              End)) *
+            (T(Group) << T(Block)[Block]) *
+            End) >>
+            [](auto &_) {
+              return create_from(Func, _(Func))
+                << _(Ident)
+                << (create_from(Params, _(Parens)) << _[List])
+                << (Body << _(Block));
+            },
+
+            T(Return)[Return] << (
+              (T(Group) << End) *
+              End) >>
+              [](auto &_) {
+                return create_from(Return, _(Return));
+            },
+            T(Return)[Return] << (
+              (T(Group) << End) *
+              (T(Group) << (RV[Rhs] * End)) *
+              End) >>
+              [](auto &_) {
+                return create_from(ReturnValue, _(Return)) << _(Rhs);
+            },
+
       }};
+
 
   return p;
 }
+
+PassDef stmt_prints() {
+  PassDef p{
+      "stmt_prints",
+      verona::wf::stmt_prints,
+      dir::bottomup | dir::once,
+      {
+        In(Block) * T(Call)[Call] >>
+          [](auto &_) {
+            return Seq
+              << _(Call)
+              << ClearStack
+              << create_print(_(Call));
+          },
+      }
+  };
+
+  return p;
+}
+
+Node return_ident() {
+  return Ident ^ "return";
+}
+
+inline const TokenDef Compile{"compile"};
+
 namespace verona::wf {
 using namespace trieste::wf;
 inline const trieste::wf::Wellformed flatten =
     (Top <<= File)
-    | (File <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
-                Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext | Create |
-                StoreField | Lookup | String)++)
-    | (CreateObject <<= (KeyIter | String | Dictionary))
+    | (File <<= Body)
+    | (Body <<= (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse |
+                Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
+                Create | StoreField | Lookup | String | Call | Return | ReturnValue |
+                ClearStack)++)
+    | (CreateObject <<= (KeyIter | String | Dictionary | Func))
+    | (Func <<= Compile)
+    | (Compile <<= Body)
     | (Create <<= Ident)
     | (Assign <<= (Lhs >>= lv) * (Rhs >>= rv))
     | (Lookup <<= (Lhs >>= lv) * (Rhs >>= key))
     | (Region <<= Ident)
     | (Freeze <<= Ident)
+    | (Call <<= (Op >>= key) * List)
+    | (List <<= rv++)
+    | (Params <<= Ident++)
     | (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values))
     | (Label <<= Ident)[Ident];
@@ -350,7 +466,7 @@ PassDef flatten() {
       verona::wf::flatten,
       dir::bottomup,
       {
-        In(File) * (T(Block) << Any++[Block]) >>
+        In(Body) * (T(Block) << Any++[Block]) >>
           [](auto &_) {
             return Seq << _[Block];
         },
@@ -359,8 +475,7 @@ PassDef flatten() {
             auto else_label = new_jump_label();
             auto join_label = new_jump_label();
 
-            auto if_str = _(If)->location().view();
-            auto if_head = std::string(if_str.substr(0, if_str.find(":") + 1));
+            auto if_head = expr_header(_(If));
 
             return Seq << _(Op)
                         << (JumpFalse ^ else_label)
@@ -388,8 +503,7 @@ PassDef flatten() {
             auto start_label = new_jump_label();
             auto break_label = new_jump_label();
 
-            auto for_str = _(For)->location().view();
-            auto for_head = std::string(for_str.substr(0, for_str.find(":") + 1));
+            auto for_head = expr_header(_(For));
 
             return Seq
               // Prelude
@@ -428,38 +542,82 @@ PassDef flatten() {
               << ((Assign ^ ("drop " + std::string(_(Value)->location().view()))) << create_from(Ident, _(Value)) << Null)
               << ((Assign ^ ("drop " + it_name)) << (Ident ^ it_name) << Null);
           },
+
+        T(Func)[Func] << (
+          T(Ident)[Ident] *
+          T(Params)[Params] *
+          (T(Body)[Body] << Any++[Block])*
+          End) >>
+          [](auto &_) {
+            auto func_head = expr_header(_(Func));
+
+            // Function setup
+            Node body = Body;
+            Node args = _(Params);
+            for (auto it = args->begin(); it != args->end(); it++) {
+              body << create_from(StoreFrame, *it);
+            }
+            body << create_print(_(Func), func_head + " (Enter)");
+
+            // Function body
+            auto block = _[Block];
+            for (auto stmt : block) {
+              if (stmt == ReturnValue) {
+                body << (create_from(Assign, stmt) << return_ident() << stmt->at(0));
+                body << (LoadFrame ^ "return");
+                body << create_from(ReturnValue, stmt);
+              } else if (stmt == Return) {
+                body << create_print(stmt);
+                body << stmt;
+              } else {
+                body << stmt;
+              }
+            }
+            body << create_print(_(Func), func_head + " (Exit)");
+
+            // Function cleanup
+            return Seq
+              << (CreateObject << (Func << (Compile << body)))
+              << (StoreFrame ^ _(Ident))
+              << create_print(_(Func), func_head);
+          },
       }
   };
 }
 
-inline const TokenDef Compile{"compile"};
 inline const TokenDef Prelude{"prelude"};
 inline const TokenDef Postlude{"postlude"};
 
 namespace verona::wf {
 using namespace trieste::wf;
 inline const trieste::wf::Wellformed bytecode =
-    empty | (Top <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
+    empty | (Body <<= (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
                       CreateObject | CreateRegion | FreezeObject | IterNext | Print |
-                      Eq | Neq | Jump | JumpFalse | Label)++)
-          | (CreateObject <<= (Dictionary | String | KeyIter | Proto))
+                      Eq | Neq | Jump | JumpFalse | Label | Call | Return | ReturnValue |
+                      ClearStack)++)
+          | (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func))
+          | (Top <<= Body)
+          | (Func <<= Body)
           | (Label <<= Ident)[Ident];
 } // namespace verona::wf
 
-std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
-  auto result = std::make_shared<std::optional<Node>>();
-
+PassDef bytecode() {
   PassDef p{"bytecode",
             verona::wf::bytecode,
             dir::topdown,
             {
-                T(File)[File] >>
+                T(File) << T(Body)[Body] >>
                     [](auto &_) {
-                      return Seq << Prelude
-                                 << (Compile << *_[File])
-                                 << Postlude;
+                      return Body
+                        << Prelude
+                        << (Compile << *_[Body])
+                        << Postlude;
                     },
-                
+                T(Compile) << (T(Body)[Body] << Any++[Block]) >>
+                    [](auto &_) {
+                      return create_from(Body, _(Body)) << (Compile << _[Block]);
+                    },
+
                 T(Prelude) >>
                     [](auto &) {
                       return Seq
@@ -486,14 +644,14 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                 T(Compile) << (Any[Lhs] * (Any * Any++)[Rhs]) >>
                     [](auto &_) {
                       return Seq << (Compile << _[Lhs])
-                                 
                                  << (Compile << _[Rhs]);
                     },
 
                 // The node doesn't require additional processing and should be copied
                 T(Compile) << T(
                   Null, Label, Print, Jump, JumpFalse, CreateObject,
-                  StoreFrame, LoadFrame, IterNext, StoreField)[Op] >>
+                  StoreFrame, LoadFrame, IterNext, StoreField, Return,
+                  ReturnValue, ClearStack)[Op] >>
                     [](auto &_) -> Node { return _(Op); },
 
                 T(Compile) << (T(Eq, Neq)[Op] << (Any[Lhs] * Any[Rhs])) >>
@@ -550,6 +708,22 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                                  << CreateRegion
                                  << create_print(_(Op));
                     },
+                
+                T(Compile) << (
+                  T(Call)[Call] << (
+                    KEY[Op] *
+                    (T(List) << Any++[List]) *
+                    End)) >>
+                    [](auto &_) {
+                      // The print is done by the called function
+                      return Seq
+                        << (Compile << _[List])
+                        << (Compile << _(Op))
+                        << (Call ^ std::to_string(_[List].size()));
+                    },
+
+                T(Compile) << End >>
+                [](auto &) -> Node { return {}; },
 
                 T(Compile) << (T(Empty)) >>
                     [](auto &) -> Node { return CreateObject << Dictionary; },
@@ -557,12 +731,27 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> bytecode() {
                     [](auto &_) -> Node { return CreateObject << _(String); },
 
             }};
+  return p;
+}
+
+std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass() {
+  auto result = std::make_shared<std::optional<Node>>();
+  PassDef p{
+    "interpreter",
+    verona::wf::bytecode,
+    dir::topdown | dir::once,
+    {}
+  };
   p.post(trieste::Top, [result](Node n) {
-    *result = n;
+    *result = n->at(0);
     return 0;
   });
 
   return {p, result};
+}
+
+namespace verona::interpreter {
+  void start(trieste::Node main_body, bool interactive);
 }
 
 struct CLIOptions : trieste::Options
@@ -575,19 +764,15 @@ struct CLIOptions : trieste::Options
   }
 };
 
-namespace verona::interpreter {
-void run(trieste::Node node, bool iterative);
-}
-
 int load_trieste(int argc, char **argv) {
   CLIOptions options;
-  auto [bytecodepass, result] = bytecode();
-  trieste::Reader reader{"verona_dyn", {grouping(), flatten(), bytecodepass}, parser()};
+  auto [extract_bytecode, result] = extract_bytecode_pass();
+  trieste::Reader reader{"verona_dyn", {grouping(), stmt_prints(), flatten(), bytecode(), extract_bytecode}, parser()};
   trieste::Driver driver{reader, &options};
   auto build_res = driver.run(argc, argv);
 
   if (build_res == 0 && result->has_value()) {
-    verona::interpreter::run(result->value(), options.iterative);
+    verona::interpreter::start(result->value(), options.iterative);
   }
   return build_res;
 }

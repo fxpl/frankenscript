@@ -8,6 +8,9 @@
 
 namespace objects {
 
+DynObject *make_func(verona::interpreter::Bytecode *body) {
+  return new BytecodeFuncObject(body);
+}
 DynObject *make_iter(DynObject *iter_src) {
   return new KeyIterObject(iter_src->fields);
 }
@@ -16,7 +19,16 @@ DynObject *make_object(std::string value) {
 }
 DynObject *make_object() { return new DynObject(); }
 
+thread_local std::vector<DynObject *> DynObject::frame_stack = { FrameObject::create_first_stack() };
+
+void push_frame() {
+  auto parent = DynObject::frame();
+  DynObject::push_frame(new FrameObject(parent));
+}
 DynObject *get_frame() { return DynObject::frame(); }
+void pop_frame() {
+  DynObject::pop_frame();
+}
 
 void freeze(DynObject *obj) { obj->freeze(); }
 
@@ -115,6 +127,15 @@ namespace value {
     }
 
     return reinterpret_cast<KeyIterObject*>(iter)->iter_next();
+  }
+
+  verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func) {
+    if (func->get_prototype() == &objects::bytecodeFuncPrototypeObject) {
+      return reinterpret_cast<BytecodeFuncObject*>(func)->get_bytecode();
+    } else {
+      error("Object is not a function.");
+      return {};
+    }
   }
 }
 
