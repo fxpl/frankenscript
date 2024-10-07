@@ -18,8 +18,8 @@
 
 namespace rt::objects {
 constexpr uintptr_t ImmutableTag{1};
-const std::string PrototypeField{"<u>  </u>proto<u>  </u>"};
-const std::string ParentField{"<u>  </u>parent<u>  </u>"};
+const std::string PrototypeField{"__proto__"};
+const std::string ParentField{"__parent__"};
 
 // Representation of objects
 class DynObject {

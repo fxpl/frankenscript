@@ -3,9 +3,19 @@
 
 namespace rt::env {
 
-// The prototype object for functions
-// TODO put some stuff in here?
-objects::DynObject framePrototypeObject{nullptr, true};
+class PrototypeObject : public objects::DynObject {
+  std::string name;
+public:
+  PrototypeObject(std::string name_, objects::DynObject *prototype = nullptr) : objects::DynObject(prototype, true), name(name_) {}
+
+  std::string get_name() {
+    std::stringstream stream;
+    stream << "[" << name << "]";
+    return stream.str();
+  }
+};
+
+PrototypeObject framePrototypeObject{"Frame"};
 
 class FrameObject : public objects::DynObject {
   FrameObject() : objects::DynObject(&framePrototypeObject, true) {}
@@ -23,12 +33,8 @@ public:
   }
 };
 
-// The prototype object for functions
-// TODO put some stuff in here?
-objects::DynObject funcPrototypeObject{nullptr, true};
-// The prototype object for bytecode functions
-// TODO put some stuff in here?
-objects::DynObject bytecodeFuncPrototypeObject{&funcPrototypeObject, true};
+PrototypeObject funcPrototypeObject{"Function"};
+PrototypeObject bytecodeFuncPrototypeObject{"BytecodeFunction", &funcPrototypeObject};
 
 class FuncObject : public objects::DynObject {
 public:
@@ -50,9 +56,7 @@ public:
 };
 
 
-// The prototype object for strings
-// TODO put some stuff in here?
-objects::DynObject stringPrototypeObject{nullptr, true};
+PrototypeObject stringPrototypeObject{"String"};
 
 class StringObject : public objects::DynObject {
   std::string value;
@@ -62,7 +66,9 @@ public:
     : objects::DynObject(&stringPrototypeObject, global), value(value_) {}
 
   std::string get_name() {
-    return value;
+    std::stringstream stream;
+    stream << "\"" << value << "\"";
+    return stream.str();
   }
 
   std::string as_key() {
@@ -79,7 +85,7 @@ StringObject FalseObject{"False", true};
 
 // The prototype object for iterators
 // TODO put some stuff in here?
-objects::DynObject keyIterPrototypeObject{nullptr, true};
+PrototypeObject keyIterPrototypeObject{"KeyIterator"};
 
 class KeyIterObject : public objects::DynObject {
     std::map<std::string, objects::DynObject *>::iterator iter;
@@ -100,7 +106,7 @@ class KeyIterObject : public objects::DynObject {
     }
 
     std::string get_name() {
-      return "&lt;iterator&gt;";
+      return "<iterator>";
     }
 
     objects::DynObject* is_primitive() {

@@ -8,6 +8,24 @@
 
 namespace rt::ui {
 
+void replace(std::string& text, std::string from, std::string replace) {
+  size_t pos = 0;
+  while ((pos = text.find(from, pos)) != std::string::npos) {
+      text.replace(pos, from.length(), replace);
+      pos += replace.length();  // Move past the last replaced position
+  }
+}
+
+std::string escape(std::string text) {
+  replace(text, "[", "#91;");
+  replace(text, "]", "#93;");
+  replace(text, "_", "#95;");
+  replace(text, "<", "#60;");
+  replace(text, ">", "#62;");
+  replace(text, "\"", "#34;");
+  return text;
+}
+
 void mermaid(std::vector<objects::Edge> &roots, std::ostream &out) {
   // Give a nice id to each object.
   std::map<objects::DynObject *, std::size_t> visited;
@@ -34,7 +52,7 @@ void mermaid(std::vector<objects::Edge> &roots, std::ostream &out) {
     std::string key = e.key;
     objects::DynObject *src = e.src;
     if (src != nullptr) {
-      out << "  id" << visited[src] << " -->|" << key << "| ";
+      out << "  id" << visited[src] << " -->|" << escape(key) << "| ";
     }
     if (visited.find(dst) != visited.end()) {
       out << "id" << visited[dst] << std::endl;
@@ -43,7 +61,7 @@ void mermaid(std::vector<objects::Edge> &roots, std::ostream &out) {
     auto curr_id = id++;
     visited[dst] = curr_id;
     out << "id" << curr_id << "[ ";
-    out << dst->get_name();
+    out << escape(dst->get_name());
     out << "<br/>rc=" << dst->rc;
 
     out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
