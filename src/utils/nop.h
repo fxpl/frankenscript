@@ -2,10 +2,10 @@
 
 namespace utils
 {
-  template <typename T>
+  template<typename T>
   class Nop
   {
-    public:
-    void operator()(T) const { }
+  public:
+    void operator()(T) const {}
   };
 }

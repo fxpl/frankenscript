@@ -1,22 +1,25 @@
 #pragma once
 
-#include <string>
 #include "../../utils/nop.h"
 
-namespace rt::objects {
-class DynObject;
+#include <string>
 
-struct Edge {
-  DynObject *src;
-  std::string key;
-  DynObject *target;
-};
+namespace rt::objects
+{
+  class DynObject;
 
-using NopDO = utils::Nop<DynObject *>;
+  struct Edge
+  {
+    DynObject* src;
+    std::string key;
+    DynObject* target;
+  };
 
-template <typename Pre, typename Post = NopDO>
-inline void visit(Edge e, Pre pre, Post post = {});
+  using NopDO = utils::Nop<DynObject*>;
 
-template <typename Pre, typename Post = NopDO>
-inline void visit(DynObject* start, Pre pre, Post post = {});
+  template<typename Pre, typename Post = NopDO>
+  inline void visit(Edge e, Pre pre, Post post = {});
+
+  template<typename Pre, typename Post = NopDO>
+  inline void visit(DynObject* start, Pre pre, Post post = {});
 }

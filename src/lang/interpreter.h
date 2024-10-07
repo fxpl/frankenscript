@@ -1,7 +1,8 @@
 #pragma once
 
-namespace verona::interpreter {
-    struct Bytecode;
+namespace verona::interpreter
+{
+  struct Bytecode;
 
-    void delete_bytecode(Bytecode* bytecode);
+  void delete_bytecode(Bytecode* bytecode);
 }
