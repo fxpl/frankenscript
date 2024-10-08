@@ -26,9 +26,18 @@ set (TRIESTE_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable_ExcludeFromAll(trieste)
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(rt OBJECT src/rt/rt.cc)
+add_library(rt OBJECT src/rt/rt.cc src/rt/ui/mermaid.cc)
 
-add_library(lang OBJECT src/lang/lang.cc src/lang/interpreter.cc)
+add_library(
+  lang OBJECT
+  src/lang/lang.cc
+  src/lang/interpreter.cc
+  src/lang/passes/parse.cc
+  src/lang/passes/grouping.cc
+  src/lang/passes/call_stmts.cc
+  src/lang/passes/flatten.cc
+  src/lang/passes/bytecode.cc
+)
 target_link_libraries(lang PRIVATE trieste::trieste)
 
 add_executable(verona_dyn src/main.cc)

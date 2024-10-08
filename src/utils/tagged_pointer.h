@@ -6,7 +6,7 @@
 
 namespace utils
 {
-  template <typename T>
+  template<typename T>
   class TaggedPointer
   {
     uintptr_t ptr;
@@ -17,13 +17,25 @@ namespace utils
     TaggedPointer(T* ptr) : ptr(reinterpret_cast<uintptr_t>(ptr)) {}
     constexpr TaggedPointer(std::nullptr_t) : ptr(0) {}
 
-    TaggedPointer(T* ptr, uintptr_t tag) : ptr(reinterpret_cast<uintptr_t>(ptr) | tag)
-    { assert(tag < 4); }
+    TaggedPointer(T* ptr, uintptr_t tag)
+    : ptr(reinterpret_cast<uintptr_t>(ptr) | tag)
+    {
+      assert(tag < 4);
+    }
 
-    constexpr TaggedPointer(std::nullptr_t, std::uintptr_t tag) : ptr(tag) { assert(tag < 4); }
+    constexpr TaggedPointer(std::nullptr_t, std::uintptr_t tag) : ptr(tag)
+    {
+      assert(tag < 4);
+    }
 
-    bool operator==(TaggedPointer other) const { return ptr == other.ptr; }
-    bool operator!=(TaggedPointer other) const { return ptr != other.ptr; }
+    bool operator==(TaggedPointer other) const
+    {
+      return ptr == other.ptr;
+    }
+    bool operator!=(TaggedPointer other) const
+    {
+      return ptr != other.ptr;
+    }
 
     void set_tag(uintptr_t tag)
     {
@@ -48,9 +60,15 @@ namespace utils
       return reinterpret_cast<T*>(ptr & ~0x3);
     }
 
-    operator T*() const { return get_ptr(); }
+    operator T*() const
+    {
+      return get_ptr();
+    }
 
-    T& operator *() const { return *get_ptr(); }
+    T& operator*() const
+    {
+      return *get_ptr();
+    }
 
     uintptr_t get_tag() const
     {

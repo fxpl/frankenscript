@@ -1,62 +1,50 @@
 #pragma once
 
+#include "../lang/interpreter.h"
+#include "objects/visit.h"
+#include "ui.h"
+
 #include <string>
 #include <vector>
-#include <cassert>
-#include <optional>
 
-#include "../lang/interpreter.h"
-
-namespace objects {
-class DynObject;
-
-struct Edge {
-  DynObject *src;
-  std::string key;
-  DynObject *target;
-};
-
-DynObject *make_func(verona::interpreter::Bytecode *body);
-DynObject *make_iter(DynObject *iter_src);
-DynObject *make_object(std::string str_value);
-DynObject *make_object();
-
-/// @brief This pushes a new frame onto the frame stack
-void push_frame();
-/// @brief Returns the current frame at the top of the frame stack.
-DynObject *get_frame();
-/// @brief This pops the current frame.
-void pop_frame();
-
-void freeze(DynObject *obj);
-void create_region(DynObject *objects);
-
-DynObject *get(DynObject *src, std::string key);
-DynObject *get(DynObject *src, DynObject *key);
-DynObject *set(DynObject *dst, std::string key, DynObject *value);
-DynObject *set(DynObject *dst, DynObject *key, DynObject *value);
-
-DynObject *set_prototype(DynObject *obj, DynObject *proto);
-
-void add_reference(DynObject *src, DynObject *target);
-void remove_reference(DynObject *src, DynObject *target);
-void move_reference(DynObject *src, DynObject *dst, DynObject *target);
-
-size_t get_object_count();
-
-struct UI
+namespace rt
 {
-  virtual void output(std::vector<objects::Edge> &, std::string ) {}
-};
 
-size_t pre_run();
-void post_run(size_t count, UI& ui);
+  objects::DynObject* make_func(verona::interpreter::Bytecode* body);
+  objects::DynObject* make_iter(objects::DynObject* iter_src);
+  objects::DynObject* make_str(std::string str_value);
+  objects::DynObject* make_object();
+  objects::DynObject* make_frame(objects::DynObject* parent);
 
-void mermaid(std::vector<Edge> &roots, std::ostream &out);
+  void freeze(objects::DynObject* obj);
+  void create_region(objects::DynObject* objects);
 
-namespace value {
-  DynObject *iter_next(DynObject *iter);
-  verona::interpreter::Bytecode* get_bytecode(objects::DynObject *func);
-}
+  objects::DynObject* get(objects::DynObject* src, std::string key);
+  objects::DynObject* get(objects::DynObject* src, objects::DynObject* key);
+  objects::DynObject*
+  set(objects::DynObject* dst, std::string key, objects::DynObject* value);
+  objects::DynObject* set(
+    objects::DynObject* dst,
+    objects::DynObject* key,
+    objects::DynObject* value);
 
-} // namespace objects
+  objects::DynObject*
+  set_prototype(objects::DynObject* obj, objects::DynObject* proto);
+
+  objects::DynObject* get_true();
+  objects::DynObject* get_false();
+
+  void add_reference(objects::DynObject* src, objects::DynObject* target);
+  void remove_reference(objects::DynObject* src, objects::DynObject* target);
+  void move_reference(
+    objects::DynObject* src,
+    objects::DynObject* dst,
+    objects::DynObject* target);
+
+  size_t pre_run();
+  void post_run(size_t count, rt::ui::UI& ui);
+
+  objects::DynObject* iter_next(objects::DynObject* iter);
+  verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func);
+
+} // namespace rt
