@@ -1,7 +1,7 @@
 #include "objects/dyn_object.h"
 #include "rt.h"
 
-namespace rt::env
+namespace rt::core
 {
 
   class PrototypeObject : public objects::DynObject
@@ -147,4 +147,4 @@ namespace rt::env
       return this;
     }
   };
-} // namespace rt::env
+} // namespace rt::core

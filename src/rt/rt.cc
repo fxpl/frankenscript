@@ -1,6 +1,6 @@
 #include "rt.h"
 
-#include "env.h"
+#include "core.h"
 #include "objects/dyn_object.h"
 
 #include <iostream>
@@ -12,15 +12,15 @@ namespace rt
 
   objects::DynObject* make_func(verona::interpreter::Bytecode* body)
   {
-    return new env::BytecodeFuncObject(body);
+    return new core::BytecodeFuncObject(body);
   }
   objects::DynObject* make_iter(objects::DynObject* iter_src)
   {
-    return new env::KeyIterObject(iter_src->fields);
+    return new core::KeyIterObject(iter_src->fields);
   }
   objects::DynObject* make_str(std::string value)
   {
-    return new env::StringObject(value);
+    return new core::StringObject(value);
   }
   objects::DynObject* make_object()
   {
@@ -29,7 +29,7 @@ namespace rt
 
   objects::DynObject* make_frame(objects::DynObject* parent)
   {
-    return new env::FrameObject(parent);
+    return new core::FrameObject(parent);
   }
 
   thread_local objects::RegionPointer objects::DynObject::local_region =
@@ -54,11 +54,11 @@ namespace rt
   {
     // TODO Add some checking.  This is need to lookup the correct function in
     // the prototype chain.
-    if (key->get_prototype() != &env::stringPrototypeObject)
+    if (key->get_prototype() != &core::stringPrototypeObject)
     {
       ui::error("Key must be a string.");
     }
-    env::StringObject* str_key = reinterpret_cast<env::StringObject*>(key);
+    core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
     return str_key->as_key();
   }
 
@@ -96,11 +96,11 @@ namespace rt
 
   objects::DynObject* get_true()
   {
-    return &env::TrueObject;
+    return &core::TrueObject;
   }
   objects::DynObject* get_false()
   {
-    return &env::FalseObject;
+    return &core::FalseObject;
   }
 
   void add_reference(objects::DynObject* src, objects::DynObject* target)
@@ -168,19 +168,19 @@ namespace rt
   objects::DynObject* iter_next(objects::DynObject* iter)
   {
     assert(!iter->is_immutable());
-    if (iter->get_prototype() != &env::keyIterPrototypeObject)
+    if (iter->get_prototype() != &core::keyIterPrototypeObject)
     {
       ui::error("Object is not an iterator.");
     }
 
-    return reinterpret_cast<env::KeyIterObject*>(iter)->iter_next();
+    return reinterpret_cast<core::KeyIterObject*>(iter)->iter_next();
   }
 
   verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func)
   {
-    if (func->get_prototype() == &env::bytecodeFuncPrototypeObject)
+    if (func->get_prototype() == &core::bytecodeFuncPrototypeObject)
     {
-      return reinterpret_cast<env::BytecodeFuncObject*>(func)->get_bytecode();
+      return reinterpret_cast<core::BytecodeFuncObject*>(func)->get_bytecode();
     }
     else
     {
