@@ -42,6 +42,19 @@ PassDef grouping()
 
           return create_from(Call, _(Group)) << _(Ident) << list;
         },
+      --In(Method) *
+          (T(Group)[Group]
+           << ((T(Lookup)[Lookup]) * (T(Parens)[Parens] << (~T(List)[List])) *
+               End)) >>
+        [](auto& _) {
+          auto list = _(List);
+          if (!list)
+          {
+            list = create_from(List, _(Parens));
+          }
+
+          return create_from(Method, _(Group)) << _(Lookup) << list;
+        },
 
       T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
         [](auto& _) {
@@ -89,13 +102,21 @@ PassDef grouping()
           << ((T(Group) << End) *
               (T(Group)
                << ((T(Ident)[Ident]) *
-                   (T(Parens)[Parens] << (~(T(List) << T(Ident)++[List]))) *
+                   (T(Parens)[Parens] << (
+                      // (T(Group) << T(Ident)[List]) /
+                      ~(T(List) << T(Ident)++[List]))) *
                    End)) *
               (T(Group) << T(Block)[Block]) * End) >>
         [](auto& _) {
           return create_from(Func, _(Func))
             << _(Ident) << (create_from(Params, _(Parens)) << _[List])
             << (Body << _(Block));
+        },
+      // Normalize functions with a single ident to also have a list token
+      T(Parens)[Parens] << (T(Group) << (T(Ident)[Ident] * End)) >>
+        [](auto& _) {
+          return create_from(Parens, _(Parens))
+            << (create_from(List, _(Parens)) << _(Ident));
         },
 
       T(Return)[Return] << ((T(Group) << End) * End) >>

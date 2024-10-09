@@ -8,13 +8,13 @@ namespace verona::wf
     (Body <<=
      (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse | Print |
       StoreFrame | LoadFrame | CreateObject | Ident | IterNext | Create |
-      StoreField | Lookup | String | Call | Return | ReturnValue |
+      StoreField | Lookup | String | Call | Method | Return | ReturnValue |
       ClearStack)++) |
     (CreateObject <<= (KeyIter | String | Dictionary | Func)) |
     (Func <<= Compile) | (Compile <<= Body) | (Create <<= Ident) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
     (Lookup <<= (Lhs >>= lv) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Call <<= (Op >>= key) * List) | (List <<= rv++) |
+    (Freeze <<= Ident) | (Call <<= Ident * List) | (Method <<= Lookup * List) | (List <<= rv++) |
     (Params <<= Ident++) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
