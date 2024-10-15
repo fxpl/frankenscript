@@ -7,7 +7,7 @@ namespace verona::wf
   inline const auto call_stmts = grouping |
     (Block <<=
      (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
-      ClearStack | Print)++);
+      Method | ClearStack | Print)++);
 }
 
 PassDef call_stmts()
@@ -17,7 +17,7 @@ PassDef call_stmts()
     verona::wf::call_stmts,
     dir::bottomup | dir::once,
     {
-      In(Block) * T(Call)[Call] >>
+      In(Block) * T(Call, Method)[Call] >>
         [](auto& _) {
           return Seq << _(Call) << ClearStack << create_print(_(Call));
         },

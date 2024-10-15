@@ -40,10 +40,10 @@ namespace verona::wf
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
     (Block <<=
-     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue |
-      Call)++) |
+     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
+      Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
-    (Lookup <<= (Lhs >>= lv) * (Rhs >>= key)) | (Region <<= Ident) |
+    (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
     (Freeze <<= Ident) | (Create <<= Ident) | (If <<= Eq * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |

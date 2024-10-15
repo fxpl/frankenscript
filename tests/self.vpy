@@ -1,11 +1,19 @@
+def object():
+    def str_name(self):
+        return "Dictionary"
 
-def str_name(self):
-    return "String"
+    value = {}
+    value.name = str_name
 
-value = "Music :3"
-value.name = str_name
-drop str_name
+    return value
 
-name = value.name()
+# Method on an object
+obj = object()
+obj.name()
+drop obj
 
+# Stand alone call
+object().name()
 
+# Assignment
+name = object().name()
