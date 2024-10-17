@@ -61,3 +61,4 @@ foreach(FILE ${ALL_FILES})
 endforeach()
 
 set_property(TEST three_regions.vpy PROPERTY WILL_FAIL true)
+set_property(TEST leak_with_global.vpy PROPERTY WILL_FAIL true)
