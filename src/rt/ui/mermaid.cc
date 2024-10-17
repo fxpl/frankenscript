@@ -1,6 +1,6 @@
+#include "../core.h"
 #include "../objects/dyn_object.h"
 #include "../ui.h"
-#include "../core.h"
 
 #include <fstream>
 #include <map>
@@ -57,6 +57,10 @@ namespace rt::ui
       objects::DynObject* dst = e.target;
       std::string key = e.key;
       objects::DynObject* src = e.src;
+      if (unreachable && core::globals()->contains(dst))
+      {
+        return false;
+      }
       if (src != nullptr)
       {
         out << "  id" << visited[src] << " -->|" << escape(key) << "| ";
@@ -88,11 +92,6 @@ namespace rt::ui
     };
     // Output all reachable nodes
     for (auto& root : roots)
-    {
-      objects::visit(root, explore);
-    }
-    auto globals = core::globals();
-    for (auto& root : *globals)
     {
       objects::visit(root, explore);
     }

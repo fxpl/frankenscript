@@ -173,7 +173,8 @@ namespace rt::objects
     DynObject(DynObject* prototype_ = nullptr, bool first_frame = false)
     : prototype(prototype_)
     {
-      if (!first_frame) {
+      if (!first_frame)
+      {
         count++;
         all_objects.insert(this);
         auto local_region = get_local_region();

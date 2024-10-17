@@ -174,10 +174,10 @@ namespace rt::core
     }
   };
 
-  inline std::vector<objects::DynObject*>* globals()
+  inline std::set<objects::DynObject*>* globals()
   {
-    static std::vector<objects::DynObject*>* globals =
-      new std::vector<objects::DynObject*>{
+    static std::set<objects::DynObject*>* globals =
+      new std::set<objects::DynObject*>{
         framePrototypeObject(),
         funcPrototypeObject(),
         bytecodeFuncPrototypeObject(),
