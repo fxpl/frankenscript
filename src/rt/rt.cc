@@ -54,7 +54,7 @@ namespace rt
   {
     // TODO Add some checking.  This is need to lookup the correct function in
     // the prototype chain.
-    if (key->get_prototype() != &core::stringPrototypeObject)
+    if (key->get_prototype() != core::stringPrototypeObject())
     {
       ui::error("Key must be a string.");
     }
@@ -96,11 +96,11 @@ namespace rt
 
   objects::DynObject* get_true()
   {
-    return &core::TrueObject;
+    return core::trueObject();
   }
   objects::DynObject* get_false()
   {
-    return &core::FalseObject;
+    return core::falseObject();
   }
 
   void add_reference(objects::DynObject* src, objects::DynObject* target)
@@ -168,7 +168,7 @@ namespace rt
   objects::DynObject* iter_next(objects::DynObject* iter)
   {
     assert(!iter->is_immutable());
-    if (iter->get_prototype() != &core::keyIterPrototypeObject)
+    if (iter->get_prototype() != core::keyIterPrototypeObject())
     {
       ui::error("Object is not an iterator.");
     }
@@ -178,7 +178,7 @@ namespace rt
 
   verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func)
   {
-    if (func->get_prototype() == &core::bytecodeFuncPrototypeObject)
+    if (func->get_prototype() == core::bytecodeFuncPrototypeObject())
     {
       return reinterpret_cast<core::BytecodeFuncObject*>(func)->get_bytecode();
     }

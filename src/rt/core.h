@@ -1,16 +1,17 @@
 #include "objects/dyn_object.h"
 #include "rt.h"
 
+
+
 namespace rt::core
 {
-
   class PrototypeObject : public objects::DynObject
   {
     std::string name;
 
   public:
     PrototypeObject(std::string name_, objects::DynObject* prototype = nullptr)
-    : objects::DynObject(prototype, true), name(name_)
+    : objects::DynObject(prototype), name(name_)
     {}
 
     std::string get_name()
@@ -21,15 +22,18 @@ namespace rt::core
     }
   };
 
-  PrototypeObject framePrototypeObject{"Frame"};
+  PrototypeObject* framePrototypeObject() {
+    static PrototypeObject* proto = new PrototypeObject("Frame");
+    return proto;
+  }
 
   class FrameObject : public objects::DynObject
   {
-    FrameObject() : objects::DynObject(&framePrototypeObject, true) {}
+    FrameObject() : objects::DynObject(framePrototypeObject(), true) {}
 
   public:
     FrameObject(objects::DynObject* parent_frame)
-    : objects::DynObject(&framePrototypeObject)
+    : objects::DynObject(framePrototypeObject())
     {
       if (parent_frame)
       {
@@ -45,9 +49,14 @@ namespace rt::core
     }
   };
 
-  PrototypeObject funcPrototypeObject{"Function"};
-  PrototypeObject bytecodeFuncPrototypeObject{
-    "BytecodeFunction", &funcPrototypeObject};
+  PrototypeObject* funcPrototypeObject() {
+    static PrototypeObject* proto = new PrototypeObject("Function");
+    return proto;
+  }
+  PrototypeObject* bytecodeFuncPrototypeObject() {
+    static PrototypeObject* proto = new PrototypeObject("BytecodeFunction", funcPrototypeObject());
+    return proto;
+  }
 
   class FuncObject : public objects::DynObject
   {
@@ -63,7 +72,7 @@ namespace rt::core
 
   public:
     BytecodeFuncObject(verona::interpreter::Bytecode* body_)
-    : FuncObject(&bytecodeFuncPrototypeObject), body(body_)
+    : FuncObject(bytecodeFuncPrototypeObject()), body(body_)
     {}
     ~BytecodeFuncObject()
     {
@@ -77,7 +86,11 @@ namespace rt::core
     }
   };
 
-  PrototypeObject stringPrototypeObject{"String"};
+  PrototypeObject* stringPrototypeObject() {
+    static PrototypeObject* proto = new PrototypeObject("String");
+    return proto;
+  }
+
 
   class StringObject : public objects::DynObject
   {
@@ -85,7 +98,7 @@ namespace rt::core
 
   public:
     StringObject(std::string value_, bool global = false)
-    : objects::DynObject(&stringPrototypeObject, global), value(value_)
+    : objects::DynObject(stringPrototypeObject(), global), value(value_)
     {}
 
     std::string get_name()
@@ -106,12 +119,20 @@ namespace rt::core
     }
   };
 
-  StringObject TrueObject{"True", true};
-  StringObject FalseObject{"False", true};
+  StringObject* trueObject() {
+    static StringObject* val = new StringObject("True", true);
+    return val;
+  }
+  StringObject* falseObject() {
+    static StringObject* val = new StringObject("False", true);
+    return val;
+  }
 
   // The prototype object for iterators
-  // TODO put some stuff in here?
-  PrototypeObject keyIterPrototypeObject{"KeyIterator"};
+  PrototypeObject* keyIterPrototypeObject() {
+    static PrototypeObject* proto = new PrototypeObject("KeyIterator");
+    return proto;
+  }
 
   class KeyIterObject : public objects::DynObject
   {
@@ -120,7 +141,7 @@ namespace rt::core
 
   public:
     KeyIterObject(std::map<std::string, objects::DynObject*>& fields)
-    : objects::DynObject(&keyIterPrototypeObject),
+    : objects::DynObject(keyIterPrototypeObject()),
       iter(fields.begin()),
       iter_end(fields.end())
     {}

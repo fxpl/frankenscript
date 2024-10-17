@@ -170,20 +170,20 @@ namespace rt::objects
 
   public:
     // prototype is borrowed, the caller does not need to provide an RC.
-    DynObject(DynObject* prototype_ = nullptr, bool global = false)
+    DynObject(DynObject* prototype_ = nullptr, bool first_frame = false)
     : prototype(prototype_)
     {
-      if (!global)
-      {
+      if (!first_frame) {
         count++;
         all_objects.insert(this);
         auto local_region = get_local_region();
         region = local_region;
         local_region->objects.insert(this);
       }
+
       if (prototype != nullptr)
         prototype->change_rc(1);
-      std::cout << "Allocate: " << get_name() << std::endl;
+      std::cout << "Allocate: " << this << std::endl;
     }
 
     // TODO This should use prototype lookup for the destructor.
