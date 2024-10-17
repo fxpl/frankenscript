@@ -95,8 +95,8 @@ PassDef bytecode()
             // `self` lookup and first argument
             << (Compile << _(Op))
             << (Compile << _[List])
-            // Copy self
-            << (Copy ^ std::to_string(arg_ctn))
+            // Duplicate self
+            << (Dup ^ std::to_string(arg_ctn))
             // Fetch the function
             << (Compile << _(Key))
             << create_from(LoadField, _(Lookup))

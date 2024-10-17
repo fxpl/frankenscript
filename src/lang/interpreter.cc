@@ -346,15 +346,17 @@ namespace verona::interpreter
         return action;
       }
 
-      if (node == Copy)
+      if (node == Dup)
       {
         // This breaks the normal idea of a stack machine, but every other
         // solution would require more effort and would be messier
-        auto copy_idx = std::stoul(std::string(node->location().view()));
+        auto dup_idx = std::stoul(std::string(node->location().view()));
         auto stack_size = stack().size();
-        assert(copy_idx < stack_size && "the stack is too small for this copy");
+        assert(
+          dup_idx < stack_size &&
+          "the stack is too small for this duplication");
 
-        auto var = stack()[stack_size - copy_idx - 1];
+        auto var = stack()[stack_size - dup_idx - 1];
         stack().push_back(var);
         std::cout << "push " << var << std::endl;
         rt::add_reference(frame(), var);

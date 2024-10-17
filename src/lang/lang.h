@@ -56,7 +56,7 @@ namespace verona::wf
      (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
       CreateObject | CreateRegion | FreezeObject | IterNext | Print | Eq | Neq |
       Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
-      Copy)++) |
+      Dup)++) |
     (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }

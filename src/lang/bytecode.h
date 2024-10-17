@@ -23,7 +23,7 @@ inline const trieste::TokenDef ReturnValue{"return_value"};
 /// which value should be duplicate.
 ///
 /// Stack: `[]::<arg_0>` -> `[]::<arg_0>::<arg_0>`
-inline const trieste::TokenDef Copy{"copy", trieste::flag::print};
+inline const trieste::TokenDef Dup{"dup", trieste::flag::print};
 
 inline const trieste::TokenDef CreateRegion{"create_region"};
 inline const trieste::TokenDef FreezeObject{"freeze_object"};
