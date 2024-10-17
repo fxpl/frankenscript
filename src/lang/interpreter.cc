@@ -464,7 +464,8 @@ namespace verona::interpreter
       out.open(path);
     }
 
-    void output(std::vector<rt::objects::DynObject*>& roots, std::string message)
+    void
+    output(std::vector<rt::objects::DynObject*>& roots, std::string message)
     {
       out << "```" << std::endl;
       out << message << std::endl;

@@ -3,7 +3,9 @@
 #include "core.h"
 #include "objects/dyn_object.h"
 
+#include <algorithm>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -134,12 +136,27 @@ namespace rt
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
+    auto globals = core::globals();
     if (objects::DynObject::get_count() != initial_count)
     {
       std::cout << "Cycles detected in local region." << std::endl;
       auto roots = objects::DynObject::get_local_region()->get_objects();
+      roots.erase(
+        std::remove_if(
+          roots.begin(),
+          roots.end(),
+          [&globals](auto x) { return globals->contains(x); }),
+        roots.end());
       ui.output(roots, "Cycles detected in local region.");
     }
+
+    // Freeze global objects, to low the termination of the local region
+    std::cout << "Freezing global objects" << std::endl;
+    for (auto obj : *globals)
+    {
+      obj->freeze();
+    }
+
     objects::DynObject::get_local_region()->terminate_region();
     if (objects::DynObject::get_count() != initial_count)
     {

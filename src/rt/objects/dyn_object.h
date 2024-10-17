@@ -199,7 +199,10 @@ namespace rt::objects
       // RC is zero.
       if (change_rc(0) != 0 && matched != 0)
       {
-        ui::error("Object still has references");
+        std::stringstream stream;
+        stream << this;
+        stream << "  still has references";
+        ui::error(stream.str());
       }
 
       auto r = get_region(this);
