@@ -1,8 +1,6 @@
 #include "objects/dyn_object.h"
 #include "rt.h"
 
-
-
 namespace rt::core
 {
   class PrototypeObject : public objects::DynObject
@@ -22,7 +20,8 @@ namespace rt::core
     }
   };
 
-  PrototypeObject* framePrototypeObject() {
+  inline PrototypeObject* framePrototypeObject()
+  {
     static PrototypeObject* proto = new PrototypeObject("Frame");
     return proto;
   }
@@ -49,12 +48,15 @@ namespace rt::core
     }
   };
 
-  PrototypeObject* funcPrototypeObject() {
+  inline PrototypeObject* funcPrototypeObject()
+  {
     static PrototypeObject* proto = new PrototypeObject("Function");
     return proto;
   }
-  PrototypeObject* bytecodeFuncPrototypeObject() {
-    static PrototypeObject* proto = new PrototypeObject("BytecodeFunction", funcPrototypeObject());
+  inline PrototypeObject* bytecodeFuncPrototypeObject()
+  {
+    static PrototypeObject* proto =
+      new PrototypeObject("BytecodeFunction", funcPrototypeObject());
     return proto;
   }
 
@@ -86,19 +88,19 @@ namespace rt::core
     }
   };
 
-  PrototypeObject* stringPrototypeObject() {
+  inline PrototypeObject* stringPrototypeObject()
+  {
     static PrototypeObject* proto = new PrototypeObject("String");
     return proto;
   }
-
 
   class StringObject : public objects::DynObject
   {
     std::string value;
 
   public:
-    StringObject(std::string value_, bool global = false)
-    : objects::DynObject(stringPrototypeObject(), global), value(value_)
+    StringObject(std::string value_)
+    : objects::DynObject(stringPrototypeObject()), value(value_)
     {}
 
     std::string get_name()
@@ -119,17 +121,20 @@ namespace rt::core
     }
   };
 
-  StringObject* trueObject() {
-    static StringObject* val = new StringObject("True", true);
+  inline StringObject* trueObject()
+  {
+    static StringObject* val = new StringObject("True");
     return val;
   }
-  StringObject* falseObject() {
-    static StringObject* val = new StringObject("False", true);
+  inline StringObject* falseObject()
+  {
+    static StringObject* val = new StringObject("False");
     return val;
   }
 
   // The prototype object for iterators
-  PrototypeObject* keyIterPrototypeObject() {
+  inline PrototypeObject* keyIterPrototypeObject()
+  {
     static PrototypeObject* proto = new PrototypeObject("KeyIterator");
     return proto;
   }
@@ -168,4 +173,19 @@ namespace rt::core
       return this;
     }
   };
+
+  inline std::vector<objects::DynObject*>* globals()
+  {
+    static std::vector<objects::DynObject*>* globals =
+      new std::vector<objects::DynObject*>{
+        framePrototypeObject(),
+        funcPrototypeObject(),
+        bytecodeFuncPrototypeObject(),
+        stringPrototypeObject(),
+        keyIterPrototypeObject(),
+        trueObject(),
+        falseObject(),
+      };
+    return globals;
+  }
 } // namespace rt::core

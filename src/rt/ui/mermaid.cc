@@ -1,5 +1,6 @@
 #include "../objects/dyn_object.h"
 #include "../ui.h"
+#include "../core.h"
 
 #include <fstream>
 #include <map>
@@ -30,7 +31,7 @@ namespace rt::ui
     return text;
   }
 
-  void mermaid(std::vector<objects::Edge>& roots, std::ostream& out)
+  void mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out)
   {
     // Give a nice id to each object.
     std::map<objects::DynObject*, std::size_t> visited;
@@ -85,10 +86,15 @@ namespace rt::ui
       }
       return true;
     };
-    // Output all reachable edges
+    // Output all reachable nodes
     for (auto& root : roots)
     {
-      objects::visit({root.src, root.key, root.target}, explore);
+      objects::visit(root, explore);
+    }
+    auto globals = core::globals();
+    for (auto& root : *globals)
+    {
+      objects::visit(root, explore);
     }
 
     // Output the unreachable parts of the graph

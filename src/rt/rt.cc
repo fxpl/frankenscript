@@ -123,6 +123,9 @@ namespace rt
 
   size_t pre_run()
   {
+    std::cout << "Initilizing global objects" << std::endl;
+    core::globals();
+
     std::cout << "Running test..." << std::endl;
     return objects::DynObject::get_count();
   }
@@ -134,13 +137,8 @@ namespace rt
     if (objects::DynObject::get_count() != initial_count)
     {
       std::cout << "Cycles detected in local region." << std::endl;
-      auto objs = objects::DynObject::get_local_region()->get_objects();
-      std::vector<objects::Edge> edges;
-      for (auto obj : objs)
-      {
-        edges.push_back({nullptr, "?", obj});
-      }
-      ui.output(edges, "Cycles detected in local region.");
+      auto roots = objects::DynObject::get_local_region()->get_objects();
+      ui.output(roots, "Cycles detected in local region.");
     }
     objects::DynObject::get_local_region()->terminate_region();
     if (objects::DynObject::get_count() != initial_count)
@@ -150,12 +148,12 @@ namespace rt
       std::cout << "Final count: " << objects::DynObject::get_count()
                 << std::endl;
 
-      std::vector<objects::Edge> edges;
+      std::vector<objects::DynObject*> roots;
       for (auto obj : objects::DynObject::get_objects())
       {
-        edges.push_back({nullptr, "?", obj});
+        roots.push_back(obj);
       }
-      ui.output(edges, "Memory leak detected!");
+      ui.output(roots, "Memory leak detected!");
 
       std::exit(1);
     }

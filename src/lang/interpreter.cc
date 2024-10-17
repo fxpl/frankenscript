@@ -125,8 +125,8 @@ namespace verona::interpreter
         std::cout << node->location().view() << std::endl << std::endl;
 
         // Mermaid output
-        std::vector<rt::objects::Edge> edges{{nullptr, "?", frame()}};
-        ui->output(edges, std::string(node->location().view()));
+        std::vector<rt::objects::DynObject*> roots{frame()};
+        ui->output(roots, std::string(node->location().view()));
 
         // Continue
         return ExecNext{};
@@ -464,12 +464,12 @@ namespace verona::interpreter
       out.open(path);
     }
 
-    void output(std::vector<rt::objects::Edge>& edges, std::string message)
+    void output(std::vector<rt::objects::DynObject*>& roots, std::string message)
     {
       out << "```" << std::endl;
       out << message << std::endl;
       out << "```" << std::endl;
-      rt::ui::mermaid(edges, out);
+      rt::ui::mermaid(roots, out);
       if (interactive)
       {
         out.close();
