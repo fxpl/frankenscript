@@ -1,5 +1,7 @@
 #include "../lang.h"
 
+inline const TokenDef Rest{"rest"};
+
 PassDef grouping()
 {
   PassDef p{
@@ -11,8 +13,8 @@ PassDef grouping()
       T(File) << (--T(Body) * Any++[File]) >>
         [](auto& _) { return File << (Body << (Block << _[File])); },
 
-      In(Group) * LV[Lhs] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
-        [](auto& _) { return Lookup << _[Lhs] << _(Rhs); },
+      In(Group) * OPERAND[Op] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
+        [](auto& _) { return Lookup << _(Op) << _(Rhs); },
 
       T(Group) << ((T(Region)[Region] << End) * T(Ident)[Ident] * End) >>
         [](auto& _) {
@@ -30,8 +32,29 @@ PassDef grouping()
         [](auto& _) { return Assign << _(Lhs) << Null; },
       // function(arg, arg)
       --In(Func) *
+          (T(Group)[Group] << (T(Ident)[Ident]) *
+             (T(Parens)[Parens] << (~T(List)[List])) * Any++[Rest]) >>
+        [](auto& _) {
+          auto list = _(List);
+          if (!list)
+          {
+            list = create_from(List, _(Parens));
+          }
+
+          auto call = create_from(Call, _(Group)) << _(Ident) << list;
+          // If there are more nodes to process we want to keep the "Group"
+          if (_[Rest].size() == 0)
+          {
+            return call;
+          }
+          else
+          {
+            return Group << call << _[Rest];
+          }
+        },
+      --In(Method) *
           (T(Group)[Group]
-           << ((T(Ident)[Ident]) * (T(Parens)[Parens] << (~T(List)[List])) *
+           << ((T(Lookup)[Lookup]) * (T(Parens)[Parens] << (~T(List)[List])) *
                End)) >>
         [](auto& _) {
           auto list = _(List);
@@ -40,7 +63,7 @@ PassDef grouping()
             list = create_from(List, _(Parens));
           }
 
-          return create_from(Call, _(Group)) << _(Ident) << list;
+          return create_from(Method, _(Group)) << _(Lookup) << list;
         },
 
       T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
@@ -96,6 +119,12 @@ PassDef grouping()
           return create_from(Func, _(Func))
             << _(Ident) << (create_from(Params, _(Parens)) << _[List])
             << (Body << _(Block));
+        },
+      // Normalize functions with a single ident to also have a list token
+      T(Parens)[Parens] << (T(Group) << (T(Ident)[Ident] * End)) >>
+        [](auto& _) {
+          return create_from(Parens, _(Parens))
+            << (create_from(List, _(Parens)) << _(Ident));
         },
 
       T(Return)[Return] << ((T(Group) << End) * End) >>

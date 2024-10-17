@@ -86,6 +86,24 @@ PassDef bytecode()
         },
 
       T(Compile)
+          << (T(Method)[Method]
+              << ((T(Lookup)[Lookup] << (OPERAND[Op] * T(String)[Key])) *
+                  (T(List) << Any++[List]) * End)) >>
+        [](auto& _) {
+          auto arg_ctn = _[List].size();
+          return Seq
+            // `self` lookup and first argument
+            << (Compile << _(Op))
+            << (Compile << _[List])
+            // Duplicate self
+            << (Dup ^ std::to_string(arg_ctn))
+            // Fetch the function
+            << (Compile << _(Key))
+            << create_from(LoadField, _(Lookup))
+            // function call, +1 for the self argument
+            << (Call ^ std::to_string(arg_ctn + 1));
+        },
+      T(Compile)
           << (T(Call)[Call] << (KEY[Op] * (T(List) << Any++[List]) * End)) >>
         [](auto& _) {
           // The print is done by the called function

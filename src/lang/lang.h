@@ -20,6 +20,7 @@ inline const TokenDef Freeze{"freeze"};
 inline const TokenDef Region{"region"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
+inline const TokenDef Method{"method"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
@@ -31,36 +32,41 @@ inline const TokenDef Compile{"compile"};
 namespace verona::wf
 {
   inline const auto lv = Ident | Lookup;
-  inline const auto rv = lv | Empty | Null | String | Create | Call;
+  inline const auto rv = lv | Empty | Null | String | Create | Call | Method;
   inline const auto cmp_values = Ident | Lookup | Null;
   inline const auto key = Ident | Lookup | String;
+  inline const auto operand = Lookup | Call | Method | Ident;
 
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
     (Block <<=
-     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue |
-      Call)++) |
+     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
+      Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
-    (Lookup <<= (Lhs >>= lv) * (Rhs >>= key)) | (Region <<= Ident) |
+    (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
     (Freeze <<= Ident) | (Create <<= Ident) | (If <<= Eq * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
-    (Func <<= Ident * Params * Body) | (Call <<= (Op >>= key) * List) |
-    (ReturnValue <<= rv) | (List <<= rv++) | (Params <<= Ident++);
+    (Func <<= Ident * Params * Body) | (Call <<= Ident * List) |
+    (Method <<= Lookup * List) | (ReturnValue <<= rv) | (List <<= rv++) |
+    (Params <<= Ident++);
 
   inline const trieste::wf::Wellformed bytecode = (Top <<= Body) |
     (Body <<=
      (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
       CreateObject | CreateRegion | FreezeObject | IterNext | Print | Eq | Neq |
-      Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack)++) |
+      Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
+      Dup)++) |
     (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
 
 inline const auto LV = T(Ident, Lookup);
-inline const auto RV = T(Empty, Ident, Lookup, Null, String, Create, Call);
+inline const auto RV =
+  T(Empty, Ident, Lookup, Null, String, Create, Call, Method);
 inline const auto CMP_V = T(Ident, Lookup, Null);
 inline const auto KEY = T(Ident, Lookup, String);
+inline const auto OPERAND = T(Lookup, Call, Method, Ident);
 
 // Parsing && AST construction
 Parse parser();

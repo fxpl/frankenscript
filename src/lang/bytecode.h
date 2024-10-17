@@ -18,6 +18,13 @@ inline const trieste::TokenDef Body{"body", trieste::flag::symtab};
 inline const trieste::TokenDef Return{"return"};
 inline const trieste::TokenDef ReturnValue{"return_value"};
 
+/// Duplicates an item on the stack. The location of the
+/// note is an index from the end of the stack, that indicates
+/// which value should be duplicate.
+///
+/// Stack: `[]::<arg_0>` -> `[]::<arg_0>::<arg_0>`
+inline const trieste::TokenDef Dup{"dup", trieste::flag::print};
+
 inline const trieste::TokenDef CreateRegion{"create_region"};
 inline const trieste::TokenDef FreezeObject{"freeze_object"};
 inline const trieste::TokenDef Null{"null"};
