@@ -34,11 +34,18 @@ namespace rt
     return new core::FrameObject(parent);
   }
 
+  objects::DynObject* make_cown(objects::DynObject* region)
+  {
+    return new core::CownObject(region);
+  }
+
   thread_local objects::RegionPointer objects::DynObject::local_region =
     new Region();
 
   void freeze(objects::DynObject* obj)
   {
+    // Cown specific handling of the freeze operation is handled by the
+    // `freeze()` implementation of the object
     obj->freeze();
   }
 
@@ -49,6 +56,15 @@ namespace rt
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
   {
+    if (obj->get_prototype() == core::cownPrototypeObject())
+    {
+      core::CownObject* cown = reinterpret_cast<core::CownObject*>(obj);
+      if (!cown->is_aquired())
+      {
+        ui::error(
+          "the cown needs to be aquired, before its data can be accessed");
+      }
+    }
     return obj->get(key);
   }
 
@@ -72,6 +88,17 @@ namespace rt
   objects::DynObject*
   set(objects::DynObject* obj, std::string key, objects::DynObject* value)
   {
+    if (obj->get_prototype() == core::cownPrototypeObject())
+    {
+      core::CownObject* cown = reinterpret_cast<core::CownObject*>(obj);
+      if (!cown->is_aquired())
+      {
+        // Overwriting data can change the RC and then call destructors of the
+        // type this action therefore requires the cown to be aquired
+        ui::error("the cown needs to be aquired, before its data can modified");
+      }
+    }
+
     return obj->set(key, value);
   }
 

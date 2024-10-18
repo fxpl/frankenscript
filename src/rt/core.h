@@ -174,6 +174,54 @@ namespace rt::core
     }
   };
 
+  // The prototype object for cown
+  inline PrototypeObject* cownPrototypeObject()
+  {
+    static PrototypeObject* proto = new PrototypeObject("Cown");
+    return proto;
+  }
+
+  class CownObject : public objects::DynObject
+  {
+    // For now always false, but might be needed later if we want to simulate
+    // concurrency.
+    bool aquired = false;
+
+  public:
+    CownObject(objects::DynObject* region)
+    : objects::DynObject(cownPrototypeObject()),
+    {
+      // FIXME: Add once regions are reified
+      // assert(
+      //   region->get_prototype() == regionPrototype() &&
+      //   "Cowns can only store regions");
+      //
+      // FIXME: Also check that the region has a LRC == 1, with 1
+      // being the reference passed into this constructor
+      this->set("region", region);
+    }
+
+    bool is_aquired()
+    {
+      return aquired;
+    }
+
+    std::string get_name()
+    {
+      return "<cown>";
+    }
+
+    objects::DynObject* is_primitive()
+    {
+      return this;
+    }
+
+    bool is_cown() override
+    {
+      return false;
+    }
+  };
+
   inline std::set<objects::DynObject*>* globals()
   {
     static std::set<objects::DynObject*>* globals =
@@ -185,6 +233,7 @@ namespace rt::core
         keyIterPrototypeObject(),
         trueObject(),
         falseObject(),
+        cownPrototypeObject(),
       };
     return globals;
   }

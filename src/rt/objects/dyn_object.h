@@ -27,8 +27,10 @@ namespace rt::objects
   {
     friend class Reference;
     friend objects::DynObject* rt::make_iter(objects::DynObject* obj);
-    friend void
-    rt::ui::mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out, std::vector<objects::DynObject*>* taint);
+    friend void rt::ui::mermaid(
+      std::vector<objects::DynObject*>& roots,
+      std::ostream& out,
+      std::vector<objects::DynObject*>* taint);
     friend void destruct(DynObject* obj);
     friend void dealloc(DynObject* obj);
     template<typename Pre, typename Post>
@@ -241,13 +243,19 @@ namespace rt::objects
           get_region(obj)->objects.erase(obj);
         }
         obj->region.set_tag(ImmutableTag);
-        return true;
+
+        return !obj->is_cown();
       });
     }
 
     bool is_immutable()
     {
       return region.get_tag() == ImmutableTag;
+    }
+
+    virtual bool is_cown()
+    {
+      return false;
     }
 
     [[nodiscard]] DynObject* get(std::string name)
@@ -270,7 +278,7 @@ namespace rt::objects
 
     [[nodiscard]] DynObject* set(std::string name, DynObject* value)
     {
-      if (is_immutable())
+      if (is_immutable() && this->is_cown())
       {
         ui::error("Cannot mutate immutable object");
       }
@@ -282,6 +290,7 @@ namespace rt::objects
     // The caller must provide an rc for value.
     [[nodiscard]] DynObject* set_prototype(DynObject* value)
     {
+      // No need to check for a cown, since cowns already have a set prototype
       if (is_immutable())
       {
         ui::error("Cannot mutate immutable object");
@@ -331,6 +340,7 @@ namespace rt::objects
     static void
     move_reference(DynObject* src, DynObject* dst, DynObject* target)
     {
+      // An immutable cown can't be moved to another region
       if (target == nullptr || target->is_immutable())
         return;
 
