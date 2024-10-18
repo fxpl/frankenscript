@@ -40,11 +40,12 @@ namespace verona::wf
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
     (Block <<=
-     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
-      Method)++) |
+     (Freeze | Taint | Region | Assign | If | For | Func | Return |
+      ReturnValue | Call | Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Create <<= Ident) | (If <<= Eq * Block * Block) |
+    (Freeze <<= Ident) | (Taint <<= Ident) | (Create <<= Ident) |
+    (If <<= Eq * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Func <<= Ident * Params * Body) | (Call <<= Ident * List) |
@@ -54,9 +55,9 @@ namespace verona::wf
   inline const trieste::wf::Wellformed bytecode = (Top <<= Body) |
     (Body <<=
      (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
-      CreateObject | CreateRegion | FreezeObject | IterNext | Print | Eq | Neq |
-      Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
-      Dup)++) |
+      CreateObject | CreateRegion | FreezeObject | Taint | IterNext | Print |
+      Eq | Neq | Jump | JumpFalse | Label | Call | Return | ReturnValue |
+      ClearStack | Dup)++) |
     (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }

@@ -74,6 +74,11 @@ PassDef bytecode()
                      << create_print(_(Op));
         },
 
+      T(Compile) << (T(Taint)[Op] << T(Ident)[Ident]) >>
+        [](auto& _) {
+          return Seq << (Compile << _[Ident]) << create_from(Taint, _(Op));
+        },
+
       T(Compile) << (T(Create)[Op] << T(Ident)[Ident]) >>
         [](auto& _) {
           return Seq << (Compile << _[Ident]) << (CreateObject << Proto);

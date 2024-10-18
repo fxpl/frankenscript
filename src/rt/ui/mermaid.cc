@@ -155,7 +155,7 @@ namespace rt::ui
     out << "classDef unreachable stroke:red,stroke-width:2px;" << std::endl;
 
     // Taint nodes on request
-    if (taint)
+    if (taint && !taint->empty())
     {
       out << "classDef tainted fill:#43a;" << std::endl;
       std::set<objects::DynObject*> tainted;

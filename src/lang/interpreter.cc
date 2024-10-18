@@ -119,14 +119,25 @@ namespace verona::interpreter
       // ==========================================
       // Operators that shouldn't be printed
       // ==========================================
-      if (node == Print)
+      if (node == Print || node == Taint)
       {
         // Console output
         std::cout << node->location().view() << std::endl << std::endl;
 
+        std::vector<rt::objects::DynObject*> taint = {};
+        if (node == Taint)
+        {
+          auto v = pop("taint source");
+          taint.push_back(v);
+          // Removing the reference here is a bit early, but should be safe
+          // since it comes from an ident. Removing it later would require an
+          // additional if clause
+          rt::remove_reference(frame(), v);
+        }
+
         // Mermaid output
         std::vector<rt::objects::DynObject*> roots{frame()};
-        ui->output(roots, std::string(node->location().view()));
+        ui->output(roots, std::string(node->location().view()), &taint);
 
         // Continue
         return ExecNext{};
@@ -464,13 +475,15 @@ namespace verona::interpreter
       out.open(path);
     }
 
-    void
-    output(std::vector<rt::objects::DynObject*>& roots, std::string message)
+    void output(
+      std::vector<rt::objects::DynObject*>& roots,
+      std::string message,
+      std::vector<rt::objects::DynObject*>* taint = nullptr)
     {
       out << "```" << std::endl;
       out << message << std::endl;
       out << "```" << std::endl;
-      rt::ui::mermaid(roots, out);
+      rt::ui::mermaid(roots, out, taint);
       if (interactive)
       {
         out.close();

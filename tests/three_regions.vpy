@@ -17,12 +17,15 @@ e["self"] = e
 e["f"] = {}
 region e
 
+taint a
 
 # connect first region to second in two ways
 a.c = c
 a.b.d = c.d
 # Connect first region to third with single entry point
 a.b.e = e.f
+
+taint a
 
 # Now freeze part of the first region, and the reachable parts of the 
 # second and third regions

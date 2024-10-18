@@ -28,6 +28,12 @@ PassDef grouping()
           return _(Freeze) << _(Ident);
         },
 
+      T(Group) << ((T(Taint)[Taint] << End) * T(Ident)[Ident] * End) >>
+        [](auto& _) {
+          _(Taint)->extend(_(Ident)->location());
+          return _(Taint) << _(Ident);
+        },
+
       T(Group) << ((T(Drop)[Drop] << End) * LV[Lhs] * End) >>
         [](auto& _) { return Assign << _(Lhs) << Null; },
       // function(arg, arg)

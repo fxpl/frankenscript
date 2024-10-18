@@ -43,4 +43,5 @@ inline const trieste::TokenDef Jump{"jump", trieste::flag::print};
 /// Jump if the current stack frame is `False`
 inline const trieste::TokenDef JumpFalse{"jump_false", trieste::flag::print};
 inline const trieste::TokenDef Print("print", trieste::flag::print);
+inline const trieste::TokenDef Taint{"display_taint"};
 inline const trieste::TokenDef IterNext("iter_next");

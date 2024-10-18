@@ -12,10 +12,17 @@ namespace rt::ui
   class UI
   {
   public:
-    virtual void output(std::vector<objects::DynObject*>&, std::string) {}
+    virtual void output(
+      std::vector<objects::DynObject*>&,
+      std::string,
+      std::vector<rt::objects::DynObject*>* = nullptr)
+    {}
   };
 
-  void mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out, std::vector<objects::DynObject*>* taint = nullptr);
+  void mermaid(
+    std::vector<objects::DynObject*>& roots,
+    std::ostream& out,
+    std::vector<objects::DynObject*>* taint = nullptr);
 
   [[noreturn]] inline void error(const std::string& msg)
   {
