@@ -27,11 +27,6 @@ namespace rt::objects
     // This guarantees that the regions for trees.
     Region* parent{nullptr};
 
-    // The parent reference count is the number of references to the region from
-    // the parent region.  In classic Verona we considered this as 0 or 1, but
-    // by tracking dynamically we can allow multiple references.
-    size_t parent_reference_count{0};
-
     // The number of direct subregions, whose LRC is non-zero
     size_t sub_region_reference_count{0};
 
@@ -99,39 +94,9 @@ namespace rt::objects
       }
     }
 
-    static void dec_prc(Region* r)
-    {
-      std::cout << "Dropping parent reference: " << r << std::endl;
-      assert(r->parent_reference_count != 0);
-      r->parent_reference_count--;
-      if (r->parent_reference_count != 0)
-        return;
-
-      // This is the last parent reference, so region no longer has a parent.
-      // If it has internal references, then we need to decrement the parents
-      // local reference count.
-      if (r->combined_lrc() != 0)
-        dec_sbrc(r);
-      else
-      {
-        std::cout << "Collecting region: " << r << std::endl;
-        to_collect.push_back(r);
-      }
-      // Unset parent pointer.
-      r->parent = nullptr;
-    }
-
     static void set_parent(Region* r, Region* p)
     {
       assert(r->local_reference_count != 0);
-
-      r->parent_reference_count++;
-
-      // Check if already parented, if so increment the parent reference count.
-      if (r->parent == p)
-      {
-        return;
-      }
 
       // Check if already parented to another region.
       if (r->parent != nullptr)
@@ -149,7 +114,6 @@ namespace rt::objects
 
       // Set the parent and increment the parent reference count.
       r->parent = p;
-      assert(r->parent_reference_count == 1);
 
       // If the sub-region has local references, then we need the parent to have
       // a local reference to.

@@ -86,7 +86,7 @@ namespace rt::objects
       if (src)
       {
         assert(target->parent == src);
-        Region::dec_prc(target);
+        target->parent = nullptr;
       }
       return;
     }

@@ -152,8 +152,7 @@ namespace rt::ui
           out << std::endl;
           out << "  region" << region << "[\\" << region
               << "<br/>lrc=" << region->local_reference_count
-              << "<br/>sbrc=" << region->sub_region_reference_count
-              << "<br/>prc=" << region->parent_reference_count << "/]"
+              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
               << std::endl;
         }
         for (auto obj : objects)
