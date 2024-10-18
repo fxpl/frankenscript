@@ -16,22 +16,12 @@ PassDef grouping()
       In(Group) * OPERAND[Op] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
         [](auto& _) { return Lookup << _(Op) << _(Rhs); },
 
-      T(Group) << ((T(Region)[Region] << End) * T(Ident)[Ident] * End) >>
+      T(Group)
+          << ((T(Freeze, Taint, Cown, Region)[Op] << End) * T(Ident)[Ident] *
+              End) >>
         [](auto& _) {
-          _(Region)->extend(_(Ident)->location());
-          return _(Region) << _(Ident);
-        },
-
-      T(Group) << ((T(Freeze)[Freeze] << End) * T(Ident)[Ident] * End) >>
-        [](auto& _) {
-          _(Freeze)->extend(_(Ident)->location());
-          return _(Freeze) << _(Ident);
-        },
-
-      T(Group) << ((T(Taint)[Taint] << End) * T(Ident)[Ident] * End) >>
-        [](auto& _) {
-          _(Taint)->extend(_(Ident)->location());
-          return _(Taint) << _(Ident);
+          _(Op)->extend(_(Ident)->location());
+          return _(Op) << _(Ident);
         },
 
       T(Group) << ((T(Drop)[Drop] << End) * LV[Lhs] * End) >>

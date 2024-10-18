@@ -185,6 +185,12 @@ namespace verona::interpreter
             "CreateObject: A bytecode function requires a body node");
           obj = rt::make_func(new Bytecode{payload->at(0)});
         }
+        else if (payload == Cown)
+        {
+          auto v = pop("cown reagion");
+          obj = rt::make_cown(v);
+          rt::move_reference(frame(), obj, v);
+        }
         else
         {
           assert(false && "CreateObject has to specify a value");

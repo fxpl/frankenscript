@@ -14,8 +14,9 @@ namespace verona::wf
     (Func <<= Compile) | (Compile <<= Body) | (Create <<= Ident) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Taint <<= Ident) | (Call <<= Ident * List) |
-    (Method <<= Lookup * List) | (List <<= rv++) | (Params <<= Ident++) |
+    (Freeze <<= Ident) | (Taint <<= Ident) | (Cown <<= Ident) |
+    (Call <<= Ident * List) | (Method <<= Lookup * List) | (List <<= rv++) |
+    (Params <<= Ident++) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Label <<= Ident)[Ident];

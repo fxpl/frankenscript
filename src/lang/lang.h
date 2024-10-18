@@ -32,7 +32,8 @@ inline const TokenDef Compile{"compile"};
 namespace verona::wf
 {
   inline const auto lv = Ident | Lookup;
-  inline const auto rv = lv | Empty | Null | String | Create | Call | Method;
+  inline const auto rv =
+    lv | Empty | Null | String | Create | Call | Method | Cown;
   inline const auto cmp_values = Ident | Lookup | Null;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
@@ -44,8 +45,8 @@ namespace verona::wf
       ReturnValue | Call | Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Taint <<= Ident) | (Create <<= Ident) |
-    (If <<= Eq * Block * Block) |
+    (Freeze <<= Ident) | (Taint <<= Ident) | (Cown <<= Ident) |
+    (Create <<= Ident) | (If <<= Eq * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Func <<= Ident * Params * Body) | (Call <<= Ident * List) |
@@ -58,13 +59,13 @@ namespace verona::wf
       CreateObject | CreateRegion | FreezeObject | Taint | IterNext | Print |
       Eq | Neq | Jump | JumpFalse | Label | Call | Return | ReturnValue |
       ClearStack | Dup)++) |
-    (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
+    (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func | Cown)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
 
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
-  T(Empty, Ident, Lookup, Null, String, Create, Call, Method);
+  T(Empty, Ident, Lookup, Null, String, Create, Call, Method, Cown);
 inline const auto CMP_V = T(Ident, Lookup, Null);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);

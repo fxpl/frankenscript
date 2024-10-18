@@ -79,8 +79,11 @@ namespace rt::objects
         return;
       }
 
-      assert(target->parent == src);
-      Region::dec_prc(target);
+      if (src)
+      {
+        assert(target->parent == src);
+        Region::dec_prc(target);
+      }
       return;
     }
 
@@ -234,7 +237,7 @@ namespace rt::objects
       // TODO SCC algorithm
       visit(this, [](Edge e) {
         auto obj = e.target;
-        if (obj->is_immutable())
+        if (!obj || obj->is_immutable())
           return false;
 
         auto r = get_region(obj);
@@ -244,7 +247,8 @@ namespace rt::objects
         }
         obj->region.set_tag(ImmutableTag);
 
-        return !obj->is_cown();
+        auto cown = obj->is_cown();
+        return !cown;
       });
     }
 

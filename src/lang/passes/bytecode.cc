@@ -1,5 +1,7 @@
 #include "../lang.h"
 
+inline const trieste::TokenDef DestructiveRead{"destructive_read"};
+
 PassDef bytecode()
 {
   PassDef p{
@@ -77,6 +79,18 @@ PassDef bytecode()
       T(Compile) << (T(Taint)[Op] << T(Ident)[Ident]) >>
         [](auto& _) {
           return Seq << (Compile << _[Ident]) << create_from(Taint, _(Op));
+        },
+
+      T(Compile) << (T(DestructiveRead) << T(Ident)[Ident]) >>
+        [](auto& _) {
+          // Read the value from the frame and set the frame value to null
+          return Seq << (Compile << _(Ident)) << Null
+                     << create_from(StoreFrame, _(Ident));
+        },
+      T(Compile) << (T(Cown)[Op] << T(Ident)[Ident]) >>
+        [](auto& _) {
+          return Seq << (Compile << (DestructiveRead << _(Ident)))
+                     << (CreateObject << Cown);
         },
 
       T(Compile) << (T(Create)[Op] << T(Ident)[Ident]) >>

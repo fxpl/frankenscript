@@ -189,7 +189,7 @@ namespace rt::core
 
   public:
     CownObject(objects::DynObject* region)
-    : objects::DynObject(cownPrototypeObject()),
+    : objects::DynObject(cownPrototypeObject())
     {
       // FIXME: Add once regions are reified
       // assert(
@@ -218,7 +218,7 @@ namespace rt::core
 
     bool is_cown() override
     {
-      return false;
+      return true;
     }
   };
 

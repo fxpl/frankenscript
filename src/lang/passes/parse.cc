@@ -5,7 +5,7 @@ namespace verona::wf
   using namespace trieste::wf;
 
   inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze |
-    Drop | Taint | Null | String | Create | Parens;
+    Taint | Cown | Drop | Null | String | Create | Parens;
   inline const auto parse_groups =
     Group | Assign | If | Else | Block | For | Func | List | Return;
 
@@ -154,8 +154,9 @@ trieste::Parse parser()
       "drop" >> [](auto& m) { m.add(Drop); },
       "create" >> [](auto& m) { m.add(Create); },
       "freeze" >> [](auto& m) { m.add(Freeze); },
-      "region" >> [](auto& m) { m.add(Region); },
       "taint" >> [](auto& m) { m.add(Taint); },
+      "cown" >> [](auto& m) { m.add(Cown); },
+      "region" >> [](auto& m) { m.add(Region); },
       "None" >> [](auto& m) { m.add(Null); },
       "[0-9A-Za-z_]+" >> [](auto& m) { m.add(Ident); },
       "\\[" >> [](auto& m) { m.push(Lookup); },
