@@ -10,6 +10,15 @@
 namespace rt::ui
 {
 
+  struct MermaidDecoration
+  {
+    const char* start;
+    const char* end;
+    const char* out;
+  };
+  const inline auto NORMAL = MermaidDecoration{"[", "]", "-->"};
+  const inline auto COWN = MermaidDecoration{"[[", "]]", "-.->"};
+
   void replace(std::string& text, std::string from, std::string replace)
   {
     size_t pos = 0;
@@ -64,9 +73,13 @@ namespace rt::ui
       {
         return false;
       }
+      auto src_deco = ((src && src->is_cown()) ? &COWN : &NORMAL);
+      auto dst_deco = ((dst && dst->is_cown()) ? &COWN : &NORMAL);
+
       if (src != nullptr)
       {
-        out << "  id" << visited[src] << " -->|" << escape(key) << "| ";
+        out << "  id" << visited[src] << " " << src_deco->out << "|"
+            << escape(key) << "| ";
       }
       if (visited.find(dst) != visited.end())
       {
@@ -75,11 +88,12 @@ namespace rt::ui
       }
       auto curr_id = id++;
       visited[dst] = curr_id;
-      out << "id" << curr_id << "[ ";
+      out << "id" << curr_id << dst_deco->start << " ";
       out << escape(dst->get_name());
       out << "<br/>rc=" << dst->rc;
 
-      out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
+      out << " " << dst_deco->end << (unreachable ? ":::unreachable" : "")
+          << std::endl;
 
       auto region = objects::DynObject::get_region(dst);
       if (region != nullptr)
@@ -169,7 +183,7 @@ namespace rt::ui
         out << "class id" << visited[dst] << " tainted;" << std::endl;
         tainted.insert(dst);
 
-        return true;
+        return dst->is_opaque();
       };
 
       for (auto root : *taint)

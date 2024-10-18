@@ -198,12 +198,8 @@ namespace rt::core
       //
       // FIXME: Also check that the region has a LRC == 1, with 1
       // being the reference passed into this constructor
-      this->set("region", region);
-    }
-
-    bool is_aquired()
-    {
-      return aquired;
+      auto old = this->set("region", region);
+      assert(old == nullptr);
     }
 
     std::string get_name()
@@ -219,6 +215,11 @@ namespace rt::core
     bool is_cown() override
     {
       return true;
+    }
+
+    bool is_cown_aquired() override
+    {
+      return aquired;
     }
   };
 

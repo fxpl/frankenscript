@@ -261,6 +261,14 @@ namespace rt::objects
     {
       return false;
     }
+    virtual bool is_cown_aquired()
+    {
+      assert(false && "should only be called on cowns");
+    }
+    bool is_opaque()
+    {
+      return this->is_cown() && !this->is_cown_aquired();
+    }
 
     [[nodiscard]] DynObject* get(std::string name)
     {

@@ -56,14 +56,9 @@ namespace rt
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
   {
-    if (obj->get_prototype() == core::cownPrototypeObject())
+    if (obj->is_opaque())
     {
-      core::CownObject* cown = reinterpret_cast<core::CownObject*>(obj);
-      if (!cown->is_aquired())
-      {
-        ui::error(
-          "the cown needs to be aquired, before its data can be accessed");
-      }
+      ui::error("opaque objects can't be accessed");
     }
     return obj->get(key);
   }
@@ -88,15 +83,11 @@ namespace rt
   objects::DynObject*
   set(objects::DynObject* obj, std::string key, objects::DynObject* value)
   {
-    if (obj->get_prototype() == core::cownPrototypeObject())
+    if (obj->is_opaque())
     {
-      core::CownObject* cown = reinterpret_cast<core::CownObject*>(obj);
-      if (!cown->is_aquired())
-      {
-        // Overwriting data can change the RC and then call destructors of the
-        // type this action therefore requires the cown to be aquired
-        ui::error("the cown needs to be aquired, before its data can modified");
-      }
+      // Overwriting data can change the RC and then call destructors of the
+      // type this action therefore requires the cown to be aquired
+      ui::error("opaque objects can't be modified");
     }
 
     return obj->set(key, value);
