@@ -31,7 +31,10 @@ namespace rt::ui
     return text;
   }
 
-  void mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out)
+  void mermaid(
+    std::vector<objects::DynObject*>& roots,
+    std::ostream& out,
+    std::vector<objects::DynObject*>* taint)
   {
     // Give a nice id to each object.
     std::map<objects::DynObject*, std::size_t> visited;
@@ -149,7 +152,32 @@ namespace rt::ui
     // Output object count as very useful.
     out << "subgraph Count " << objects::DynObject::get_count() << std::endl;
     out << "end" << std::endl;
-    out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
+    out << "classDef unreachable stroke:red,stroke-width:2px;" << std::endl;
+
+    // Taint nodes on request
+    if (taint)
+    {
+      out << "classDef tainted fill:#43a;" << std::endl;
+      std::set<objects::DynObject*> tainted;
+
+      auto mark_tained = [&](objects::Edge e) {
+        objects::DynObject* dst = e.target;
+        if (tainted.contains(dst))
+        {
+          return false;
+        }
+        out << "class id" << visited[dst] << " tainted;" << std::endl;
+        tainted.insert(dst);
+
+        return true;
+      };
+
+      for (auto root : *taint)
+      {
+        objects::visit(root, mark_tained);
+      }
+    }
+
     // Footer (end of mermaid graph)
     out << "```" << std::endl;
   }

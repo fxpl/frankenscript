@@ -15,7 +15,7 @@ namespace rt::ui
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
   };
 
-  void mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out);
+  void mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out, std::vector<objects::DynObject*>* taint = nullptr);
 
   [[noreturn]] inline void error(const std::string& msg)
   {
