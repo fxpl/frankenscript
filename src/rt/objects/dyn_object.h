@@ -247,8 +247,7 @@ namespace rt::objects
         }
         obj->region.set_tag(ImmutableTag);
 
-        auto cown = obj->is_cown();
-        return !cown;
+        return !obj->is_cown();
       });
     }
 
@@ -261,13 +260,14 @@ namespace rt::objects
     {
       return false;
     }
-    virtual bool is_cown_aquired()
+    virtual bool is_cown_acquired()
     {
-      assert(false && "should only be called on cowns");
+      ui::error("is_cown_acquired() should only be called on cowns");
+      return false;
     }
     bool is_opaque()
     {
-      return this->is_cown() && !this->is_cown_aquired();
+      return this->is_cown() && !this->is_cown_acquired();
     }
 
     [[nodiscard]] DynObject* get(std::string name)

@@ -185,7 +185,7 @@ namespace rt::core
   {
     // For now always false, but might be needed later if we want to simulate
     // concurrency.
-    bool aquired = false;
+    bool acquired = false;
 
   public:
     CownObject(objects::DynObject* region)
@@ -217,9 +217,9 @@ namespace rt::core
       return true;
     }
 
-    bool is_cown_aquired() override
+    bool is_cown_acquired() override
     {
-      return aquired;
+      return acquired;
     }
   };
 

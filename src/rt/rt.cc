@@ -86,7 +86,7 @@ namespace rt
     if (obj->is_opaque())
     {
       // Overwriting data can change the RC and then call destructors of the
-      // type this action therefore requires the cown to be aquired
+      // type this action therefore requires the cown to be acquired
       ui::error("opaque objects can't be modified");
     }
 

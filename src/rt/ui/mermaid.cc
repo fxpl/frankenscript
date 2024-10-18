@@ -183,7 +183,7 @@ namespace rt::ui
         out << "class id" << visited[dst] << " tainted;" << std::endl;
         tainted.insert(dst);
 
-        return dst->is_opaque();
+        return !dst->is_opaque();
       };
 
       for (auto root : *taint)

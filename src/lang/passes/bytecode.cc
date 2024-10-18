@@ -78,7 +78,8 @@ PassDef bytecode()
 
       T(Compile) << (T(Taint)[Op] << T(Ident)[Ident]) >>
         [](auto& _) {
-          return Seq << (Compile << _[Ident]) << create_from(Taint, _(Op));
+          auto print_str = std::string(create_print(_(Op))->location().view());
+          return Seq << (Compile << _[Ident]) << (Taint ^ print_str);
         },
 
       T(Compile) << (T(DestructiveRead) << T(Ident)[Ident]) >>

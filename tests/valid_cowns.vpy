@@ -13,9 +13,5 @@ taint global
 # Freeze global with a cown
 freeze global
 
-# FIXME: traint with cowns is wrong
-# FIXME: Show local region address
-# FIXME: Cowns should have special rendering and out edges
-
 drop c01
 drop global
