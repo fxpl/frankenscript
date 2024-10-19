@@ -3,7 +3,9 @@
 #include "core.h"
 #include "objects/dyn_object.h"
 
+#include <algorithm>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -54,7 +56,7 @@ namespace rt
   {
     // TODO Add some checking.  This is need to lookup the correct function in
     // the prototype chain.
-    if (key->get_prototype() != &core::stringPrototypeObject)
+    if (key->get_prototype() != core::stringPrototypeObject())
     {
       ui::error("Key must be a string.");
     }
@@ -96,11 +98,11 @@ namespace rt
 
   objects::DynObject* get_true()
   {
-    return &core::TrueObject;
+    return core::trueObject();
   }
   objects::DynObject* get_false()
   {
-    return &core::FalseObject;
+    return core::falseObject();
   }
 
   void add_reference(objects::DynObject* src, objects::DynObject* target)
@@ -123,6 +125,9 @@ namespace rt
 
   size_t pre_run()
   {
+    std::cout << "Initilizing global objects" << std::endl;
+    core::globals();
+
     std::cout << "Running test..." << std::endl;
     return objects::DynObject::get_count();
   }
@@ -131,17 +136,27 @@ namespace rt
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
+    auto globals = core::globals();
     if (objects::DynObject::get_count() != initial_count)
     {
       std::cout << "Cycles detected in local region." << std::endl;
-      auto objs = objects::DynObject::get_local_region()->get_objects();
-      std::vector<objects::Edge> edges;
-      for (auto obj : objs)
-      {
-        edges.push_back({nullptr, "?", obj});
-      }
-      ui.output(edges, "Cycles detected in local region.");
+      auto roots = objects::DynObject::get_local_region()->get_objects();
+      roots.erase(
+        std::remove_if(
+          roots.begin(),
+          roots.end(),
+          [&globals](auto x) { return globals->contains(x); }),
+        roots.end());
+      ui.output(roots, "Cycles detected in local region.");
     }
+
+    // Freeze global objects, to low the termination of the local region
+    std::cout << "Freezing global objects" << std::endl;
+    for (auto obj : *globals)
+    {
+      obj->freeze();
+    }
+
     objects::DynObject::get_local_region()->terminate_region();
     if (objects::DynObject::get_count() != initial_count)
     {
@@ -150,12 +165,12 @@ namespace rt
       std::cout << "Final count: " << objects::DynObject::get_count()
                 << std::endl;
 
-      std::vector<objects::Edge> edges;
+      std::vector<objects::DynObject*> roots;
       for (auto obj : objects::DynObject::get_objects())
       {
-        edges.push_back({nullptr, "?", obj});
+        roots.push_back(obj);
       }
-      ui.output(edges, "Memory leak detected!");
+      ui.output(roots, "Memory leak detected!");
 
       std::exit(1);
     }
@@ -168,7 +183,7 @@ namespace rt
   objects::DynObject* iter_next(objects::DynObject* iter)
   {
     assert(!iter->is_immutable());
-    if (iter->get_prototype() != &core::keyIterPrototypeObject)
+    if (iter->get_prototype() != core::keyIterPrototypeObject())
     {
       ui::error("Object is not an iterator.");
     }
@@ -178,7 +193,7 @@ namespace rt
 
   verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func)
   {
-    if (func->get_prototype() == &core::bytecodeFuncPrototypeObject)
+    if (func->get_prototype() == core::bytecodeFuncPrototypeObject())
     {
       return reinterpret_cast<core::BytecodeFuncObject*>(func)->get_bytecode();
     }

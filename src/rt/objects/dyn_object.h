@@ -28,7 +28,7 @@ namespace rt::objects
     friend class Reference;
     friend objects::DynObject* rt::make_iter(objects::DynObject* obj);
     friend void
-    rt::ui::mermaid(std::vector<objects::Edge>& roots, std::ostream& out);
+    rt::ui::mermaid(std::vector<objects::DynObject*>& roots, std::ostream& out);
     friend void destruct(DynObject* obj);
     friend void dealloc(DynObject* obj);
     template<typename Pre, typename Post>
@@ -170,10 +170,10 @@ namespace rt::objects
 
   public:
     // prototype is borrowed, the caller does not need to provide an RC.
-    DynObject(DynObject* prototype_ = nullptr, bool global = false)
+    DynObject(DynObject* prototype_ = nullptr, bool first_frame = false)
     : prototype(prototype_)
     {
-      if (!global)
+      if (!first_frame)
       {
         count++;
         all_objects.insert(this);
@@ -181,9 +181,10 @@ namespace rt::objects
         region = local_region;
         local_region->objects.insert(this);
       }
+
       if (prototype != nullptr)
         prototype->change_rc(1);
-      std::cout << "Allocate: " << get_name() << std::endl;
+      std::cout << "Allocate: " << this << std::endl;
     }
 
     // TODO This should use prototype lookup for the destructor.
@@ -198,7 +199,10 @@ namespace rt::objects
       // RC is zero.
       if (change_rc(0) != 0 && matched != 0)
       {
-        ui::error("Object still has references");
+        std::stringstream stream;
+        stream << this;
+        stream << "  still has references";
+        ui::error(stream.str());
       }
 
       auto r = get_region(this);
