@@ -92,25 +92,25 @@ trieste::Parse parser()
       // Line comment
       "(?:#[^\\n\\r]*)" >> [](auto&) {},
 
-      "def" >> [](auto& m) { m.seq(Func); },
+      "def\\b" >> [](auto& m) { m.seq(Func); },
       "\\(" >> [](auto& m) { m.push(Parens); },
       "\\)" >>
         [](auto& m) {
           m.term({List, Parens});
           m.extend(Parens);
         },
-      "return" >> [](auto& m) { m.seq(Return); },
+      "return\\b" >> [](auto& m) { m.seq(Return); },
 
-      "for" >> [](auto& m) { m.seq(For); },
-      "in" >>
+      "for\\b" >> [](auto& m) { m.seq(For); },
+      "in\\b" >>
         [](auto& m) {
           // In should always be in a list from the identifiers.
           m.term({List});
         },
       "," >> [](auto& m) { m.seq(List); },
 
-      "if" >> [](auto& m) { m.seq(If); },
-      "else" >> [](auto& m) { m.seq(Else); },
+      "if\\b" >> [](auto& m) { m.seq(If); },
+      "else\\b" >> [](auto& m) { m.seq(Else); },
       ":" >>
         [indent](auto& m) {
           // Exit conditionals expressions.
@@ -151,11 +151,11 @@ trieste::Parse parser()
 
           m.push(Block);
         },
-      "drop" >> [](auto& m) { m.add(Drop); },
-      "create" >> [](auto& m) { m.add(Create); },
-      "freeze" >> [](auto& m) { m.add(Freeze); },
-      "region" >> [](auto& m) { m.add(Region); },
-      "None" >> [](auto& m) { m.add(Null); },
+      "drop\\b" >> [](auto& m) { m.add(Drop); },
+      "create\\b" >> [](auto& m) { m.add(Create); },
+      "freeze\\b" >> [](auto& m) { m.add(Freeze); },
+      "region\\b" >> [](auto& m) { m.add(Region); },
+      "None\\b" >> [](auto& m) { m.add(Null); },
       "[0-9A-Za-z_]+" >> [](auto& m) { m.add(Ident); },
       "\\[" >> [](auto& m) { m.push(Lookup); },
       "\\]" >> [](auto& m) { m.term({Lookup}); },
