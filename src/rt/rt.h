@@ -4,11 +4,18 @@
 #include "objects/visit.h"
 #include "ui.h"
 
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace rt
 {
+
+  using BuiltinFuncPtr = std::function<std::optional<objects::DynObject*>(
+    objects::DynObject*, std::vector<objects::DynObject*>*, size_t)>;
+  void add_builtin(std::string name, BuiltinFuncPtr func);
+  objects::DynObject* get_builtin(std::string name);
 
   objects::DynObject* make_func(verona::interpreter::Bytecode* body);
   objects::DynObject* make_iter(objects::DynObject* iter_src);
@@ -45,6 +52,8 @@ namespace rt
   void post_run(size_t count, rt::ui::UI& ui);
 
   objects::DynObject* iter_next(objects::DynObject* iter);
-  verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func);
+  std::optional<verona::interpreter::Bytecode*>
+  try_get_bytecode(objects::DynObject* func);
+  std::optional<BuiltinFuncPtr> try_get_builtin_func(objects::DynObject* func);
 
 } // namespace rt
