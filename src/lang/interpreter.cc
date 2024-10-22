@@ -519,39 +519,9 @@ namespace verona::interpreter
     }
   };
 
-  class UI : public rt::ui::UI
-  {
-    bool interactive;
-    std::string path;
-    std::ofstream out;
-
-  public:
-    UI(bool interactive_) : interactive(interactive_)
-    {
-      path = "mermaid.md";
-      out.open(path);
-    }
-
-    void
-    output(std::vector<rt::objects::DynObject*>& roots, std::string message)
-    {
-      out << "```" << std::endl;
-      out << message << std::endl;
-      out << "```" << std::endl;
-      rt::ui::mermaid(roots, out);
-      if (interactive)
-      {
-        out.close();
-        std::cout << "Press a key!" << std::endl;
-        getchar();
-        out.open(path);
-      }
-    }
-  };
-
   void start(trieste::Node main_body, bool interactive)
   {
-    UI ui(interactive);
+    rt::ui::MermaidUI ui(interactive);
 
     size_t initial = rt::pre_run(&ui);
 
