@@ -551,9 +551,10 @@ namespace verona::interpreter
 
   void start(trieste::Node main_body, bool interactive)
   {
-    size_t initial = rt::pre_run();
-
     UI ui(interactive);
+
+    size_t initial = rt::pre_run(&ui);
+
     Interpreter inter(&ui);
     inter.run(main_body);
 

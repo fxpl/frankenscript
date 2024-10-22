@@ -222,4 +222,10 @@ namespace rt::core
       };
     return global_names;
   }
+
+  /// @brief Initilizes builtin functions and adds them to the global namespace.
+  ///
+  /// @param ui The UI to allow builtin functions to create output, when they're
+  /// called.
+  void init_builtins(ui::UI* ui);
 } // namespace rt::core

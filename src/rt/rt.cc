@@ -144,19 +144,11 @@ namespace rt
     objects::DynObject::move_reference(src, dst, target);
   }
 
-  size_t pre_run()
+  size_t pre_run(ui::UI* ui)
   {
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
-    add_builtin("dummy", [](auto frame, auto stack, auto args) {
-      assert(args == 1);
-      std::cout << "===============================" << std::endl;
-      std::cout << "Dummy was called with " << stack->back() << std::endl;
-      std::cout << "===============================" << std::endl;
-      remove_reference(frame, stack->back());
-      stack->pop_back();
-      return std::nullopt;
-    });
+    core::init_builtins(ui);
 
     std::cout << "Running test..." << std::endl;
     return objects::DynObject::get_count();
