@@ -37,7 +37,6 @@ region list
 value = "x"
 
 # Dyrona doesn't freeze shared objects automatically (yet)
-# There is currently a bug, where the LRC gets incorrect, if "[String]" isn't frozen
 proto = value["__proto__"]
 freeze proto
 drop proto

@@ -183,7 +183,10 @@ namespace rt::objects
       }
 
       if (prototype != nullptr)
-        prototype->change_rc(1);
+      {
+        // prototype->change_rc(1);
+        add_reference(this, prototype);
+      }
       std::cout << "Allocate: " << this << std::endl;
     }
 
