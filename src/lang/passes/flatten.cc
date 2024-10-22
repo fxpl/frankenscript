@@ -52,7 +52,7 @@ PassDef flatten()
       In(Body) * (T(Block) << Any++[Block]) >>
         [](auto& _) { return Seq << _[Block]; },
       T(If)[If]
-          << (T(Eq)[Op] * (T(Block) << Any++[Lhs]) *
+          << (COND[Op] * (T(Block) << Any++[Lhs]) *
               (T(Block) << Any++[Rhs])) >>
         [](auto& _) {
           auto else_label = new_jump_label();

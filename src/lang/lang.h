@@ -36,6 +36,7 @@ namespace verona::wf
   inline const auto cmp_values = Ident | Lookup | Null;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
+  inline const auto Cond = Eq | Neq;
 
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
@@ -44,19 +45,21 @@ namespace verona::wf
       Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Create <<= Ident) | (If <<= Eq * Block * Block) |
+    (Freeze <<= Ident) | (Create <<= Ident) |
+    (If <<= (Op >>= Cond) * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
+    (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Func <<= Ident * Params * Body) | (Call <<= Ident * List) |
     (Method <<= Lookup * List) | (ReturnValue <<= rv) | (List <<= rv++) |
     (Params <<= Ident++);
 
   inline const trieste::wf::Wellformed bytecode = (Top <<= Body) |
     (Body <<=
-     (LoadFrame | StoreFrame | LoadField | StoreField | Drop | Null |
-      CreateObject | CreateRegion | FreezeObject | IterNext | Print | Eq | Neq |
-      Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
-      Dup)++) |
+     (LoadFrame | LoadGlobal | StoreFrame | LoadField | StoreField | Drop |
+      Null | CreateObject | CreateRegion | FreezeObject | IterNext | Print |
+      Eq | Neq | Jump | JumpFalse | Label | Call | Return | ReturnValue |
+      ClearStack | Dup)++) |
     (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
@@ -67,6 +70,7 @@ inline const auto RV =
 inline const auto CMP_V = T(Ident, Lookup, Null);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);
+inline const auto COND = T(Eq, Neq);
 
 // Parsing && AST construction
 Parse parser();

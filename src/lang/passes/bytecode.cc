@@ -36,7 +36,7 @@ PassDef bytecode()
         ClearStack)[Op] >>
         [](auto& _) -> Node { return _(Op); },
 
-      T(Compile) << (T(Eq, Neq)[Op] << (Any[Lhs] * Any[Rhs])) >>
+      T(Compile) << (COND[Op] << (Any[Lhs] * Any[Rhs])) >>
         [](auto& _) {
           return Seq << (Compile << _(Lhs)) << (Compile << _(Rhs))
                      << _(Op)->type();
@@ -104,10 +104,12 @@ PassDef bytecode()
             << (Call ^ std::to_string(arg_ctn + 1));
         },
       T(Compile)
-          << (T(Call)[Call] << (KEY[Op] * (T(List) << Any++[List]) * End)) >>
+          << (T(Call)[Call]
+              << (T(Ident)[Ident] * (T(List) << Any++[List]) * End)) >>
         [](auto& _) {
           // The print is done by the called function
-          return Seq << (Compile << _[List]) << (Compile << _(Op))
+          return Seq << (Compile << _[List])
+                     << create_from(LoadGlobal, _(Ident))
                      << (Call ^ std::to_string(_[List].size()));
         },
 

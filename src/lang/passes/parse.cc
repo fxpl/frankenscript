@@ -10,12 +10,13 @@ namespace verona::wf
     Group | Assign | If | Else | Block | For | Func | List | Return;
 
   inline const auto parser = (Top <<= File) | (File <<= parse_groups++) |
-    (Assign <<= Group++) | (If <<= Group * Eq * Group) |
+    (Assign <<= Group++) | (If <<= Group * (Op >>= Cond) * Group) |
     (Else <<= Group * Group) | (Group <<= (parse_tokens | Block | List)++) |
     (Block <<= (parse_tokens | parse_groups)++) | (Eq <<= Group * Group) |
-    (Lookup <<= Group) | (For <<= Group * List * Group * Group) |
-    (List <<= Group++) | (Parens <<= (Group | List)++) |
-    (Func <<= Group * Group * Group) | (Return <<= Group++);
+    (Neq <<= Group * Group) | (Lookup <<= Group) |
+    (For <<= Group * List * Group * Group) | (List <<= Group++) |
+    (Parens <<= (Group | List)++) | (Func <<= Group * Group * Group) |
+    (Return <<= Group++);
 }
 
 struct Indent
@@ -109,12 +110,16 @@ trieste::Parse parser()
         },
       "," >> [](auto& m) { m.seq(List); },
 
-      "if\\b" >> [](auto& m) { m.seq(If); },
+      "if\\b" >>
+        [](auto& m) {
+          m.term();
+          m.seq(If);
+        },
       "else\\b" >> [](auto& m) { m.seq(Else); },
       ":" >>
         [indent](auto& m) {
           // Exit conditionals expressions.
-          m.term({Eq});
+          m.term({Eq, Neq});
 
           Token toc = Empty;
           if (m.in(If))
@@ -167,6 +172,7 @@ trieste::Parse parser()
         },
       "\"([^\\n\"]+)\"" >> [](auto& m) { m.add(String, 1); },
       "==" >> [](auto& m) { m.seq(Eq); },
+      "!=" >> [](auto& m) { m.seq(Neq); },
       "=" >> [](auto& m) { m.seq(Assign); },
       "{}" >> [](auto& m) { m.add(Empty); },
     });

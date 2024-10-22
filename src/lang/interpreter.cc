@@ -104,6 +104,10 @@ namespace verona::interpreter
     {
       return frame_stack.back()->frame;
     }
+    rt::objects::DynObject* global_frame()
+    {
+      return frame_stack.front()->frame;
+    }
 
     rt::objects::DynObject* pop(char const* data_info)
     {
@@ -196,6 +200,26 @@ namespace verona::interpreter
         std::string field{node->location().view()};
         auto v = rt::get(frame(), field);
         rt::add_reference(frame(), v);
+        stack().push_back(v);
+        std::cout << "push " << v << std::endl;
+        return ExecNext{};
+      }
+
+      if (node == LoadGlobal)
+      {
+        std::string field{node->location().view()};
+
+        auto v = rt::get(frame(), field);
+        if (v)
+        {
+          rt::add_reference(frame(), v);
+        }
+        else
+        {
+          v = rt::get(global_frame(), field);
+          rt::add_reference(global_frame(), v);
+        }
+
         stack().push_back(v);
         std::cout << "push " << v << std::endl;
         return ExecNext{};
