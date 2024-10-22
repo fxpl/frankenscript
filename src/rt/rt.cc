@@ -85,9 +85,13 @@ namespace rt
   objects::DynObject*
   set_prototype(objects::DynObject* obj, objects::DynObject* proto)
   {
-    if (proto->is_primitive() != nullptr)
+    if (proto && proto->is_primitive() != nullptr)
     {
       ui::error("Cannot set a primitive as a prototype.");
+    }
+    if (obj == nullptr)
+    {
+      ui::error("Cannot set a prototype on null.");
     }
     if (obj->is_primitive() != nullptr)
     {
@@ -183,7 +187,7 @@ namespace rt
   objects::DynObject* iter_next(objects::DynObject* iter)
   {
     assert(!iter->is_immutable());
-    if (iter->get_prototype() != core::keyIterPrototypeObject())
+    if (iter && iter->get_prototype() != core::keyIterPrototypeObject())
     {
       ui::error("Object is not an iterator.");
     }
@@ -193,7 +197,7 @@ namespace rt
 
   verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func)
   {
-    if (func->get_prototype() == core::bytecodeFuncPrototypeObject())
+    if (func && func->get_prototype() == core::bytecodeFuncPrototypeObject())
     {
       return reinterpret_cast<core::BytecodeFuncObject*>(func)->get_bytecode();
     }
