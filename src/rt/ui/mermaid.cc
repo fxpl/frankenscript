@@ -78,7 +78,9 @@ namespace rt::ui
         objects::DynObject* dst = e.target;
         std::string key = e.key;
         objects::DynObject* src = e.src;
-        if (unreachable && core::globals()->contains(dst))
+        if (
+          info->always_hide.contains(dst) ||
+          unreachable && info->unreachable_hide.contains(dst))
         {
           return false;
         }

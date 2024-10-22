@@ -1,3 +1,8 @@
 arg = "10"
 
-dummy(arg)
+# Currently a bug...
+mermaid_hide(arg["__proto__"])
+
+mermaid_hide(arg)
+mermaid_show(arg)
+mermaid_show_all()

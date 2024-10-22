@@ -150,6 +150,15 @@ namespace rt
     core::globals();
     core::init_builtins(ui);
 
+    if (ui->is_mermaid())
+    {
+      auto mermaid = reinterpret_cast<ui::MermaidUI*>(ui);
+      for (auto global : *core::globals())
+      {
+        mermaid->add_unreachable_hide(global);
+      }
+    }
+
     std::cout << "Running test..." << std::endl;
     return objects::DynObject::get_count();
   }
