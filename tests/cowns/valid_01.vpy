@@ -3,7 +3,7 @@ global = {}
 # A simple cown
 a = {}
 a.b = {}
-region a
+region(a)
 
 
 c01 = cown(take a)
@@ -12,7 +12,6 @@ c01 = cown(take a)
 global.cown = take c01
 
 # Freeze global with a cown
-freeze global
+freeze(global)
 
-drop c01
 drop global

@@ -32,13 +32,13 @@ def new_list():
 list = new_list()
 
 # Required to not leak memory
-region list
+region(list)
 
 value = "x"
 
 # Dyrona doesn't freeze shared objects automatically (yet)
 proto = value["__proto__"]
-freeze proto
+freeze(proto)
 drop proto
 
 insert(list.head, {})

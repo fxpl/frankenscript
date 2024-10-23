@@ -3,6 +3,15 @@
 
 namespace rt::core
 {
+  rt::objects::DynObject*
+  pop(std::vector<rt::objects::DynObject*>* stack, char const* data_info)
+  {
+    auto v = stack->back();
+    stack->pop_back();
+    std::cout << "pop " << v << " (" << data_info << ")" << std::endl;
+    return v;
+  }
+
   void mermaid_builtins(ui::UI* ui)
   {
     if (!ui->is_mermaid())
@@ -55,12 +64,44 @@ namespace rt::core
     add_builtin("cown", [](auto frame, auto stack, auto args) {
       assert(args == 1);
 
-      auto region = stack->back();
+      auto region = pop(stack, "region for cown creation");
       auto cown = make_cown(region);
       move_reference(frame, cown, region);
-      stack->pop_back();
 
       return cown;
+    });
+
+    add_builtin("create", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto obj = make_object();
+      // RC transferred
+      rt::set_prototype(obj, pop(stack, "prototype source"));
+
+      return obj;
+    });
+  }
+
+  void action_builtins()
+  {
+    add_builtin("freeze", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto value = pop(stack, "object to freeze");
+      freeze(value);
+      remove_reference(frame, value);
+
+      return std::nullopt;
+    });
+
+    add_builtin("region", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto value = pop(stack, "region source");
+      create_region(value);
+      remove_reference(frame, value);
+
+      return std::nullopt;
     });
   }
 
@@ -68,5 +109,6 @@ namespace rt::core
   {
     mermaid_builtins(ui);
     ctor_builtins();
+    action_builtins();
   }
 }

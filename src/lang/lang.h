@@ -9,7 +9,6 @@ using namespace trieste;
 
 inline const TokenDef Ident{"ident", trieste::flag::print};
 inline const TokenDef Assign{"assign"};
-inline const TokenDef Create{"create"};
 inline const TokenDef For{"for"};
 inline const TokenDef If{"if"};
 inline const TokenDef Else{"else"};
@@ -17,8 +16,6 @@ inline const TokenDef Block{"block"};
 inline const TokenDef Empty{"empty"};
 inline const TokenDef Drop{"drop"};
 inline const TokenDef Take{"take"};
-inline const TokenDef Freeze{"freeze"};
-inline const TokenDef Region{"region"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
 inline const TokenDef Method{"method"};
@@ -33,8 +30,7 @@ inline const TokenDef Compile{"compile"};
 namespace verona::wf
 {
   inline const auto lv = Ident | Lookup;
-  inline const auto rv =
-    lv | Empty | Null | String | Create | Call | Method | Take;
+  inline const auto rv = lv | Empty | Null | String | Call | Method | Take;
   inline const auto cmp_values = Ident | Lookup | Null;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
@@ -43,11 +39,9 @@ namespace verona::wf
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
     (Block <<=
-     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
-      Method)++) |
+     (Assign | If | For | Func | Return | ReturnValue | Call | Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Take <<= (Lhs >>= lv)) |
-    (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
-    (Freeze <<= Ident) | (Create <<= Ident) |
+    (Lookup <<= (Op >>= operand) * (Rhs >>= key)) |
     (If <<= (Op >>= Cond) * Block * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
@@ -59,16 +53,16 @@ namespace verona::wf
   inline const trieste::wf::Wellformed bytecode = (Top <<= Body) |
     (Body <<=
      (LoadFrame | LoadGlobal | StoreFrame | SwapFrame | LoadField | StoreField |
-      SwapField | Drop | Null | CreateObject | CreateRegion | FreezeObject |
-      IterNext | Print | Eq | Neq | Jump | JumpFalse | Label | Call | Return |
-      ReturnValue | ClearStack | Dup)++) |
-    (CreateObject <<= (Dictionary | String | KeyIter | Proto | Func)) |
+      SwapField | Drop | Null | CreateObject | IterNext | Print | Eq | Neq |
+      Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
+      Dup)++) |
+    (CreateObject <<= (Dictionary | String | KeyIter | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
 
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
-  T(Empty, Ident, Lookup, Null, String, Create, Call, Method, Take);
+  T(Empty, Ident, Lookup, Null, String, Call, Method, Take);
 inline const auto CMP_V = T(Ident, Lookup, Null);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);

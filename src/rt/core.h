@@ -218,9 +218,10 @@ namespace rt::core
       // FIXME: Also check that the region has a LRC == 1, with 1
       // being the reference passed into this constructor
 
-      assert(
-        region->change_rc(0) == 1 &&
-        "regions used for cown creation need to have an rc of 1");
+      if (region->change_rc(0) != 1)
+      {
+        ui::error("regions used for cown creation need to have an rc of 1");
+      }
 
       // this->set would fail, since this is a cown
       this->fields["region"] = region;

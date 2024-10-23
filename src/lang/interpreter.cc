@@ -165,12 +165,6 @@ namespace verona::interpreter
           obj = rt::make_iter(v);
           rt::remove_reference(frame(), v);
         }
-        else if (payload == Proto)
-        {
-          obj = rt::make_object();
-          // RC transferred
-          rt::set_prototype(obj, pop("prototype source"));
-        }
         else if (payload == Func)
         {
           assert(
@@ -314,22 +308,6 @@ namespace verona::interpreter
         rt::remove_reference(frame(), obj);
         rt::remove_reference(frame(), key);
 
-        return ExecNext{};
-      }
-
-      if (node == CreateRegion)
-      {
-        auto v = pop("region source");
-        rt::create_region(v);
-        rt::remove_reference(frame(), v);
-        return ExecNext{};
-      }
-
-      if (node == FreezeObject)
-      {
-        auto v = pop("object to freeze");
-        rt::freeze(v);
-        rt::remove_reference(frame(), v);
         return ExecNext{};
       }
 

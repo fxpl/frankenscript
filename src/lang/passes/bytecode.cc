@@ -77,23 +77,6 @@ PassDef bytecode()
                      << create_print(_(Assign));
         },
 
-      T(Compile) << (T(Freeze)[Op] << T(Ident)[Ident]) >>
-        [](auto& _) {
-          return Seq << (Compile << _[Ident]) << FreezeObject
-                     << create_print(_(Op));
-        },
-
-      T(Compile) << (T(Create)[Op] << T(Ident)[Ident]) >>
-        [](auto& _) {
-          return Seq << (Compile << _[Ident]) << (CreateObject << Proto);
-        },
-
-      T(Compile) << (T(Region)[Op] << T(Ident)[Ident]) >>
-        [](auto& _) {
-          return Seq << (Compile << _[Ident]) << CreateRegion
-                     << create_print(_(Op));
-        },
-
       T(Compile)
           << (T(Method)[Method]
               << ((T(Lookup)[Lookup] << (OPERAND[Op] * T(String)[Key])) *

@@ -3,19 +3,19 @@ a = {}
 a["self"] = a
 b = {}
 a["b"] = b
-region a 
+region(a)
 
 
 c = {}
 c["self"] = c
 c["d"] = {}
-region c
+region(c)
 
 
 e = {}
 e["self"] = e
 e["f"] = {}
-region e
+region(e)
 
 
 # connect first region to second in two ways
@@ -26,7 +26,7 @@ a.b.e = e.f
 
 # Now freeze part of the first region, and the reachable parts of the 
 # second and third regions
-freeze b
+freeze(b)
 
 
 # Drop all the references
