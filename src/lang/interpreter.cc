@@ -104,6 +104,10 @@ namespace verona::interpreter
     {
       return frame_stack.back()->frame;
     }
+    rt::objects::DynObject* global_frame()
+    {
+      return frame_stack.front()->frame;
+    }
 
     rt::objects::DynObject* pop(char const* data_info)
     {
@@ -195,7 +199,39 @@ namespace verona::interpreter
       {
         std::string field{node->location().view()};
         auto v = rt::get(frame(), field);
+        if (!v)
+        {
+          if (field == "True")
+          {
+            v = rt::get_true();
+          }
+          else if (field == "False")
+          {
+            rt::get_false();
+          }
+        }
+
         rt::add_reference(frame(), v);
+        stack().push_back(v);
+        std::cout << "push " << v << std::endl;
+        return ExecNext{};
+      }
+
+      if (node == LoadGlobal)
+      {
+        std::string field{node->location().view()};
+
+        auto v = rt::get(frame(), field);
+        if (v)
+        {
+          rt::add_reference(frame(), v);
+        }
+        else
+        {
+          v = rt::get(global_frame(), field);
+          rt::add_reference(global_frame(), v);
+        }
+
         stack().push_back(v);
         std::cout << "push " << v << std::endl;
         return ExecNext{};
@@ -284,6 +320,7 @@ namespace verona::interpreter
           result = rt::get_false();
           result_str = "false";
         }
+        rt::add_reference(frame(), result);
         stack().push_back(result);
         std::cout << "push " << result << " (" << result_str << ")"
                   << std::endl;
@@ -302,6 +339,7 @@ namespace verona::interpreter
       {
         auto v = pop("jump condition");
         auto jump = (v == rt::get_false());
+        rt::remove_reference(frame(), v);
         if (jump)
         {
           return ExecJump{node->location()};
@@ -418,7 +456,9 @@ namespace verona::interpreter
           // Setup the new frame
           for (size_t i = 0; i < func.arg_ctn; i++)
           {
-            frame->stack.push_back(parent_frame->stack.back());
+            auto value = parent_frame->stack.back();
+            frame->stack.push_back(value);
+            rt::move_reference(parent_frame->frame, frame->frame, value);
             parent_frame->stack.pop_back();
           }
         }

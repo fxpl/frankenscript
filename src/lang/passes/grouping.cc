@@ -76,18 +76,20 @@ PassDef grouping()
           << ((T(Group) << LV[Lhs] * End) *
               ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) * End) >>
         [](auto& _) { return Assign << _[Lhs] << _[Rhs]; },
-      T(Eq)
+      COND[Op]
           << ((T(Group) << CMP_V[Lhs] * End) * (T(Group) << CMP_V[Rhs] * End) *
               End) >>
-        [](auto& _) { return Eq << _[Lhs] << _[Rhs]; },
+        [](auto& _) {
+          return create_from(_(Op)->type(), _(Op)) << _[Lhs] << _[Rhs];
+        },
 
-      (T(If) << (T(Group) * T(Eq)[Eq] * (T(Group) << T(Block)[Block]))) >>
-        [](auto& _) { return If << _(Eq) << _(Block); },
+      (T(If) << (T(Group) * COND[Op] * (T(Group) << T(Block)[Block]))) >>
+        [](auto& _) { return If << _(Op) << _(Block); },
       (T(Else) << (T(Group) * (T(Group) << T(Block)[Block]))) >>
         [](auto& _) { return Else << _(Block); },
-      (T(If)[If] << (T(Eq) * T(Block) * End)) * (T(Else) << T(Block)[Block]) >>
+      (T(If)[If] << (COND * T(Block) * End)) * (T(Else) << T(Block)[Block]) >>
         [](auto& _) { return _(If) << _(Block); },
-      (T(If)[If] << (T(Eq) * T(Block) * End)) * (--T(Else)) >>
+      (T(If)[If] << (COND * T(Block) * End)) * (--T(Else)) >>
         [](auto& _) {
           // This adds an empty else block, if no else was written
           return _(If) << Block;
@@ -131,6 +133,8 @@ PassDef grouping()
         [](auto& _) { return create_from(Return, _(Return)); },
       T(Return)[Return]
           << ((T(Group) << End) * (T(Group) << (RV[Rhs] * End)) * End) >>
+        [](auto& _) { return create_from(ReturnValue, _(Return)) << _(Rhs); },
+      T(Return)[Return] << ((T(Group) << End) * (RV[Rhs] * End)) >>
         [](auto& _) { return create_from(ReturnValue, _(Return)) << _(Rhs); },
 
     }};
