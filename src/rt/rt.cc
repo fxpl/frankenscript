@@ -71,6 +71,17 @@ namespace rt
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
   {
+    if (obj->is_opaque())
+    {
+      if (obj->is_cown())
+      {
+        ui::error("Cannot access data on a cown that is not aquired");
+      }
+      else
+      {
+        ui::error("Cannot access data on an opaque type");
+      }
+    }
     return obj->get(key);
   }
 

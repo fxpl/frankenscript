@@ -6,13 +6,13 @@ namespace verona::wf
   inline const trieste::wf::Wellformed flatten = (Top <<= File) |
     (File <<= Body) |
     (Body <<=
-     (Freeze | Region | Assign | Eq | Neq | Label | Jump | JumpFalse | Print |
-      StoreFrame | LoadFrame | CreateObject | Ident | IterNext | Create |
-      StoreField | Lookup | String | Call | Method | Return | ReturnValue |
-      ClearStack)++) |
+     (Freeze | Region | Assign | Take | Eq | Neq | Label | Jump | JumpFalse |
+      Print | StoreFrame | LoadFrame | CreateObject | Ident | IterNext |
+      Create | StoreField | Lookup | String | Call | Method | Return |
+      ReturnValue | ClearStack)++) |
     (CreateObject <<= (KeyIter | String | Dictionary | Func)) |
     (Func <<= Compile) | (Compile <<= Body) | (Create <<= Ident) |
-    (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) |
+    (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Take <<= lv) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Region <<= Ident) |
     (Freeze <<= Ident) | (Call <<= Ident * List) | (Method <<= Lookup * List) |
     (List <<= rv++) | (Params <<= Ident++) |

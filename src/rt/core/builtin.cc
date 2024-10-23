@@ -60,7 +60,7 @@ namespace rt::core
       move_reference(frame, cown, region);
       stack->pop_back();
 
-      return std::nullopt;
+      return cown;
     });
   }
 

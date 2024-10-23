@@ -275,18 +275,6 @@ namespace rt::objects
 
     [[nodiscard]] DynObject* get(std::string name)
     {
-      if (is_opaque())
-      {
-        if (is_cown())
-        {
-          ui::error("Cannot access data on a cown that is not aquired");
-        }
-        else
-        {
-          ui::error("Cannot access data on an opaque type");
-        }
-      }
-
       auto result = fields.find(name);
       if (result != fields.end())
         return result->second;

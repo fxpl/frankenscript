@@ -7,6 +7,7 @@
 /// The value name is stored in the location of the node
 inline const trieste::TokenDef LoadFrame{"load_frame", trieste::flag::print};
 inline const trieste::TokenDef StoreFrame{"store_frame", trieste::flag::print};
+inline const trieste::TokenDef SwapFrame{"swap_frame", trieste::flag::print};
 /// Loads a value with a given name from the current scope or the global
 /// namespace. This should be used for function resolution.
 ///
@@ -14,6 +15,8 @@ inline const trieste::TokenDef StoreFrame{"store_frame", trieste::flag::print};
 inline const trieste::TokenDef LoadGlobal{"load_global", trieste::flag::print};
 inline const trieste::TokenDef LoadField{"load_field"};
 inline const trieste::TokenDef StoreField{"store_field"};
+/// Stack: `[]::<new>::<obj>::<key>` -> `[]::<old>`
+inline const trieste::TokenDef SwapField{"swap_field"};
 inline const trieste::TokenDef CreateObject{"create_object"};
 inline const trieste::TokenDef Proto{"prototype"};
 inline const trieste::TokenDef Dictionary{"dictionary"};

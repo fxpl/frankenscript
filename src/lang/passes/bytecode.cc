@@ -51,6 +51,15 @@ PassDef bytecode()
                      << create_from(LoadField, _(Lookup));
         },
 
+      T(Compile) << (T(Take) << T(Ident)[Ident]) >>
+        [](auto& _) { return Seq << Null << create_from(SwapFrame, _(Ident)); },
+      T(Compile)
+          << (T(Take) << (T(Lookup)[Lookup] << (Any[Op] * Any[Key] * End))) >>
+        [](auto& _) {
+          return Seq << (Compile << _[Op]) << (Compile << _[Key]) << Null
+                     << SwapField;
+        },
+
       T(Compile) << (T(Assign)[Op] << (T(Ident)[Ident] * Any[Rhs])) >>
         [](auto& _) {
           return Seq << (Compile << _[Rhs]) << create_from(StoreFrame, _(Ident))
