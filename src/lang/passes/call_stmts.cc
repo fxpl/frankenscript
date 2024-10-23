@@ -6,7 +6,7 @@ namespace verona::wf
 
   inline const auto call_stmts = grouping |
     (Block <<=
-     (Assign | If | For | Func | Return | ReturnValue | Call | Method |
+     (Assign | If | For | While | Func | Return | ReturnValue | Call | Method |
       ClearStack | Print)++);
 }
 

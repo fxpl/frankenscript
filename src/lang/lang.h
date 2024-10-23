@@ -10,6 +10,7 @@ using namespace trieste;
 inline const TokenDef Ident{"ident", trieste::flag::print};
 inline const TokenDef Assign{"assign"};
 inline const TokenDef For{"for"};
+inline const TokenDef While{"while"};
 inline const TokenDef If{"if"};
 inline const TokenDef Else{"else"};
 inline const TokenDef Block{"block"};
@@ -34,15 +35,16 @@ namespace verona::wf
   inline const auto cmp_values = Ident | Lookup | Null;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
-  inline const auto Cond = Eq | Neq;
+  inline const auto Cond = Eq | Neq | Call | Method;
 
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
     (Block <<=
-     (Assign | If | For | Func | Return | ReturnValue | Call | Method)++) |
+     (Assign | If | For | While | Func | Return | ReturnValue | Call |
+      Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Take <<= (Lhs >>= lv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) |
-    (If <<= (Op >>= Cond) * Block * Block) |
+    (If <<= (Op >>= Cond) * Block * Block) | (While <<= (Op >>= Cond) * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
@@ -66,7 +68,7 @@ inline const auto RV =
 inline const auto CMP_V = T(Ident, Lookup, Null);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);
-inline const auto COND = T(Eq, Neq);
+inline const auto COND = T(Eq, Neq, Call, Method);
 
 // Parsing && AST construction
 Parse parser();
