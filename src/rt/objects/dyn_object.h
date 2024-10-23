@@ -16,6 +16,11 @@
 #include <utility>
 #include <vector>
 
+namespace rt::core
+{
+  class CownObject;
+}
+
 namespace rt::objects
 {
   constexpr uintptr_t ImmutableTag{1};
@@ -29,6 +34,7 @@ namespace rt::objects
     friend objects::DynObject* rt::make_iter(objects::DynObject* obj);
     friend class ui::MermaidUI;
     friend class ui::MermaidDiagram;
+    friend class core::CownObject;
     friend void destruct(DynObject* obj);
     friend void dealloc(DynObject* obj);
     template<typename Pre, typename Post>
@@ -77,8 +83,11 @@ namespace rt::objects
         return;
       }
 
-      assert(target->parent == src);
-      Region::dec_prc(target);
+      if (src)
+      {
+        assert(target->parent == src);
+        Region::dec_prc(target);
+      }
       return;
     }
 
@@ -110,7 +119,7 @@ namespace rt::objects
     {
       std::cout << "Change RC: " << get_name() << " " << rc << " + " << delta
                 << std::endl;
-      if (!is_immutable())
+      if (!(is_immutable() || is_cown()))
       {
         assert(delta == 0 || rc != 0);
         rc += delta;
@@ -230,12 +239,22 @@ namespace rt::objects
       return nullptr;
     }
 
+    virtual bool is_opaque()
+    {
+      return false;
+    }
+
+    virtual bool is_cown()
+    {
+      return false;
+    }
+
     void freeze()
     {
       // TODO SCC algorithm
       visit(this, [](Edge e) {
         auto obj = e.target;
-        if (obj->is_immutable())
+        if (!obj || obj->is_immutable())
           return false;
 
         auto r = get_region(obj);
@@ -244,7 +263,8 @@ namespace rt::objects
           get_region(obj)->objects.erase(obj);
         }
         obj->region.set_tag(ImmutableTag);
-        return true;
+
+        return !obj->is_cown();
       });
     }
 
@@ -255,6 +275,18 @@ namespace rt::objects
 
     [[nodiscard]] DynObject* get(std::string name)
     {
+      if (is_opaque())
+      {
+        if (is_cown())
+        {
+          ui::error("Cannot access data on a cown that is not aquired");
+        }
+        else
+        {
+          ui::error("Cannot access data on an opaque type");
+        }
+      }
+
       auto result = fields.find(name);
       if (result != fields.end())
         return result->second;
@@ -271,12 +303,29 @@ namespace rt::objects
       return nullptr;
     }
 
-    [[nodiscard]] DynObject* set(std::string name, DynObject* value)
+    void assert_modifiable()
     {
       if (is_immutable())
       {
         ui::error("Cannot mutate immutable object");
       }
+
+      if (is_opaque())
+      {
+        if (is_cown())
+        {
+          ui::error("Cannot mutate a cown that is not aquired");
+        }
+        else
+        {
+          ui::error("Cannot mutate opaque object");
+        }
+      }
+    }
+
+    [[nodiscard]] DynObject* set(std::string name, DynObject* value)
+    {
+      assert_modifiable();
       DynObject* old = fields[name];
       fields[name] = value;
       return old;
@@ -285,10 +334,7 @@ namespace rt::objects
     // The caller must provide an rc for value.
     [[nodiscard]] DynObject* set_prototype(DynObject* value)
     {
-      if (is_immutable())
-      {
-        ui::error("Cannot mutate immutable object");
-      }
+      assert_modifiable();
       DynObject* old = prototype;
       prototype = value;
       return old;

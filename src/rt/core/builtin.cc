@@ -50,8 +50,23 @@ namespace rt::core
     });
   }
 
+  void ctor_builtins()
+  {
+    add_builtin("cown", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto region = stack->back();
+      auto cown = make_cown(region);
+      move_reference(frame, cown, region);
+      stack->pop_back();
+
+      return std::nullopt;
+    });
+  }
+
   void init_builtins(ui::UI* ui)
   {
     mermaid_builtins(ui);
+    ctor_builtins();
   }
 }
