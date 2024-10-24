@@ -37,7 +37,8 @@ namespace rt::ui
     MermaidUI* info;
     std::ofstream& out;
 
-    // Shared state across draws
+    // Give a nice id to each object.
+    std::map<objects::DynObject*, std::size_t> visited;
     std::map<objects::Region*, std::vector<std::size_t>> region_strings;
     std::vector<std::size_t> immutable_objects;
 
@@ -57,10 +58,12 @@ namespace rt::ui
       draw_nodes(roots);
       draw_regions();
       draw_immutable_region();
+      draw_taint();
 
       out << "subgraph Count " << objects::DynObject::get_count() << std::endl;
       out << "end" << std::endl;
       out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
+      out << "classDef tainted fill:#43a;" << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
     }
@@ -68,8 +71,6 @@ namespace rt::ui
   private:
     void draw_nodes(std::vector<objects::DynObject*>& roots)
     {
-      // Give a nice id to each object.
-      std::map<objects::DynObject*, std::size_t> visited;
       visited[nullptr] = 0;
       size_t id = 1;
 
@@ -174,6 +175,27 @@ namespace rt::ui
         out << "  id" << obj << std::endl;
       }
       out << "end" << std::endl;
+    }
+
+    void draw_taint()
+    {
+      std::set<objects::DynObject*> tainted;
+      auto mark_tained = [&](objects::Edge e) {
+        objects::DynObject* dst = e.target;
+        if (tainted.contains(dst))
+        {
+          return false;
+        }
+        out << "class id" << this->visited[dst] << " tainted;" << std::endl;
+        tainted.insert(dst);
+
+        return !dst->is_opaque();
+      };
+
+      for (auto root : info->taint)
+      {
+        objects::visit(root, mark_tained);
+      }
     }
   };
 
