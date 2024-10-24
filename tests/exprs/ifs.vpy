@@ -1,4 +1,3 @@
-
 # Build a region
 a = {}
 a["self"] = a
@@ -20,6 +19,16 @@ else:
     else:
         d = {}
         drop d
+
+cond = f.a != a
+if cond:
+    dummy = "created"
+
+def check():
+    c = False
+    return c == True
+if check():
+    this = "is false"
 
 drop a
 drop f

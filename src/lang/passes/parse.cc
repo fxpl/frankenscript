@@ -10,14 +10,15 @@ namespace verona::wf
     Group | Assign | If | Else | Block | For | Func | List | Return | While;
 
   inline const auto parser = (Top <<= File) | (File <<= parse_groups++) |
-    (Assign <<= Group++) | (If <<= Group * (Op >>= (cond | Group)) * Group) |
+    (Assign <<= Group * (Lhs >>= (Group | cond))) |
+    (If <<= Group * (Op >>= (cond | Group)) * Group) |
     (Else <<= Group * Group) | (Group <<= (parse_tokens | Block | List)++) |
     (Block <<= (parse_tokens | parse_groups)++) | (Eq <<= Group * Group) |
     (Neq <<= Group * Group) | (Lookup <<= Group) |
     (For <<= Group * List * Group * Group) |
     (While <<= Group * (Op >>= (cond | Group)) * Group) | (List <<= Group++) |
     (Parens <<= (Group | List)++) | (Func <<= Group * Group * Group) |
-    (Return <<= Group++);
+    (Return <<= (Group | cond)++);
 }
 
 struct Indent
@@ -34,7 +35,7 @@ trieste::Parse parser()
   indent->push_back({0, File});
 
   auto update_indent = [indent](detail::Make& m, size_t this_indent) {
-    m.term({Assign, Return});
+    m.term({Eq, Neq, Assign, Return});
 
     if (this_indent > indent->back().indent)
     {
