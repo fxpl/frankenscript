@@ -32,10 +32,10 @@ namespace verona::wf
 {
   inline const auto lv = Ident | Lookup;
   inline const auto rv = lv | Empty | Null | String | Call | Method | Take;
-  inline const auto cmp_values = Ident | Lookup | Null;
+  inline const auto cmp_values = Ident | Lookup | Null | Call | Method;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
-  inline const auto Cond = Eq | Neq | Call | Method;
+  inline const auto cond = Eq | Neq;
 
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
@@ -44,7 +44,8 @@ namespace verona::wf
       Method)++) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Take <<= (Lhs >>= lv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) |
-    (If <<= (Op >>= Cond) * Block * Block) | (While <<= (Op >>= Cond) * Block) |
+    (If <<= (Op >>= cond) * Block * Block) | (While <<= (Op >>= cond) * Block) |
+    (While <<= (Op >>= cond) * Block) |
     (For <<= (Key >>= Ident) * (Value >>= Ident) * (Op >>= lv) * Block) |
     (Eq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
     (Neq <<= (Lhs >>= cmp_values) * (Rhs >>= cmp_values)) |
@@ -65,10 +66,10 @@ namespace verona::wf
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
   T(Empty, Ident, Lookup, Null, String, Call, Method, Take);
-inline const auto CMP_V = T(Ident, Lookup, Null);
+inline const auto CMP_V = T(Ident, Lookup, Null, Call, Method);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);
-inline const auto COND = T(Eq, Neq, Call, Method);
+inline const auto COND = T(Eq, Neq);
 
 // Parsing && AST construction
 Parse parser();
