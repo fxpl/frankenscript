@@ -7,32 +7,32 @@ obj = lst
 while obj != null:
     obj = obj.next
 
-# Identifiers
+# Check identifiers in the condition
 cond = False
 while cond == True:
-    never = "mind"
+    unreachable()
 while cond:
-    never = "mind"
+    unreachable()
 
-# Fields
+# Check field access in the condition
 x = {}
 x.bool = False
 while x.bool == True:
-    never = "mind"
+    unreachable()
 while x.bool:
-    never = "mind"
+    unreachable()
 
-# Function
+# Check function calls in the condition
 def bool(self):
     return False
 while bool({}) == True:
-    never = "mind"
+    unreachable()
 while bool({}):
-    never = "mind"
+    unreachable()
 
-# Method condition
+# Check method calls in the condition
 x.bool = bool
 while x.bool() == True:
-    never = "mind"
+    unreachable()
 while x.bool():
-    never = "mind"
+    unreachable()
