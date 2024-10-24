@@ -27,7 +27,7 @@ namespace rt::core
       {
         auto value = stack->back();
         mermaid->add_always_hide(value);
-        remove_reference(frame, value);
+        rt::remove_reference(frame, value);
         stack->pop_back();
       }
 
@@ -42,7 +42,7 @@ namespace rt::core
         auto value = stack->back();
         mermaid->remove_unreachable_hide(value);
         mermaid->remove_always_hide(value);
-        remove_reference(frame, value);
+        rt::remove_reference(frame, value);
         stack->pop_back();
       }
 
@@ -66,7 +66,7 @@ namespace rt::core
 
       auto region = pop(stack, "region for cown creation");
       auto cown = make_cown(region);
-      move_reference(frame, cown, region);
+      rt::move_reference(frame, cown, region);
 
       return cown;
     });
@@ -89,7 +89,7 @@ namespace rt::core
 
       auto value = pop(stack, "object to freeze");
       freeze(value);
-      remove_reference(frame, value);
+      rt::remove_reference(frame, value);
 
       return std::nullopt;
     });
@@ -98,8 +98,8 @@ namespace rt::core
       assert(args == 1);
 
       auto value = pop(stack, "region source");
-      create_region(value);
-      remove_reference(frame, value);
+      rt::create_region(value);
+      rt::remove_reference(frame, value);
 
       return std::nullopt;
     });

@@ -101,7 +101,7 @@ namespace rt::ui
 
         out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
 
-        auto region = objects::DynObject::get_region(dst);
+        auto region = objects::get_region(dst);
         if (region != nullptr)
         {
           region_strings[region].push_back(curr_id);
@@ -143,7 +143,7 @@ namespace rt::ui
       {
         out << "subgraph  ";
 
-        if (region == objects::DynObject::get_local_region())
+        if (region == objects::get_local_region())
         {
           out << "local region" << std::endl;
         }

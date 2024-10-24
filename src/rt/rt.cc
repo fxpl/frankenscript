@@ -60,9 +60,6 @@ namespace rt
     return new core::CownObject(region);
   }
 
-  thread_local objects::RegionPointer objects::DynObject::local_region =
-    new Region();
-
   void freeze(objects::DynObject* obj)
   {
     // Cown specific handling of the freeze operation is handled by the
@@ -72,7 +69,7 @@ namespace rt
 
   void create_region(objects::DynObject* object)
   {
-    object->create_region();
+    objects::create_region(object);
   }
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
@@ -151,12 +148,12 @@ namespace rt
 
   void add_reference(objects::DynObject* src, objects::DynObject* target)
   {
-    objects::DynObject::add_reference(src, target);
+    objects::add_reference(src, target);
   }
 
   void remove_reference(objects::DynObject* src, objects::DynObject* target)
   {
-    objects::DynObject::remove_reference(src, target);
+    objects::remove_reference(src, target);
   }
 
   void move_reference(
@@ -164,7 +161,7 @@ namespace rt
     objects::DynObject* dst,
     objects::DynObject* target)
   {
-    objects::DynObject::move_reference(src, dst, target);
+    objects::move_reference(src, dst, target);
   }
 
   size_t pre_run(ui::UI* ui)
@@ -194,7 +191,7 @@ namespace rt
     if (objects::DynObject::get_count() != initial_count)
     {
       std::cout << "Cycles detected in local region." << std::endl;
-      auto roots = objects::DynObject::get_local_region()->get_objects();
+      auto roots = objects::get_local_region()->get_objects();
       roots.erase(
         std::remove_if(
           roots.begin(),
@@ -211,7 +208,7 @@ namespace rt
       obj->freeze();
     }
 
-    objects::DynObject::get_local_region()->terminate_region();
+    objects::get_local_region()->terminate_region();
     if (objects::DynObject::get_count() != initial_count)
     {
       std::cout << "Memory leak detected!" << std::endl;

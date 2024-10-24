@@ -1,26 +1,11 @@
-#include "objects/dyn_object.h"
+#include "objects/prototype_object.h"
 #include "rt.h"
 
 #include <map>
 
 namespace rt::core
 {
-  class PrototypeObject : public objects::DynObject
-  {
-    std::string name;
-
-  public:
-    PrototypeObject(std::string name_, objects::DynObject* prototype = nullptr)
-    : objects::DynObject(prototype), name(name_)
-    {}
-
-    std::string get_name() override
-    {
-      std::stringstream stream;
-      stream << "[" << name << "]";
-      return stream.str();
-    }
-  };
+  using PrototypeObject = objects::PrototypeObject;
 
   inline PrototypeObject* framePrototypeObject()
   {
@@ -39,7 +24,7 @@ namespace rt::core
       if (parent_frame)
       {
         auto old_value = this->set(objects::ParentField, parent_frame);
-        add_reference(this, parent_frame);
+        objects::add_reference(this, parent_frame);
         assert(!old_value);
       }
     }
