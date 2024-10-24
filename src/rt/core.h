@@ -14,7 +14,7 @@ namespace rt::core
     : objects::DynObject(prototype), name(name_)
     {}
 
-    std::string get_name()
+    std::string get_name() override
     {
       std::stringstream stream;
       stream << "[" << name << "]";
@@ -126,7 +126,7 @@ namespace rt::core
     : objects::DynObject(stringPrototypeObject()), value(value_)
     {}
 
-    std::string get_name()
+    std::string get_name() override
     {
       std::stringstream stream;
       stream << "\"" << value << "\"";
@@ -138,7 +138,7 @@ namespace rt::core
       return value;
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }
@@ -186,12 +186,12 @@ namespace rt::core
       return obj;
     }
 
-    std::string get_name()
+    std::string get_name() override
     {
       return "<iterator>";
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }
@@ -227,12 +227,12 @@ namespace rt::core
       this->fields["region"] = region;
     }
 
-    std::string get_name()
+    std::string get_name() override
     {
       return "<cown>";
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }

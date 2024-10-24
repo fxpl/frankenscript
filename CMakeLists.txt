@@ -48,6 +48,8 @@ target_link_libraries(lang PRIVATE trieste::trieste)
 add_executable(verona_dyn src/main.cc)
 target_link_libraries(verona_dyn PRIVATE rt lang)
 
+set_property(TARGET verona_dyn PROPERTY COMPILE_WARNING_AS_ERROR ON)
+
 # Add snmallocs clang format targets
 clangformat_targets()
 
