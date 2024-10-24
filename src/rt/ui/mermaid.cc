@@ -59,9 +59,8 @@ namespace rt::ui
       draw_regions();
       draw_immutable_region();
       draw_taint();
+      draw_info();
 
-      out << "subgraph Count " << objects::DynObject::get_count() << std::endl;
-      out << "end" << std::endl;
       out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
       out << "classDef tainted fill:#43a;" << std::endl;
       // Footer (end of mermaid graph)
@@ -196,6 +195,22 @@ namespace rt::ui
       {
         objects::visit(root, mark_tained);
       }
+    }
+
+    void draw_info()
+    {
+      auto globals = rt::core::globals();
+
+      auto local_ctn = objects::DynObject::get_count() - globals->size();
+
+      std::stringstream info;
+
+      info << "  Locals: " << local_ctn << "<br/>";
+      info << "  Globals: " << globals->size() << "<br/>";
+
+      out << "subgraph info" << std::endl;
+      out << "  i01[" << info.str() << "]" << std::endl;
+      out << "end" << std::endl;
     }
   };
 
