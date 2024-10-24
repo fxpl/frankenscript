@@ -53,7 +53,7 @@ clangformat_targets()
 
 
 message(STATUS "Adding tests")
-FILE(GLOB ALL_FILES
+FILE(GLOB_RECURSE ALL_FILES
   CONFIGURE_DEPENDS
   tests/*
 )
@@ -67,3 +67,6 @@ endforeach()
 
 set_property(TEST three_regions.vpy PROPERTY WILL_FAIL true)
 set_property(TEST leak_with_global.vpy PROPERTY WILL_FAIL true)
+set_property(TEST invalid_read.vpy PROPERTY WILL_FAIL true)
+set_property(TEST invalid_shared_region.vpy PROPERTY WILL_FAIL true)
+set_property(TEST invalid_write.vpy PROPERTY WILL_FAIL true)

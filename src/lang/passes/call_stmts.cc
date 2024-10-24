@@ -6,8 +6,8 @@ namespace verona::wf
 
   inline const auto call_stmts = grouping |
     (Block <<=
-     (Freeze | Region | Assign | If | For | Func | Return | ReturnValue | Call |
-      Method | ClearStack | Print)++);
+     (Assign | If | For | Func | Return | ReturnValue | Call | Method |
+      ClearStack | Print)++);
 }
 
 PassDef call_stmts()

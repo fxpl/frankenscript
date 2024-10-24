@@ -4,8 +4,8 @@ namespace verona::wf
 {
   using namespace trieste::wf;
 
-  inline const auto parse_tokens = Region | Ident | Lookup | Empty | Freeze |
-    Drop | Null | String | Create | Parens;
+  inline const auto parse_tokens =
+    Ident | Lookup | Empty | Drop | Take | Null | String | Parens;
   inline const auto parse_groups =
     Group | Assign | If | Else | Block | For | Func | List | Return;
 
@@ -157,9 +157,7 @@ trieste::Parse parser()
           m.push(Block);
         },
       "drop\\b" >> [](auto& m) { m.add(Drop); },
-      "create\\b" >> [](auto& m) { m.add(Create); },
-      "freeze\\b" >> [](auto& m) { m.add(Freeze); },
-      "region\\b" >> [](auto& m) { m.add(Region); },
+      "take\\b" >> [](auto& m) { m.add(Take); },
       "None\\b" >> [](auto& m) { m.add(Null); },
       "[0-9A-Za-z_]+" >> [](auto& m) { m.add(Ident); },
       "\\[" >> [](auto& m) { m.push(Lookup); },

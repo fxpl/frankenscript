@@ -2,7 +2,7 @@ a = {}
 b = {}
 a["f"] = b
 c = a.f
-region a
+region(a)
 
 drop b
 drop c

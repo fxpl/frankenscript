@@ -45,10 +45,13 @@ namespace rt
   {
     return new objects::DynObject();
   }
-
   objects::DynObject* make_frame(objects::DynObject* parent)
   {
     return new core::FrameObject(parent);
+  }
+  objects::DynObject* make_cown(objects::DynObject* region)
+  {
+    return new core::CownObject(region);
   }
 
   thread_local objects::RegionPointer objects::DynObject::local_region =
@@ -56,6 +59,8 @@ namespace rt
 
   void freeze(objects::DynObject* obj)
   {
+    // Cown specific handling of the freeze operation is handled by the
+    // `freeze()` implementation of the object
     obj->freeze();
   }
 
@@ -66,6 +71,17 @@ namespace rt
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
   {
+    if (obj->is_opaque())
+    {
+      if (obj->is_cown())
+      {
+        ui::error("Cannot access data on a cown that is not aquired");
+      }
+      else
+      {
+        ui::error("Cannot access data on an opaque type");
+      }
+    }
     return obj->get(key);
   }
 

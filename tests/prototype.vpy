@@ -2,11 +2,9 @@ a = {}
 b = {}
 c = {}
 
-b["f"] = a
-drop a
+b["f"] = take a
 
-c = create b
-drop b
+c = create(take b)
 c["g"] = c["f"]
 
 drop c

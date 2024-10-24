@@ -165,12 +165,6 @@ namespace verona::interpreter
           obj = rt::make_iter(v);
           rt::remove_reference(frame(), v);
         }
-        else if (payload == Proto)
-        {
-          obj = rt::make_object();
-          // RC transferred
-          rt::set_prototype(obj, pop("prototype source"));
-        }
         else if (payload == Func)
         {
           assert(
@@ -244,10 +238,23 @@ namespace verona::interpreter
 
       if (node == StoreFrame)
       {
+        assert(stack().size() >= 1 && "the stack is too small");
         auto v = pop("value to store");
         std::string field{node->location().view()};
         auto v2 = rt::set(frame(), field, v);
         rt::remove_reference(frame(), v2);
+        return ExecNext{};
+      }
+
+      if (node == SwapFrame)
+      {
+        assert(stack().size() >= 1 && "the stack is too small");
+        auto new_var = pop("swap value");
+        std::string field{node->location().view()};
+
+        auto old_var = rt::set(frame(), field, new_var);
+        stack().push_back(old_var);
+
         return ExecNext{};
       }
 
@@ -275,6 +282,7 @@ namespace verona::interpreter
 
       if (node == StoreField)
       {
+        assert(stack().size() >= 3 && "the stack is too small");
         auto v = pop("value to store");
         auto k = pop("lookup-key");
         auto v2 = pop("lookup-value");
@@ -286,19 +294,20 @@ namespace verona::interpreter
         return ExecNext{};
       }
 
-      if (node == CreateRegion)
+      if (node == SwapField)
       {
-        auto v = pop("region source");
-        rt::create_region(v);
-        rt::remove_reference(frame(), v);
-        return ExecNext{};
-      }
+        assert(stack().size() >= 3 && "the stack is too small");
+        auto new_var = pop("swap value");
+        auto key = pop("lookup-key");
+        auto obj = pop("lookup-value");
+        auto old_var = rt::set(obj, key, new_var);
+        stack().push_back(old_var);
 
-      if (node == FreezeObject)
-      {
-        auto v = pop("object to freeze");
-        rt::freeze(v);
-        rt::remove_reference(frame(), v);
+        rt::move_reference(frame(), obj, new_var);
+        rt::move_reference(obj, frame(), old_var);
+        rt::remove_reference(frame(), obj);
+        rt::remove_reference(frame(), key);
+
         return ExecNext{};
       }
 
@@ -401,7 +410,6 @@ namespace verona::interpreter
           if (result)
           {
             stack().push_back(result.value());
-            rt::add_reference(frame(), result.value());
           }
           rt::remove_reference(frame(), func);
           return ExecNext{};

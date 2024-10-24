@@ -197,6 +197,59 @@ namespace rt::core
     }
   };
 
+  // The prototype object for cown
+  inline PrototypeObject* cownPrototypeObject()
+  {
+    static PrototypeObject* proto = new PrototypeObject("Cown");
+    return proto;
+  }
+
+  class CownObject : public objects::DynObject
+  {
+  public:
+    CownObject(objects::DynObject* region)
+    : objects::DynObject(cownPrototypeObject())
+    {
+      // FIXME: Add once regions are reified
+      // assert(
+      //   region->get_prototype() == regionPrototype() &&
+      //   "Cowns can only store regions");
+      //
+      // FIXME: Also check that the region has a LRC == 1, with 1
+      // being the reference passed into this constructor
+
+      if (region->change_rc(0) != 1)
+      {
+        ui::error("regions used for cown creation need to have an rc of 1");
+      }
+
+      // this->set would fail, since this is a cown
+      this->fields["region"] = region;
+    }
+
+    std::string get_name()
+    {
+      return "<cown>";
+    }
+
+    objects::DynObject* is_primitive()
+    {
+      return this;
+    }
+
+    bool is_opaque() override
+    {
+      // For now there is no mechanism to aquire the cown, it'll therefore
+      // always be opaque.
+      return true;
+    }
+
+    bool is_cown() override
+    {
+      return true;
+    }
+  };
+
   inline std::set<objects::DynObject*>* globals()
   {
     static std::set<objects::DynObject*>* globals =
@@ -207,6 +260,7 @@ namespace rt::core
         builtinFuncPrototypeObject(),
         stringPrototypeObject(),
         keyIterPrototypeObject(),
+        cownPrototypeObject(),
         trueObject(),
         falseObject(),
       };

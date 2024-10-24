@@ -16,20 +16,11 @@ PassDef grouping()
       In(Group) * OPERAND[Op] * (T(Lookup)[Lookup] << (T(Group) << KEY[Rhs])) >>
         [](auto& _) { return Lookup << _(Op) << _(Rhs); },
 
-      T(Group) << ((T(Region)[Region] << End) * T(Ident)[Ident] * End) >>
-        [](auto& _) {
-          _(Region)->extend(_(Ident)->location());
-          return _(Region) << _(Ident);
-        },
-
-      T(Group) << ((T(Freeze)[Freeze] << End) * T(Ident)[Ident] * End) >>
-        [](auto& _) {
-          _(Freeze)->extend(_(Ident)->location());
-          return _(Freeze) << _(Ident);
-        },
-
       T(Group) << ((T(Drop)[Drop] << End) * LV[Lhs] * End) >>
         [](auto& _) { return Assign << _(Lhs) << Null; },
+      T(Group) << ((T(Take)[Take] << End) * LV[Lhs] * End) >>
+        [](auto& _) { return create_from(Take, _(Take)) << _(Lhs); },
+
       // function(arg, arg)
       --In(Func) *
           (T(Group)[Group] << (T(Ident)[Ident]) *
@@ -64,12 +55,6 @@ PassDef grouping()
           }
 
           return create_from(Method, _(Group)) << _(Lookup) << list;
-        },
-
-      T(Group) << ((T(Create)[Create] << End) * T(Ident)[Ident] * End) >>
-        [](auto& _) {
-          _(Create)->extend(_(Ident)->location());
-          return Group << (_(Create) << _(Ident));
         },
 
       T(Assign)
@@ -123,10 +108,10 @@ PassDef grouping()
             << (Body << _(Block));
         },
       // Normalize parenthesis with a single node to also have a list token
-      T(Parens)[Parens] << (T(Group) << (Any[Ident] * End)) >>
+      T(Parens)[Parens] << ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) >>
         [](auto& _) {
           return create_from(Parens, _(Parens))
-            << (create_from(List, _(Parens)) << _(Ident));
+            << (create_from(List, _(Parens)) << _(Rhs));
         },
 
       T(Return)[Return] << ((T(Group) << End) * End) >>
