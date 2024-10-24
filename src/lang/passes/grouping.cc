@@ -97,6 +97,10 @@ PassDef grouping()
           return create_from(For, _(For))
             << _(Key) << _(Value) << _(Op) << _(Block);
         },
+      In(While) * ((T(Group) << End) * (!COND)[Op]) >>
+        [](auto& _) {
+          return Seq << Group << (Eq << _(Op) << (Ident ^ "True"));
+        },
       (T(While) << (T(Group) * COND[Op] * (T(Group) << T(Block)[Block]))) >>
         [](auto& _) { return While << _(Op) << _(Block); },
 
