@@ -11,6 +11,23 @@
 
 namespace rt
 {
+  void add_builtin(std::string name, BuiltinFuncPtr func)
+  {
+    auto builtin = new core::BuiltinFuncObject(func);
+    core::globals()->insert(builtin);
+    core::global_names()->insert({name, builtin});
+  }
+  objects::DynObject* get_builtin(std::string name)
+  {
+    auto globals = core::global_names();
+
+    auto search = globals->find(name);
+    if (search != globals->end())
+    {
+      return search->second;
+    }
+    return nullptr;
+  }
 
   objects::DynObject* make_func(verona::interpreter::Bytecode* body)
   {
@@ -127,10 +144,20 @@ namespace rt
     objects::DynObject::move_reference(src, dst, target);
   }
 
-  size_t pre_run()
+  size_t pre_run(ui::UI* ui)
   {
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
+    core::init_builtins(ui);
+
+    if (ui->is_mermaid())
+    {
+      auto mermaid = reinterpret_cast<ui::MermaidUI*>(ui);
+      for (auto global : *core::globals())
+      {
+        mermaid->add_unreachable_hide(global);
+      }
+    }
 
     std::cout << "Running test..." << std::endl;
     return objects::DynObject::get_count();
@@ -195,17 +222,23 @@ namespace rt
     return reinterpret_cast<core::KeyIterObject*>(iter)->iter_next();
   }
 
-  verona::interpreter::Bytecode* get_bytecode(objects::DynObject* func)
+  std::optional<verona::interpreter::Bytecode*>
+  try_get_bytecode(objects::DynObject* func)
   {
     if (func && func->get_prototype() == core::bytecodeFuncPrototypeObject())
     {
       return reinterpret_cast<core::BytecodeFuncObject*>(func)->get_bytecode();
     }
-    else
+    return std::nullopt;
+  }
+
+  std::optional<BuiltinFuncPtr> try_get_builtin_func(objects::DynObject* func)
+  {
+    if (func && func->get_prototype() == core::builtinFuncPrototypeObject())
     {
-      ui::error("Object is not a function.");
-      return {};
+      return reinterpret_cast<core::BuiltinFuncObject*>(func)->get_func();
     }
+    return std::nullopt;
   }
 
 } // namespace rt

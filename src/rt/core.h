@@ -1,6 +1,8 @@
 #include "objects/dyn_object.h"
 #include "rt.h"
 
+#include <map>
+
 namespace rt::core
 {
   class PrototypeObject : public objects::DynObject
@@ -59,6 +61,12 @@ namespace rt::core
       new PrototypeObject("BytecodeFunction", funcPrototypeObject());
     return proto;
   }
+  inline PrototypeObject* builtinFuncPrototypeObject()
+  {
+    static PrototypeObject* proto =
+      new PrototypeObject("BuiltinFunction", funcPrototypeObject());
+    return proto;
+  }
 
   class FuncObject : public objects::DynObject
   {
@@ -85,6 +93,21 @@ namespace rt::core
     verona::interpreter::Bytecode* get_bytecode()
     {
       return this->body;
+    }
+  };
+
+  class BuiltinFuncObject : public FuncObject
+  {
+    BuiltinFuncPtr func;
+
+  public:
+    BuiltinFuncObject(BuiltinFuncPtr func_)
+    : FuncObject(builtinFuncPrototypeObject()), func(func_)
+    {}
+
+    BuiltinFuncPtr get_func()
+    {
+      return func;
     }
   };
 
@@ -181,6 +204,7 @@ namespace rt::core
         framePrototypeObject(),
         funcPrototypeObject(),
         bytecodeFuncPrototypeObject(),
+        builtinFuncPrototypeObject(),
         stringPrototypeObject(),
         keyIterPrototypeObject(),
         trueObject(),
@@ -188,4 +212,20 @@ namespace rt::core
       };
     return globals;
   }
+
+  inline std::map<std::string, objects::DynObject*>* global_names()
+  {
+    static std::map<std::string, objects::DynObject*>* global_names =
+      new std::map<std::string, objects::DynObject*>{
+        {"True", trueObject()},
+        {"False", falseObject()},
+      };
+    return global_names;
+  }
+
+  /// @brief Initilizes builtin functions and adds them to the global namespace.
+  ///
+  /// @param ui The UI to allow builtin functions to create output, when they're
+  /// called.
+  void init_builtins(ui::UI* ui);
 } // namespace rt::core

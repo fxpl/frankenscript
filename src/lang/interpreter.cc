@@ -221,17 +221,22 @@ namespace verona::interpreter
       {
         std::string field{node->location().view()};
 
+        // Local frame
         auto v = rt::get(frame(), field);
-        if (v)
-        {
-          rt::add_reference(frame(), v);
-        }
-        else
+
+        // User globals
+        if (!v)
         {
           v = rt::get(global_frame(), field);
-          rt::add_reference(global_frame(), v);
         }
 
+        // Builtin globals
+        if (!v)
+        {
+          v = rt::get_builtin(field);
+        }
+
+        rt::add_reference(frame(), v);
         stack().push_back(v);
         std::cout << "push " << v << std::endl;
         return ExecNext{};
@@ -379,9 +384,32 @@ namespace verona::interpreter
       {
         auto func = pop("function");
         auto arg_ctn = std::stoul(std::string(node->location().view()));
-        auto action = ExecFunc{rt::get_bytecode(func)->body, arg_ctn};
-        rt::remove_reference(frame(), func);
-        return action;
+
+        if (auto bytecode = rt::try_get_bytecode(func))
+        {
+          rt::remove_reference(frame(), func);
+          return ExecFunc{bytecode.value()->body, arg_ctn};
+        }
+        else if (auto builtin = rt::try_get_builtin_func(func))
+        {
+          // This calls the built-in function with the current frame and current
+          // stack. This makes the implementation on the interpreter side a lot
+          // easier and makes builtins more powerful. The tradeoff is that the
+          // arguments are still in reverse order on the stack, and the function
+          // can potentially modify the "calling" frame.
+          auto result = (builtin.value())(frame(), &stack(), arg_ctn);
+          if (result)
+          {
+            stack().push_back(result.value());
+            rt::add_reference(frame(), result.value());
+          }
+          rt::remove_reference(frame(), func);
+          return ExecNext{};
+        }
+        else
+        {
+          rt::ui::error("Object is not a function");
+        }
       }
 
       if (node == Dup)
@@ -491,41 +519,12 @@ namespace verona::interpreter
     }
   };
 
-  class UI : public rt::ui::UI
-  {
-    bool interactive;
-    std::string path;
-    std::ofstream out;
-
-  public:
-    UI(bool interactive_) : interactive(interactive_)
-    {
-      path = "mermaid.md";
-      out.open(path);
-    }
-
-    void
-    output(std::vector<rt::objects::DynObject*>& roots, std::string message)
-    {
-      out << "```" << std::endl;
-      out << message << std::endl;
-      out << "```" << std::endl;
-      rt::ui::mermaid(roots, out);
-      if (interactive)
-      {
-        out.close();
-        std::cout << "Press a key!" << std::endl;
-        getchar();
-        out.open(path);
-      }
-    }
-  };
-
   void start(trieste::Node main_body, bool interactive)
   {
-    size_t initial = rt::pre_run();
+    rt::ui::MermaidUI ui(interactive);
 
-    UI ui(interactive);
+    size_t initial = rt::pre_run(&ui);
+
     Interpreter inter(&ui);
     inter.run(main_body);
 

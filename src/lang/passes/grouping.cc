@@ -33,7 +33,7 @@ PassDef grouping()
       // function(arg, arg)
       --In(Func) *
           (T(Group)[Group] << (T(Ident)[Ident]) *
-             (T(Parens)[Parens] << (~T(List)[List])) * Any++[Rest]) >>
+             (T(Parens)[Parens] << (~T(List)[List] * End)) * Any++[Rest]) >>
         [](auto& _) {
           auto list = _(List);
           if (!list)
@@ -122,8 +122,8 @@ PassDef grouping()
             << _(Ident) << (create_from(Params, _(Parens)) << _[List])
             << (Body << _(Block));
         },
-      // Normalize functions with a single ident to also have a list token
-      T(Parens)[Parens] << (T(Group) << (T(Ident)[Ident] * End)) >>
+      // Normalize parenthesis with a single node to also have a list token
+      T(Parens)[Parens] << (T(Group) << (Any[Ident] * End)) >>
         [](auto& _) {
           return create_from(Parens, _(Parens))
             << (create_from(List, _(Parens)) << _(Ident));
