@@ -17,6 +17,7 @@ namespace rt
     core::globals()->insert(builtin);
     core::global_names()->insert({name, builtin});
   }
+
   objects::DynObject* get_builtin(std::string name)
   {
     auto globals = core::global_names();
@@ -33,22 +34,27 @@ namespace rt
   {
     return new core::BytecodeFuncObject(body);
   }
+
   objects::DynObject* make_iter(objects::DynObject* iter_src)
   {
     return new core::KeyIterObject(iter_src->fields);
   }
+
   objects::DynObject* make_str(std::string value)
   {
     return new core::StringObject(value);
   }
+
   objects::DynObject* make_object()
   {
     return new objects::DynObject();
   }
+
   objects::DynObject* make_frame(objects::DynObject* parent)
   {
     return new core::FrameObject(parent);
   }
+
   objects::DynObject* make_cown(objects::DynObject* region)
   {
     return new core::CownObject(region);
@@ -137,6 +143,7 @@ namespace rt
   {
     return core::trueObject();
   }
+
   objects::DynObject* get_false()
   {
     return core::falseObject();

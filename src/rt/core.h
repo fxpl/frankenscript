@@ -14,7 +14,7 @@ namespace rt::core
     : objects::DynObject(prototype), name(name_)
     {}
 
-    std::string get_name()
+    std::string get_name() override
     {
       std::stringstream stream;
       stream << "[" << name << "]";
@@ -55,12 +55,14 @@ namespace rt::core
     static PrototypeObject* proto = new PrototypeObject("Function");
     return proto;
   }
+
   inline PrototypeObject* bytecodeFuncPrototypeObject()
   {
     static PrototypeObject* proto =
       new PrototypeObject("BytecodeFunction", funcPrototypeObject());
     return proto;
   }
+
   inline PrototypeObject* builtinFuncPrototypeObject()
   {
     static PrototypeObject* proto =
@@ -84,6 +86,7 @@ namespace rt::core
     BytecodeFuncObject(verona::interpreter::Bytecode* body_)
     : FuncObject(bytecodeFuncPrototypeObject()), body(body_)
     {}
+
     ~BytecodeFuncObject()
     {
       verona::interpreter::delete_bytecode(this->body);
@@ -126,7 +129,7 @@ namespace rt::core
     : objects::DynObject(stringPrototypeObject()), value(value_)
     {}
 
-    std::string get_name()
+    std::string get_name() override
     {
       std::stringstream stream;
       stream << "\"" << value << "\"";
@@ -138,7 +141,7 @@ namespace rt::core
       return value;
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }
@@ -149,6 +152,7 @@ namespace rt::core
     static StringObject* val = new StringObject("True");
     return val;
   }
+
   inline StringObject* falseObject()
   {
     static StringObject* val = new StringObject("False");
@@ -186,12 +190,12 @@ namespace rt::core
       return obj;
     }
 
-    std::string get_name()
+    std::string get_name() override
     {
       return "<iterator>";
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }
@@ -227,12 +231,12 @@ namespace rt::core
       this->fields["region"] = region;
     }
 
-    std::string get_name()
+    std::string get_name() override
     {
       return "<cown>";
     }
 
-    objects::DynObject* is_primitive()
+    objects::DynObject* is_primitive() override
     {
       return this;
     }

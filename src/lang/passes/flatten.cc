@@ -21,6 +21,7 @@ namespace verona::wf
 } // namespace verona::wf
 
 int g_jump_label_counter = 0;
+
 std::string new_jump_label()
 {
   g_jump_label_counter += 1;
@@ -28,6 +29,7 @@ std::string new_jump_label()
 }
 
 int g_iter_name = 0;
+
 std::string new_iter_name()
 {
   g_iter_name += 1;

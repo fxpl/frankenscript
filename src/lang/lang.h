@@ -83,15 +83,18 @@ inline Node create_print(size_t line, std::string text)
   ss << "Line " << line << ": " << text;
   return NodeDef::create(Print, ss.str());
 }
+
 inline Node create_print(Node from, std::string text)
 {
   auto [line, col] = from->location().linecol();
   return create_print(line + 1, text);
 }
+
 inline Node create_print(Node from)
 {
   return create_print(from, std::string(from->location().view()));
 }
+
 inline Node create_from(Token def, Node from)
 {
   return NodeDef::create(def, from->location());
