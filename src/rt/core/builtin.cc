@@ -57,6 +57,14 @@ namespace rt::core
 
       return std::nullopt;
     });
+
+    add_builtin("breakpoint", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+
+      mermaid->break_next();
+
+      return std::nullopt;
+    });
   }
 
   void ctor_builtins()
