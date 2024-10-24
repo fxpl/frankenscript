@@ -27,6 +27,7 @@ namespace rt::core
 namespace rt::ui
 {
   class MermaidDiagram;
+
   class MermaidUI : public UI
   {
     friend class MermaidDiagram;
@@ -57,6 +58,7 @@ namespace rt::ui
     {
       unreachable_hide.insert(obj);
     }
+
     void remove_unreachable_hide(objects::DynObject* obj)
     {
       unreachable_hide.erase(obj);
@@ -66,6 +68,7 @@ namespace rt::ui
     {
       always_hide.insert(obj);
     }
+
     void remove_always_hide(objects::DynObject* obj)
     {
       always_hide.erase(obj);

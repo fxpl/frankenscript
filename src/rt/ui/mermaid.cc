@@ -126,6 +126,7 @@ namespace rt::ui
         objects::visit({nullptr, "", root}, explore);
       }
     }
+
     void draw_regions()
     {
       // Output any region parent edges.
@@ -162,6 +163,7 @@ namespace rt::ui
         out << "end" << std::endl;
       }
     }
+
     void draw_immutable_region()
     {
       // Output the immutable region.

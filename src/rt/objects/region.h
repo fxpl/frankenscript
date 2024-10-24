@@ -151,8 +151,8 @@ namespace rt::objects
       r->parent = p;
       assert(r->parent_reference_count == 1);
 
-      // If the region has local references, then we need the parent to have a
-      // local reference to.
+      // If the sub-region has local references, then we need the parent to have
+      // a local reference to.
       if (r->local_reference_count == 0)
         return;
 

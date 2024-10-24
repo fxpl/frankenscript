@@ -55,12 +55,14 @@ namespace rt::core
     static PrototypeObject* proto = new PrototypeObject("Function");
     return proto;
   }
+
   inline PrototypeObject* bytecodeFuncPrototypeObject()
   {
     static PrototypeObject* proto =
       new PrototypeObject("BytecodeFunction", funcPrototypeObject());
     return proto;
   }
+
   inline PrototypeObject* builtinFuncPrototypeObject()
   {
     static PrototypeObject* proto =
@@ -84,6 +86,7 @@ namespace rt::core
     BytecodeFuncObject(verona::interpreter::Bytecode* body_)
     : FuncObject(bytecodeFuncPrototypeObject()), body(body_)
     {}
+
     ~BytecodeFuncObject()
     {
       verona::interpreter::delete_bytecode(this->body);
@@ -149,6 +152,7 @@ namespace rt::core
     static StringObject* val = new StringObject("True");
     return val;
   }
+
   inline StringObject* falseObject()
   {
     static StringObject* val = new StringObject("False");

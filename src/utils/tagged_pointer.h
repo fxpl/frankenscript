@@ -15,6 +15,7 @@ namespace utils
 
   public:
     TaggedPointer(T* ptr) : ptr(reinterpret_cast<uintptr_t>(ptr)) {}
+
     constexpr TaggedPointer(std::nullptr_t) : ptr(0) {}
 
     TaggedPointer(T* ptr, uintptr_t tag)
@@ -32,6 +33,7 @@ namespace utils
     {
       return ptr == other.ptr;
     }
+
     bool operator!=(TaggedPointer other) const
     {
       return ptr != other.ptr;

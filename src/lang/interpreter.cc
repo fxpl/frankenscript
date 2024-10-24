@@ -28,15 +28,18 @@ namespace verona::interpreter
   // ==============================================
   struct ExecNext
   {};
+
   struct ExecJump
   {
     trieste::Location target;
   };
+
   struct ExecFunc
   {
     trieste::Node body;
     size_t arg_ctn;
   };
+
   struct ExecReturn
   {
     std::optional<rt::objects::DynObject*> value;
@@ -76,6 +79,7 @@ namespace verona::interpreter
       frame_stack.push_back(frame);
       return frame;
     }
+
     InterpreterFrame* pop_stack_frame()
     {
       auto frame = frame_stack.back();
@@ -91,6 +95,7 @@ namespace verona::interpreter
         return frame_stack.back();
       }
     }
+
     InterpreterFrame* parent_stack_frame()
     {
       return frame_stack[frame_stack.size() - 2];
@@ -100,10 +105,12 @@ namespace verona::interpreter
     {
       return frame_stack.back()->stack;
     }
+
     rt::objects::DynObject* frame()
     {
       return frame_stack.back()->frame;
     }
+
     rt::objects::DynObject* global_frame()
     {
       return frame_stack.front()->frame;
