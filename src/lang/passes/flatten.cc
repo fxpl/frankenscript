@@ -71,6 +71,27 @@ PassDef flatten()
                      // Join
                      << (Label << (Ident ^ join_label));
         },
+
+      T(While)[While] << (COND[Op] * (T(Block) << Any++[Block])) >>
+        [](auto& _) {
+          auto start_label = new_jump_label();
+          auto break_label = new_jump_label();
+
+          auto while_head = expr_header(_(While));
+
+          return Seq
+            // Loop header
+            << (Label << (Ident ^ start_label)) << _(Op)
+            << (JumpFalse ^ break_label)
+            << create_print(_(While), while_head + " (Next)")
+            // Loop body
+            << _[Block]
+            << (Jump ^ start_label)
+            // Loop end
+            << (Label << (Ident ^ break_label))
+            << create_print(_(While), while_head + " (Break)");
+        },
+
       T(For)[For]
           << (T(Ident)[Key] * T(Ident)[Value] * LV[Op] *
               (T(Block) << Any++[Block]) * End) >>
@@ -102,8 +123,8 @@ PassDef flatten()
             << create_print(_(For), for_head + " (Next)")
             // Block
             << _[Block]
-            // Final cleanup
             << (Jump ^ start_label)
+            // Final cleanup
             << ((Label ^ "break:") << (Ident ^ break_label))
             << create_print(_(For), for_head + " (Break)")
             << ((Assign ^ ("drop " + std::string(_(Value)->location().view())))

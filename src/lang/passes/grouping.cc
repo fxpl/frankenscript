@@ -61,9 +61,17 @@ PassDef grouping()
           << ((T(Group) << LV[Lhs] * End) *
               ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) * End) >>
         [](auto& _) { return Assign << _[Lhs] << _[Rhs]; },
-      COND[Op]
-          << ((T(Group) << CMP_V[Lhs] * End) * (T(Group) << CMP_V[Rhs] * End) *
-              End) >>
+
+      // Normalize `if x:` -> `if x == True`
+      In(If, While) * ((T(Group) << End) * (!COND)[Op]) >>
+        [](auto& _) {
+          return Seq << Group << (Eq << _(Op) << (Ident ^ "True"));
+        },
+      COND[Op] << (Any[Lhs] * (T(Group) << CMP_V[Rhs] * End) * End) >>
+        [](auto& _) {
+          return create_from(_(Op)->type(), _(Op)) << _[Lhs] << _[Rhs];
+        },
+      COND[Op] << ((T(Group) << CMP_V[Lhs] * End) * Any[Rhs] * End) >>
         [](auto& _) {
           return create_from(_(Op)->type(), _(Op)) << _[Lhs] << _[Rhs];
         },
@@ -94,6 +102,8 @@ PassDef grouping()
           return create_from(For, _(For))
             << _(Key) << _(Value) << _(Op) << _(Block);
         },
+      (T(While) << (T(Group) * COND[Op] * (T(Group) << T(Block)[Block]))) >>
+        [](auto& _) { return While << _(Op) << _(Block); },
 
       T(Func)[Func]
           << ((T(Group) << End) *

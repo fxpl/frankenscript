@@ -7,16 +7,18 @@ namespace verona::wf
   inline const auto parse_tokens =
     Ident | Lookup | Empty | Drop | Take | Null | String | Parens;
   inline const auto parse_groups =
-    Group | Assign | If | Else | Block | For | Func | List | Return;
+    Group | Assign | If | Else | Block | For | Func | List | Return | While;
 
   inline const auto parser = (Top <<= File) | (File <<= parse_groups++) |
-    (Assign <<= Group++) | (If <<= Group * (Op >>= Cond) * Group) |
+    (Assign <<= Group * (Lhs >>= (Group | cond))) |
+    (If <<= Group * (Op >>= (cond | Group)) * Group) |
     (Else <<= Group * Group) | (Group <<= (parse_tokens | Block | List)++) |
     (Block <<= (parse_tokens | parse_groups)++) | (Eq <<= Group * Group) |
     (Neq <<= Group * Group) | (Lookup <<= Group) |
-    (For <<= Group * List * Group * Group) | (List <<= Group++) |
+    (For <<= Group * List * Group * Group) |
+    (While <<= Group * (Op >>= (cond | Group)) * Group) | (List <<= Group++) |
     (Parens <<= (Group | List)++) | (Func <<= Group * Group * Group) |
-    (Return <<= Group++);
+    (Return <<= (Group | cond)++);
 }
 
 struct Indent
@@ -33,7 +35,7 @@ trieste::Parse parser()
   indent->push_back({0, File});
 
   auto update_indent = [indent](detail::Make& m, size_t this_indent) {
-    m.term({Assign, Return});
+    m.term({Eq, Neq, Assign, Return});
 
     if (this_indent > indent->back().indent)
     {
@@ -100,6 +102,7 @@ trieste::Parse parser()
           m.term({List, Parens});
           m.extend(Parens);
         },
+      "," >> [](auto& m) { m.seq(List); },
       "return\\b" >> [](auto& m) { m.seq(Return); },
 
       "for\\b" >> [](auto& m) { m.seq(For); },
@@ -108,7 +111,11 @@ trieste::Parse parser()
           // In should always be in a list from the identifiers.
           m.term({List});
         },
-      "," >> [](auto& m) { m.seq(List); },
+      "while\\b" >>
+        [](auto& m) {
+          m.term();
+          m.seq(While);
+        },
 
       "if\\b" >>
         [](auto& m) {
@@ -137,6 +144,10 @@ trieste::Parse parser()
           else if (m.in(Func))
           {
             toc = Func;
+          }
+          else if (m.in(While))
+          {
+            toc = While;
           }
           else
           {

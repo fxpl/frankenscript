@@ -1,0 +1,60 @@
+def new_list():
+    def insert(self, item):
+        node = self.head
+        while node.next != null:
+            node = node.next
+
+        node.next = {}
+        node.next.data = item
+        node.next.prev = node
+
+    def contains(self, item):
+        node = self.head
+        while node.next != null:
+            if node.data == item:
+                return True
+            node = node.next
+        return False
+
+    def remove(self, item):
+        node = self.head
+        while node.next != null:
+            if node.data == item:
+                node.prev.next = node.next
+                if node.next != null:
+                    node.next.prev = node.prev
+                return True
+            node = node.next
+        return False
+
+    list = {}
+    list.head = {}
+    list.insert = take insert
+    list.contains = take contains
+    list.remove = take remove
+    return list
+
+# Dyrona doesn't freeze shared objects automatically (yet)
+def freeze_and_hide_proto(value):
+    proto = value["__proto__"]
+    freeze(proto)
+    mermaid_hide(proto)
+freeze_and_hide_proto(freeze_and_hide_proto)
+freeze_and_hide_proto("string")
+drop freeze_and_hide_proto
+
+list = new_list()
+
+# Required to not leak memory
+region(list)
+
+value = "x"
+
+list.insert({})
+list.insert({})
+list.insert(value)
+list.insert({})
+list.remove(value)
+
+drop value
+drop list

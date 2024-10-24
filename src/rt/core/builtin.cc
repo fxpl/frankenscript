@@ -103,6 +103,11 @@ namespace rt::core
 
       return std::nullopt;
     });
+
+    add_builtin("unreachable", [](auto, auto, auto) {
+      ui::error("this method should never be called");
+      return std::nullopt;
+    });
   }
 
   void init_builtins(ui::UI* ui)
