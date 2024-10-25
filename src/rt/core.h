@@ -15,7 +15,7 @@ namespace rt::core
 
   class FrameObject : public objects::DynObject
   {
-    FrameObject() : objects::DynObject(framePrototypeObject(), true) {}
+    FrameObject() : objects::DynObject(framePrototypeObject()) {}
 
   public:
     FrameObject(objects::DynObject* parent_frame)
@@ -58,8 +58,8 @@ namespace rt::core
   class FuncObject : public objects::DynObject
   {
   public:
-    FuncObject(objects::DynObject* prototype_, bool global = false)
-    : objects::DynObject(prototype_, global)
+    FuncObject(objects::DynObject* prototype_)
+    : objects::DynObject(prototype_)
     {}
   };
 

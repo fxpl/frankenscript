@@ -79,17 +79,14 @@ namespace rt::objects
     }
 
     // prototype is borrowed, the caller does not need to provide an RC.
-    DynObject(DynObject* prototype_ = nullptr, bool first_frame = false)
+    DynObject(DynObject* prototype_ = nullptr, Region* containing_region = get_local_region())
     : prototype(prototype_)
     {
-      if (!first_frame)
-      {
-        count++;
-        all_objects.insert(this);
-        auto local_region = get_local_region();
-        region = local_region;
-        local_region->objects.insert(this);
-      }
+      assert(containing_region != nullptr);
+      count++;
+      all_objects.insert(this);
+      region = containing_region;
+      containing_region->objects.insert(this);
 
       if (prototype != nullptr)
       {
@@ -163,12 +160,7 @@ namespace rt::objects
           return false;
 
         auto r = get_region(obj);
-        // If we are freezing something primitive it doesn't have a region
-        // So need to check for nullptr region here.
-        if (r != nullptr)
-        {
-          get_region(obj)->objects.erase(obj);
-        }
+        get_region(obj)->objects.erase(obj);
         obj->region.set_ptr(immutable_region);
 
         return !obj->is_cown();
