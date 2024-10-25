@@ -46,8 +46,8 @@ namespace rt::objects
       auto obj_region = get_region(obj);
       if (obj_region == r)
       {
-        std::cout << "Adding internal reference to object: "
-                  << obj->get_name() << std::endl;
+        std::cout << "Adding internal reference to object: " << obj->get_name()
+                  << std::endl;
         internal_references++;
         return false;
       }
@@ -65,7 +65,6 @@ namespace rt::objects
     std::cout << "Internal references found: " << internal_references
               << std::endl;
   }
-
 
   void remove_region_reference(Region* src, Region* target)
   {
@@ -211,7 +210,6 @@ namespace rt::objects
     obj->region = nullptr;
     delete obj;
   }
-
 
   void create_region(DynObject* obj)
   {
