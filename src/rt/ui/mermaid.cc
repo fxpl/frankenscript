@@ -34,7 +34,7 @@ namespace rt::ui
     replace(text, "[", "#91;");
     replace(text, "]", "#93;");
     replace(text, "(", "#40;");
-    replace(text, ")", "#40;");
+    replace(text, ")", "#41;");
     replace(text, "_", "#95;");
     replace(text, "<", "#60;");
     replace(text, ">", "#62;");
