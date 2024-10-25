@@ -15,7 +15,7 @@ namespace rt::core
 
   class FrameObject : public objects::DynObject
   {
-    FrameObject() : objects::DynObject(framePrototypeObject(), true) {}
+    FrameObject() : objects::DynObject(framePrototypeObject()) {}
 
   public:
     FrameObject(objects::DynObject* parent_frame)
@@ -58,8 +58,7 @@ namespace rt::core
   class FuncObject : public objects::DynObject
   {
   public:
-    FuncObject(objects::DynObject* prototype_, bool global = false)
-    : objects::DynObject(prototype_, global)
+    FuncObject(objects::DynObject* prototype_) : objects::DynObject(prototype_)
     {}
   };
 
@@ -197,7 +196,7 @@ namespace rt::core
   {
   public:
     CownObject(objects::DynObject* region)
-    : objects::DynObject(cownPrototypeObject())
+    : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
       // FIXME: Add once regions are reified
       // assert(
@@ -230,11 +229,6 @@ namespace rt::core
     {
       // For now there is no mechanism to aquire the cown, it'll therefore
       // always be opaque.
-      return true;
-    }
-
-    bool is_cown() override
-    {
       return true;
     }
   };

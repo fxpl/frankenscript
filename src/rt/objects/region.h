@@ -179,4 +179,9 @@ namespace rt::objects
   // encode special regions.
   using RegionPointer = utils::TaggedPointer<Region>;
 
+  inline Region immutable_region_impl;
+  inline constexpr Region* immutable_region{&immutable_region_impl};
+
+  inline Region cown_region_impl;
+  inline constexpr Region* cown_region{&cown_region_impl};
 } // namespace rt::objects
