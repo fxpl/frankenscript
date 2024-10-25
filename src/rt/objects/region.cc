@@ -166,7 +166,7 @@ namespace rt::objects
     remove_region_reference(src_region, target_region);
   }
 
-  inline void destruct(DynObject* obj)
+  void destruct(DynObject* obj)
   {
     // Called from the region destructor.
     // Remove all references to other objects.
@@ -201,7 +201,7 @@ namespace rt::objects
     }
   }
 
-  inline void dealloc(DynObject* obj)
+  void dealloc(DynObject* obj)
   {
     // Called from the region destructor.
     // So remove from region if in one.
