@@ -45,6 +45,11 @@ namespace utils
       ptr = (ptr & ~0x3) | tag;
     }
 
+    void set_ptr(T* new_ptr)
+    {
+      ptr = (ptr & 0x3) | reinterpret_cast<uintptr_t>(new_ptr);
+    }
+
     void add_tag(uintptr_t tag)
     {
       assert(tag < 4);

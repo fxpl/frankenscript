@@ -163,11 +163,13 @@ namespace rt::objects
           return false;
 
         auto r = get_region(obj);
+        // If we are freezing something primitive it doesn't have a region
+        // So need to check for nullptr region here.
         if (r != nullptr)
         {
           get_region(obj)->objects.erase(obj);
         }
-        obj->region.set_tag(ImmutableTag);
+        obj->region.set_ptr(immutable_region);
 
         return !obj->is_cown();
       });
@@ -175,7 +177,7 @@ namespace rt::objects
 
     bool is_immutable()
     {
-      return region.get_tag() == ImmutableTag;
+      return region.get_ptr() == immutable_region;
     }
 
     [[nodiscard]] DynObject* get(std::string name)

@@ -4,8 +4,7 @@ namespace rt::objects
 {
   Region* get_region(DynObject* obj)
   {
-    if ((obj == nullptr) || obj->is_immutable())
-      return nullptr;
+    assert(obj != nullptr);
     return obj->region.get_ptr();
   }
 
@@ -75,7 +74,7 @@ namespace rt::objects
     }
 
     // Handle immutable case
-    if (target == nullptr)
+    if (target == immutable_region)
       return;
 
     if (src == get_local_region())
@@ -94,6 +93,7 @@ namespace rt::objects
 
   void add_region_reference(Region* src_region, DynObject* target)
   {
+    assert(target != nullptr);
     if (target->is_immutable())
       return;
 
@@ -118,6 +118,7 @@ namespace rt::objects
 
   void add_reference(DynObject* src, DynObject* target)
   {
+    assert(src != nullptr);
     if (target == nullptr)
       return;
 
@@ -149,6 +150,8 @@ namespace rt::objects
 
   void move_reference(DynObject* src, DynObject* dst, DynObject* target)
   {
+    assert(src != nullptr);
+    assert(dst != nullptr);
     if (target == nullptr || target->is_immutable())
       return;
 
@@ -173,6 +176,8 @@ namespace rt::objects
     // If in the same region, then just remove the RC, but don't try to collect
     // as the whole region is being torndown including any potential cycles.
     auto same_region = [](DynObject* src, DynObject* target) {
+      assert(src != nullptr);
+      assert(target != nullptr);
       return get_region(src) == get_region(target);
     };
     for (auto& [key, field] : obj->fields)
@@ -190,8 +195,9 @@ namespace rt::objects
       remove_reference(obj, old_value);
     }
 
-    if (same_region(obj, obj->prototype))
+    if ((obj->prototype != nullptr) && same_region(obj, obj->prototype))
     {
+      // TODO When freeze is no longer immortal, this will need to be updated.
       obj->prototype->change_rc(-1);
     }
     else
