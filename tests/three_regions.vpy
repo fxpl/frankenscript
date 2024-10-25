@@ -18,9 +18,9 @@ e["f"] = {}
 region(e)
 
 
-# connect first region to second in two ways
+# connect first region
 a.c = c
-a.b.d = c.d
+
 # Connect first region to third with single entry point
 a.b.e = e.f
 
