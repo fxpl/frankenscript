@@ -11,6 +11,8 @@ c01 = cown(take a)
 # Store the cown in a global
 global.cown = take c01
 
+mermaid_show_tainted(global)
+
 # Freeze global with a cown
 freeze(global)
 

@@ -48,6 +48,9 @@ namespace rt::ui
     std::set<objects::DynObject*> unreachable_hide;
     /// Nodes that should never be visible.
     std::set<objects::DynObject*> always_hide;
+    /// @brief Nodes that should be tainted, meaning they and all reachable
+    /// nodes are highlighted.
+    std::set<rt::objects::DynObject*> taint;
 
   public:
     MermaidUI(int step_counter);
@@ -89,6 +92,16 @@ namespace rt::ui
     void remove_always_hide(objects::DynObject* obj)
     {
       always_hide.erase(obj);
+    }
+
+    void add_taint(objects::DynObject* obj)
+    {
+      taint.insert(obj);
+    }
+
+    void remove_taint(objects::DynObject* obj)
+    {
+      taint.erase(obj);
     }
   };
 

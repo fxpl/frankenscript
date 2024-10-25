@@ -4,7 +4,7 @@ a["self"] = a
 b = {}
 a["b"] = b
 region(a)
-
+mermaid_show_tainted(a)
 
 c = {}
 c["self"] = c
@@ -17,6 +17,7 @@ e["self"] = e
 e["f"] = {}
 region(e)
 
+mermaid_taint(a)
 
 # connect first region
 a.c = c
@@ -24,10 +25,11 @@ a.c = c
 # Connect first region to third with single entry point
 a.b.e = e.f
 
+mermaid_untaint(a)
+
 # Now freeze part of the first region, and the reachable parts of the 
 # second and third regions
 freeze(b)
-
 
 # Drop all the references
 drop a

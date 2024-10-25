@@ -58,6 +58,61 @@ namespace rt::core
       return std::nullopt;
     });
 
+    add_builtin(
+      "mermaid_show_tainted", [mermaid](auto frame, auto stack, auto args) {
+        assert(args >= 1);
+
+        std::vector<rt::objects::DynObject*> taint;
+        for (int i = 0; i < args; i++)
+        {
+          auto value = stack->back();
+          mermaid->add_taint(value);
+          taint.push_back(value);
+          rt::remove_reference(frame, value);
+          stack->pop_back();
+        }
+
+        // Mermaid output
+        std::vector<rt::objects::DynObject*> roots{frame};
+        mermaid->output(roots, "Builtin: display taint");
+
+        for (auto tainted : taint)
+        {
+          mermaid->remove_taint(tainted);
+        }
+
+        return std::nullopt;
+      });
+
+    add_builtin("mermaid_taint", [mermaid](auto frame, auto stack, auto args) {
+      assert(args >= 1);
+
+      for (int i = 0; i < args; i++)
+      {
+        auto value = stack->back();
+        mermaid->add_taint(value);
+        rt::remove_reference(frame, value);
+        stack->pop_back();
+      }
+
+      return std::nullopt;
+    });
+
+    add_builtin(
+      "mermaid_untaint", [mermaid](auto frame, auto stack, auto args) {
+        assert(args >= 1);
+
+        for (int i = 0; i < args; i++)
+        {
+          auto value = stack->back();
+          mermaid->remove_taint(value);
+          rt::remove_reference(frame, value);
+          stack->pop_back();
+        }
+
+        return std::nullopt;
+      });
+
     add_builtin("breakpoint", [mermaid](auto, auto, auto args) {
       assert(args == 0);
 
