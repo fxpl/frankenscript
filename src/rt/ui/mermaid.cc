@@ -10,6 +10,8 @@
 
 namespace rt::ui
 {
+  const char* TAINT_NODE_COLOR = "#43a";
+  const char* TAINT_EDGE_COLOR = "#9589dc";
 
   void replace(std::string& text, std::string from, std::string replace)
   {
@@ -25,6 +27,8 @@ namespace rt::ui
   {
     replace(text, "[", "#91;");
     replace(text, "]", "#93;");
+    replace(text, "(", "#40;");
+    replace(text, ")", "#40;");
     replace(text, "_", "#95;");
     replace(text, "<", "#60;");
     replace(text, ">", "#62;");
@@ -32,13 +36,29 @@ namespace rt::ui
     return text;
   }
 
+  struct NodeInfo
+  {
+    size_t id;
+    bool is_opaque;
+    std::vector<size_t> edges;
+  };
+
+  std::ostream& operator<<(std::ostream& os, const NodeInfo& node)
+  {
+    os << "id" << node.id;
+    return os;
+  }
+
   class MermaidDiagram
   {
     MermaidUI* info;
     std::ofstream& out;
 
+    size_t id_counter = 1;
+    size_t edge_counter = 0;
+
     // Give a nice id to each object.
-    std::map<objects::DynObject*, std::size_t> visited;
+    std::map<objects::DynObject*, NodeInfo> nodes;
     std::map<objects::Region*, std::vector<std::size_t>> region_strings;
     std::vector<std::size_t> immutable_objects;
 
@@ -62,66 +82,93 @@ namespace rt::ui
       draw_info();
 
       out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
-      out << "classDef tainted fill:#43a;" << std::endl;
+      out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
     }
 
   private:
+    /// @brief Draws the target node and the edge from the source to the target.
+    NodeInfo* draw_edge(objects::Edge e, bool reachable)
+    {
+      objects::DynObject* dst = e.target;
+      objects::DynObject* src = e.src;
+
+      if (src != nullptr)
+      {
+        auto src_node = &nodes[src];
+        out << "  " << *src_node;
+        out << ((src_node->is_opaque) ? "-.->" : "-->");
+        out << " |" << escape(e.key) << "| ";
+        src_node->edges.push_back(edge_counter);
+        edge_counter += 1;
+      }
+      if (nodes.find(dst) != nodes.end())
+      {
+        out << nodes[dst] << std::endl;
+        return nullptr;
+      }
+
+      // Draw a new node
+      nodes[dst] = {id_counter++, dst->is_opaque()};
+      auto node = &nodes[dst];
+
+      // Header
+      out << *node;
+      out << (dst->is_cown() ? "[[" : "[");
+
+      // Content
+      out << escape(dst->get_name());
+      out << "<br/>rc=" << dst->rc;
+      out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
+
+      // Footer
+      out << (dst->is_cown() ? "]]" : "]");
+      out << (reachable ? "" : ":::unreachable");
+      out << std::endl;
+
+      return node;
+    }
+
     void draw_nodes(std::vector<objects::DynObject*>& roots)
     {
-      visited[nullptr] = 0;
-      size_t id = 1;
-
-      bool unreachable = false;
+      nodes[nullptr] = {0};
+      bool reachable = true;
 
       auto explore = [&](objects::Edge e) {
         objects::DynObject* dst = e.target;
-        std::string key = e.key;
-        objects::DynObject* src = e.src;
         if (
           info->always_hide.contains(dst) ||
-          unreachable && info->unreachable_hide.contains(dst))
+          !reachable && info->unreachable_hide.contains(dst))
         {
           return false;
         }
-        if (src != nullptr)
+        auto node = draw_edge(e, reachable);
+        if (!node)
         {
-          out << "  id" << visited[src] << " -->|" << escape(key) << "| ";
-        }
-        if (visited.find(dst) != visited.end())
-        {
-          out << "id" << visited[dst] << std::endl;
           return false;
         }
-        auto curr_id = id++;
-        visited[dst] = curr_id;
-        out << "id" << curr_id << "[ ";
-        out << escape(dst->get_name());
-        out << "<br/>rc=" << dst->rc;
-
-        out << " ]" << (unreachable ? ":::unreachable" : "") << std::endl;
 
         auto region = objects::get_region(dst);
         if (region != nullptr)
         {
-          region_strings[region].push_back(curr_id);
+          region_strings[region].push_back(node->id);
         }
 
         if (dst->is_immutable())
         {
-          immutable_objects.push_back(curr_id);
+          immutable_objects.push_back(node->id);
         }
         return true;
       };
+
       // Output all reachable nodes
       for (auto& root : roots)
       {
         objects::visit(root, explore);
       }
-
       // Output the unreachable parts of the graph
-      unreachable = true;
+      reachable = false;
       for (auto& root : objects::DynObject::all_objects)
       {
         objects::visit({nullptr, "", root}, explore);
@@ -137,6 +184,7 @@ namespace rt::ui
           continue;
         out << "  region" << region->parent << "  <-.-o region" << region
             << std::endl;
+        edge_counter += 1;
       }
 
       // Output all the region membership information
@@ -181,14 +229,27 @@ namespace rt::ui
       std::set<objects::DynObject*> tainted;
       auto mark_tained = [&](objects::Edge e) {
         objects::DynObject* dst = e.target;
+
         if (tainted.contains(dst))
         {
           return false;
         }
-        out << "class id" << this->visited[dst] << " tainted;" << std::endl;
+        auto node = &this->nodes[dst];
+        out << "class " << *node << " tainted;" << std::endl;
         tainted.insert(dst);
 
-        return !dst->is_opaque();
+        if (dst->is_opaque())
+        {
+          return false;
+        }
+
+        for (auto edge_id : node->edges)
+        {
+          out << "linkStyle " << edge_id << " stroke:" << TAINT_EDGE_COLOR
+              << ",stroke-width:2px" << std::endl;
+        }
+
+        return true;
       };
 
       for (auto root : info->taint)
@@ -200,16 +261,18 @@ namespace rt::ui
     void draw_info()
     {
       auto globals = rt::core::globals();
-
       auto local_ctn = objects::DynObject::get_count() - globals->size();
 
-      std::stringstream info;
-
-      info << "  Locals: " << local_ctn << "<br/>";
-      info << "  Globals: " << globals->size() << "<br/>";
-
+      // Header
       out << "subgraph info" << std::endl;
-      out << "  i01[" << info.str() << "]" << std::endl;
+      out << "  i01[";
+
+      // Info
+      out << "Locals: " << local_ctn << "<br/>";
+      out << "Globals: " << globals->size() << "<br/>";
+
+      // Footer
+      out << "]" << std::endl;
       out << "end" << std::endl;
     }
   };
