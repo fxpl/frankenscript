@@ -26,6 +26,21 @@ set (TRIESTE_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable_ExcludeFromAll(trieste)
 set(CMAKE_CXX_STANDARD 20)
 
+if(SANITIZER)
+  message(STATUS "Run-time sanitizer=${SANITIZER}")
+endif()
+macro(add_san target)
+  # ASAN must be added first, or it gets upset.
+  if(SANITIZER)
+    if(MSVC)
+      message(FATAL_ERROR "MSVC does not support sanitizers")
+    endif()
+    target_compile_definitions(${target} INTERFACE -DSNMALLOC_PASS_THROUGH)
+    target_compile_options(${target} INTERFACE -g -fsanitize=${SANITIZER} -fno-omit-frame-pointer)
+    target_link_libraries(${target} INTERFACE -fsanitize=${SANITIZER})
+  endif()
+endmacro()
+
 add_library(
   rt OBJECT
   src/rt/rt.cc
@@ -33,6 +48,7 @@ add_library(
   src/rt/ui/mermaid.cc
   src/rt/core/builtin.cc
 )
+add_san(rt)
 
 add_library(
   lang OBJECT
@@ -44,9 +60,13 @@ add_library(
   src/lang/passes/flatten.cc
   src/lang/passes/bytecode.cc
 )
+add_san(lang)
+
 target_link_libraries(lang PRIVATE trieste::trieste)
 
 add_executable(verona_dyn src/main.cc)
+add_san(verona_dyn)
+
 target_link_libraries(verona_dyn PRIVATE rt lang)
 
 set_property(TARGET verona_dyn PROPERTY COMPILE_WARNING_AS_ERROR ON)
