@@ -33,7 +33,12 @@ namespace rt::ui
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 
-    bool interactive;
+    /// @brief Indicates if this is the first break and the help message should
+    /// be printed.
+    bool first_break = true;
+    /// @brief Indicates how many steps should be taken until entering
+    /// interactive mode again.
+    int steps;
     std::string path;
     std::ofstream out;
 
@@ -45,9 +50,21 @@ namespace rt::ui
     std::set<objects::DynObject*> always_hide;
 
   public:
-    MermaidUI(bool interactive);
+    MermaidUI(int step_counter);
 
     void output(std::vector<objects::DynObject*>& roots, std::string message);
+
+    void next_action();
+
+    void break_next()
+    {
+      steps = 0;
+    }
+
+    bool should_break()
+    {
+      return steps == 0;
+    }
 
     bool is_mermaid()
     {

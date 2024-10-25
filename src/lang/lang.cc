@@ -3,6 +3,7 @@
 #include "interpreter.h"
 #include "trieste/driver.h"
 
+#include <limits>
 #include <optional>
 
 using namespace trieste;
@@ -21,17 +22,23 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass()
 
 namespace verona::interpreter
 {
-  void start(trieste::Node main_body, bool interactive);
+  void start(trieste::Node main_body, int step_counter);
 }
 
 struct CLIOptions : trieste::Options
 {
-  bool iterative = false;
+  int step_counter = std::numeric_limits<int>::max();
 
   void configure(CLI::App& app)
   {
     app.add_flag(
-      "-i,--interactive", iterative, "Run the interpreter iteratively");
+      "-i,--interactive",
+      [&](auto) { step_counter = 0; },
+      "Run the interpreter iteratively");
+    app.add_option(
+      "-s,--step",
+      step_counter,
+      "Step n instructions before entering interactive mode");
   }
 };
 
@@ -48,7 +55,7 @@ int load_trieste(int argc, char** argv)
 
   if (build_res == 0 && result->has_value())
   {
-    verona::interpreter::start(result->value(), options.iterative);
+    verona::interpreter::start(result->value(), options.step_counter);
   }
   return build_res;
 }

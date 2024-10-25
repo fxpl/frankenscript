@@ -534,9 +534,9 @@ namespace verona::interpreter
     }
   };
 
-  void start(trieste::Node main_body, bool interactive)
+  void start(trieste::Node main_body, int step_counter)
   {
-    rt::ui::MermaidUI ui(interactive);
+    rt::ui::MermaidUI ui(step_counter);
 
     size_t initial = rt::pre_run(&ui);
 

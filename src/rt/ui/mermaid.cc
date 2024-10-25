@@ -3,6 +3,7 @@
 #include "../ui.h"
 
 #include <fstream>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -177,21 +178,22 @@ namespace rt::ui
     }
   };
 
-  MermaidUI::MermaidUI(bool interactive_) : interactive(interactive_)
+  MermaidUI::MermaidUI(int step_counter) : steps(step_counter)
   {
     path = "mermaid.md";
-
-    if (!interactive)
-    {
-      // Will be opened by the output function.
-      out.open(path);
-    }
   }
 
   void MermaidUI::output(
     std::vector<rt::objects::DynObject*>& roots, std::string message)
   {
-    if (interactive)
+    // Reset the file if this is a breakpoint
+    if (should_break() && out.is_open())
+    {
+      out.close();
+    }
+
+    // Open the file if it's not open
+    if (!out.is_open())
     {
       out.open(path);
     }
@@ -203,11 +205,62 @@ namespace rt::ui
     MermaidDiagram diag(this);
     diag.draw(roots);
 
-    if (interactive)
+    if (should_break())
     {
-      out.close();
-      std::cout << "Press a key!" << std::endl;
-      getchar();
+      out.flush();
+      next_action();
+    }
+    else
+    {
+      steps -= 1;
+    }
+  }
+
+  void print_help()
+  {
+    std::cout << "Commands:" << std::endl;
+    std::cout << "- s <n>: Run n step (default n = 0) [Default]" << std::endl;
+    std::cout << "- r    : Runs until the next break point" << std::endl;
+    std::cout << "- h    : Prints this message " << std::endl;
+  }
+
+  void MermaidUI::next_action()
+  {
+    if (first_break)
+    {
+      print_help();
+      first_break = false;
+    }
+
+    while (true)
+    {
+      std::cout << "> ";
+      std::string line;
+      std::getline(std::cin, line);
+      std::istringstream iss(line);
+      std::string command;
+      iss >> command;
+
+      if (command == "s" || line.empty())
+      {
+        int n = 0;
+        steps = (iss >> n) ? n : 0;
+
+        return;
+      }
+      else if (command == "r")
+      {
+        steps = std::numeric_limits<int>::max();
+        return;
+      }
+      else if (command == "h")
+      {
+        print_help();
+      }
+      else
+      {
+        std::cerr << "Unknown command. Type 'h' for help." << std::endl;
+      }
     }
   }
 } // namespace rt::ui
