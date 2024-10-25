@@ -77,6 +77,10 @@ namespace rt::objects
     if (target == immutable_region)
       return;
 
+    // Handle cown case
+    if (target == cown_region)
+      return;
+
     if (src == get_local_region())
     {
       Region::dec_lrc(target);
@@ -152,7 +156,7 @@ namespace rt::objects
   {
     assert(src != nullptr);
     assert(dst != nullptr);
-    if (target == nullptr || target->is_immutable())
+    if (target == nullptr || target->is_immutable() || target->is_cown())
       return;
 
     auto src_region = get_region(src);

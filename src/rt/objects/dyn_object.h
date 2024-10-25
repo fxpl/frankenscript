@@ -79,7 +79,9 @@ namespace rt::objects
     }
 
     // prototype is borrowed, the caller does not need to provide an RC.
-    DynObject(DynObject* prototype_ = nullptr, Region* containing_region = get_local_region())
+    DynObject(
+      DynObject* prototype_ = nullptr,
+      Region* containing_region = get_local_region())
     : prototype(prototype_)
     {
       assert(containing_region != nullptr);
@@ -146,9 +148,9 @@ namespace rt::objects
       return false;
     }
 
-    virtual bool is_cown()
+    bool is_cown()
     {
-      return false;
+      return region.get_ptr() == objects::cown_region;
     }
 
     void freeze()
@@ -156,14 +158,14 @@ namespace rt::objects
       // TODO SCC algorithm
       visit(this, [](Edge e) {
         auto obj = e.target;
-        if (!obj || obj->is_immutable())
+        if (!obj || obj->is_immutable() || obj->is_cown())
           return false;
 
         auto r = get_region(obj);
         get_region(obj)->objects.erase(obj);
         obj->region.set_ptr(immutable_region);
 
-        return !obj->is_cown();
+        return true;
       });
     }
 
