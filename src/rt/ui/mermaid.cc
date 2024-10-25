@@ -13,6 +13,12 @@ namespace rt::ui
   const char* TAINT_NODE_COLOR = "#43a";
   const char* TAINT_EDGE_COLOR = "#9589dc";
 
+  const char* CROSS_REGION_EDGE_COLOR = "orange";
+  const char* UNREACHABLE_NODE_COLOR = "red";
+
+  const char* IMMUTABLE_REGION_COLOR = "#32445d";
+  const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
+
   void replace(std::string& text, std::string from, std::string replace)
   {
     size_t pos = 0;
@@ -69,6 +75,12 @@ namespace rt::ui
       immutable_objects.push_back(0);
     }
 
+    void color_edge(size_t edge_id, const char* color)
+    {
+      out << "linkStyle " << edge_id << " stroke:" << color
+          << ",stroke-width:1px" << std::endl;
+    }
+
     void draw(std::vector<objects::DynObject*>& roots)
     {
       // Header
@@ -81,7 +93,8 @@ namespace rt::ui
       draw_taint();
       draw_info();
 
-      out << "classDef unreachable stroke:red,stroke-width:2px" << std::endl;
+      out << "classDef unreachable stroke-width:2px,stroke:"
+          << UNREACHABLE_NODE_COLOR << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
@@ -91,43 +104,65 @@ namespace rt::ui
     /// @brief Draws the target node and the edge from the source to the target.
     NodeInfo* draw_edge(objects::Edge e, bool reachable)
     {
+      NodeInfo* result = nullptr;
+      size_t edge_id = -1;
       objects::DynObject* dst = e.target;
       objects::DynObject* src = e.src;
 
+      // Draw edge
       if (src != nullptr)
       {
         auto src_node = &nodes[src];
         out << "  " << *src_node;
         out << ((src_node->is_opaque) ? "-.->" : "-->");
         out << " |" << escape(e.key) << "| ";
-        src_node->edges.push_back(edge_counter);
+        edge_id = edge_counter;
         edge_counter += 1;
+        src_node->edges.push_back(edge_id);
       }
+
+      // Draw target
       if (nodes.find(dst) != nodes.end())
       {
         out << nodes[dst] << std::endl;
-        return nullptr;
+      }
+      else
+      {
+        // Draw a new node
+        nodes[dst] = {id_counter++, dst->is_opaque()};
+        auto node = &nodes[dst];
+
+        // Header
+        out << *node;
+        out << (dst->is_cown() ? "[[" : "[");
+
+        // Content
+        out << escape(dst->get_name());
+        out << "<br/>rc=" << dst->rc;
+        out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
+
+        // Footer
+        out << (dst->is_cown() ? "]]" : "]");
+        out << (reachable ? "" : ":::unreachable");
+        out << std::endl;
+
+        result = node;
       }
 
-      // Draw a new node
-      nodes[dst] = {id_counter++, dst->is_opaque()};
-      auto node = &nodes[dst];
+      // Color edge
+      if (edge_id != -1)
+      {
+        if (!dst || dst->is_immutable())
+        {
+          color_edge(edge_id, IMMUTABLE_EDGE_COLOR);
+        }
+        else if (rt::objects::get_region(src) != rt::objects::get_region(dst))
+        {
+          color_edge(edge_id, CROSS_REGION_EDGE_COLOR);
+        }
+      }
 
-      // Header
-      out << *node;
-      out << (dst->is_cown() ? "[[" : "[");
-
-      // Content
-      out << escape(dst->get_name());
-      out << "<br/>rc=" << dst->rc;
-      out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
-
-      // Footer
-      out << (dst->is_cown() ? "]]" : "]");
-      out << (reachable ? "" : ":::unreachable");
-      out << std::endl;
-
-      return node;
+      return result;
     }
 
     void draw_nodes(std::vector<objects::DynObject*>& roots)
@@ -222,6 +257,7 @@ namespace rt::ui
         out << "  id" << obj << std::endl;
       }
       out << "end" << std::endl;
+      out << "style Immutable fill:" << IMMUTABLE_REGION_COLOR << std::endl;
     }
 
     void draw_taint()
@@ -245,8 +281,7 @@ namespace rt::ui
 
         for (auto edge_id : node->edges)
         {
-          out << "linkStyle " << edge_id << " stroke:" << TAINT_EDGE_COLOR
-              << ",stroke-width:2px" << std::endl;
+          color_edge(edge_id, TAINT_EDGE_COLOR);
         }
 
         return true;
