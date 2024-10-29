@@ -216,7 +216,13 @@ namespace rt::ui
       for (auto [region, objects] : region_strings)
       {
         if (region->parent == nullptr)
+        {
           continue;
+        }
+        if ((!info->draw_cown_region) && region->parent == objects::cown_region)
+        {
+          continue;
+        }
 
         out << "  region" << region->parent << "  <-.-o region" << region
             << std::endl;
@@ -226,6 +232,11 @@ namespace rt::ui
       // Output all the region membership information
       for (auto [region, objects] : region_strings)
       {
+        if ((!info->draw_cown_region) && region == objects::cown_region)
+        {
+          continue;
+        }
+
         out << "subgraph ";
 
         if (region == objects::get_local_region())
@@ -315,6 +326,8 @@ namespace rt::ui
   MermaidUI::MermaidUI(int step_counter) : steps(step_counter)
   {
     path = "mermaid.md";
+
+    hide_cown_region();
   }
 
   void MermaidUI::output(
@@ -396,5 +409,17 @@ namespace rt::ui
         std::cerr << "Unknown command. Type 'h' for help." << std::endl;
       }
     }
+  }
+
+  void MermaidUI::hide_cown_region()
+  {
+    draw_cown_region = false;
+    add_always_hide(core::cownPrototypeObject());
+  }
+
+  void MermaidUI::show_cown_region()
+  {
+    draw_cown_region = true;
+    remove_always_hide(core::cownPrototypeObject());
   }
 } // namespace rt::ui
