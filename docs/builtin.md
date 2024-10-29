@@ -16,11 +16,11 @@ Aborts the interpreter process. It's intended to indicate that an execution bran
 
 Creates a new region object.
 
-#### `cown(take region)`
+#### `cown(move region)`
 
 Creates a new `cown` object.
 
-The region must have a local reference count of one. The `take` keyword is used to replace the local value with `None`.
+The region must have a local reference count of one. The `move` keyword is used to replace the local value with `None`.
 
 ### `create(proto)`
 

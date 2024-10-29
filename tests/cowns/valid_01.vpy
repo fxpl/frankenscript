@@ -6,10 +6,10 @@ a.b = {}
 region(a)
 
 
-c01 = cown(take a)
+c01 = cown(move a)
 
 # Store the cown in a global
-global.cown = take c01
+global.cown = move c01
 
 mermaid_show_tainted(global)
 
