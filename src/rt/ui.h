@@ -51,6 +51,7 @@ namespace rt::ui
     /// @brief Nodes that should be tainted, meaning they and all reachable
     /// nodes are highlighted.
     std::set<rt::objects::DynObject*> taint;
+    bool draw_cown_region = false;
 
   public:
     MermaidUI(int step_counter);
@@ -103,6 +104,9 @@ namespace rt::ui
     {
       taint.erase(obj);
     }
+
+    void hide_cown_region();
+    void show_cown_region();
   };
 
   [[noreturn]] inline void error(const std::string& msg)
