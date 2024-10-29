@@ -1,7 +1,7 @@
 global = {}
 
 x = "x"
-freeze(x["__proto__"])
+freeze_proto("string")
 mermaid_hide(x["__proto__"])
 drop x
 

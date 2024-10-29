@@ -34,6 +34,10 @@ Performs a deep freeze of the object and all referenced objects.
 
 This will move the objects out of their current region into the immutable region. Cowns will stop the freeze propagation, as they can be safely shared across threads and behaviors.
 
+#### `freeze_proto(obj)`
+
+Performs a deep freeze of the prototype of the object.
+
 ## Mermaid
 
 #### `mermaid_hide(obj, ..)`
