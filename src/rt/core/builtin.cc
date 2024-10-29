@@ -113,6 +113,17 @@ namespace rt::core
         return std::nullopt;
       });
 
+    add_builtin("mermaid_show_cown_region", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->show_cown_region();
+      return std::nullopt;
+    });
+    add_builtin("mermaid_hide_cown_region", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->hide_cown_region();
+      return std::nullopt;
+    });
+
     add_builtin("breakpoint", [mermaid](auto, auto, auto args) {
       assert(args == 0);
 

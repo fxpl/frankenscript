@@ -64,3 +64,10 @@ The tainted status will remain until `mermaid_untaint` is called.
 
 Marks the given objects as untainted, thereby removing the highlights from the mermaid diagram.
 
+#### `mermaid_show_cown_region()`
+
+This explicitly shows the "Cown region" in the generated diagrams. (The region is hidden by default)
+
+#### `mermaid_hide_cown_region()`
+
+This hides the "Cown region" and cown prototype in diagram. (This is the default)
