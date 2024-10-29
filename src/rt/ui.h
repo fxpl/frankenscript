@@ -48,10 +48,13 @@ namespace rt::ui
     std::set<objects::DynObject*> unreachable_hide;
     /// Nodes that should never be visible.
     std::set<objects::DynObject*> always_hide;
-    /// @brief Nodes that should be tainted, meaning they and all reachable
+    /// Nodes that should be tainted, meaning they and all reachable
     /// nodes are highlighted.
     std::set<rt::objects::DynObject*> taint;
-    bool draw_cown_region = false;
+    /// Indicates if the cown region show be explicitly drawn
+    bool draw_cown_region;
+    /// Indicates if local functions should be visible
+    bool draw_funcs;
 
   public:
     MermaidUI(int step_counter);
@@ -103,6 +106,16 @@ namespace rt::ui
     void remove_taint(objects::DynObject* obj)
     {
       taint.erase(obj);
+    }
+
+    void show_functions()
+    {
+      draw_funcs = true;
+    }
+
+    void hide_functions()
+    {
+      draw_funcs = false;
     }
 
     void hide_cown_region();

@@ -66,8 +66,16 @@ Marks the given objects as untainted, thereby removing the highlights from the m
 
 #### `mermaid_show_cown_region()`
 
-This explicitly shows the "Cown region" in the generated diagrams. (The region is hidden by default)
+This explicitly shows the "Cown region" in the generated diagrams.
 
 #### `mermaid_hide_cown_region()`
 
 This hides the "Cown region" and cown prototype in diagram. (This is the default)
+
+#### `mermaid_show_functions()`
+
+Shows user defined functions in the diagram.
+
+#### `mermaid_hide_functions()`
+
+Hides user defined functions in the diagram. (This is the default)

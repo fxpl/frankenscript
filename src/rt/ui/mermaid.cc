@@ -178,7 +178,9 @@ namespace rt::ui
         objects::DynObject* dst = e.target;
         if (
           info->always_hide.contains(dst) ||
-          !reachable && info->unreachable_hide.contains(dst))
+          (!reachable && info->unreachable_hide.contains(dst)) ||
+          (!info->draw_funcs && dst &&
+           dst->get_prototype() == core::bytecodeFuncPrototypeObject()))
         {
           return false;
         }

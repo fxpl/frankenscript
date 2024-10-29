@@ -14,6 +14,7 @@ def three_args(a, b, c):
 def b_literal():
     return "B"
 
+mermaid_show_functions()
 
 # Store the return value
 value = no_args()

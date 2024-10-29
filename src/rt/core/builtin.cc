@@ -124,6 +124,17 @@ namespace rt::core
       return std::nullopt;
     });
 
+    add_builtin("mermaid_show_functions", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->show_functions();
+      return std::nullopt;
+    });
+    add_builtin("mermaid_hide_functions", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->hide_functions();
+      return std::nullopt;
+    });
+
     add_builtin("breakpoint", [mermaid](auto, auto, auto args) {
       assert(args == 0);
 
