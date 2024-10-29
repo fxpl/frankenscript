@@ -5,7 +5,7 @@ namespace verona::wf
   using namespace trieste::wf;
 
   inline const auto parse_tokens =
-    Ident | Lookup | Empty | Drop | Take | Null | String | Parens;
+    Ident | Lookup | Empty | Drop | Move | Null | String | Parens;
   inline const auto parse_groups =
     Group | Assign | If | Else | Block | For | Func | List | Return | While;
 
@@ -168,7 +168,7 @@ trieste::Parse parser()
           m.push(Block);
         },
       "drop\\b" >> [](auto& m) { m.add(Drop); },
-      "take\\b" >> [](auto& m) { m.add(Take); },
+      "move\\b" >> [](auto& m) { m.add(Move); },
       "None\\b" >> [](auto& m) { m.add(Null); },
       "[0-9A-Za-z_]+" >> [](auto& m) { m.add(Ident); },
       "\\[" >> [](auto& m) { m.push(Lookup); },

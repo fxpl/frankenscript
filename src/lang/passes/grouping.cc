@@ -18,8 +18,8 @@ PassDef grouping()
 
       T(Group) << ((T(Drop)[Drop] << End) * LV[Lhs] * End) >>
         [](auto& _) { return Assign << _(Lhs) << Null; },
-      T(Group) << ((T(Take)[Take] << End) * LV[Lhs] * End) >>
-        [](auto& _) { return create_from(Take, _(Take)) << _(Lhs); },
+      T(Group) << ((T(Move)[Move] << End) * LV[Lhs] * End) >>
+        [](auto& _) { return create_from(Move, _(Move)) << _(Lhs); },
 
       // function(arg, arg)
       --In(Func) *

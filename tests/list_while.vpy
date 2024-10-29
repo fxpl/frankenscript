@@ -29,9 +29,9 @@ def new_list():
 
     list = {}
     list.head = {}
-    list.insert = take insert
-    list.contains = take contains
-    list.remove = take remove
+    list.insert = move insert
+    list.contains = move contains
+    list.remove = move remove
     return list
 
 # Dyrona doesn't freeze shared objects automatically (yet)
