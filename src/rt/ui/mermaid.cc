@@ -19,6 +19,10 @@ namespace rt::ui
   const char* IMMUTABLE_REGION_COLOR = "#32445d";
   const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
 
+  const char* LOCAL_REGION_ID = "LocalReg";
+  const char* IMM_REGION_ID = "ImmReg";
+  const char* COWN_REGION_ID = "CownReg";
+
   void replace(std::string& text, std::string from, std::string replace)
   {
     size_t pos = 0;
@@ -66,13 +70,13 @@ namespace rt::ui
     // Give a nice id to each object.
     std::map<objects::DynObject*, NodeInfo> nodes;
     std::map<objects::Region*, std::vector<std::size_t>> region_strings;
-    std::vector<std::size_t> immutable_objects;
 
   public:
     MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out)
     {
-      // Add nullptr as immutable
-      immutable_objects.push_back(0);
+      // Add nullptr
+      nodes[nullptr] = {0};
+      region_strings[rt::objects::immutable_region].push_back(0);
     }
 
     void color_edge(size_t edge_id, const char* color)
@@ -89,10 +93,11 @@ namespace rt::ui
 
       draw_nodes(roots);
       draw_regions();
-      draw_immutable_region();
       draw_taint();
       draw_info();
 
+      out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
+          << std::endl;
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
@@ -167,7 +172,6 @@ namespace rt::ui
 
     void draw_nodes(std::vector<objects::DynObject*>& roots)
     {
-      nodes[nullptr] = {0};
       bool reachable = true;
 
       auto explore = [&](objects::Edge e) {
@@ -190,10 +194,6 @@ namespace rt::ui
           region_strings[region].push_back(node->id);
         }
 
-        if (dst->is_immutable())
-        {
-          immutable_objects.push_back(node->id);
-        }
         return true;
       };
 
@@ -217,6 +217,7 @@ namespace rt::ui
       {
         if (region->parent == nullptr)
           continue;
+
         out << "  region" << region->parent << "  <-.-o region" << region
             << std::endl;
         edge_counter += 1;
@@ -225,15 +226,27 @@ namespace rt::ui
       // Output all the region membership information
       for (auto [region, objects] : region_strings)
       {
-        out << "subgraph  ";
+        out << "subgraph ";
 
         if (region == objects::get_local_region())
         {
-          out << "local region" << std::endl;
+          out << LOCAL_REGION_ID << "[\"Local region\"]" << std::endl;
+        }
+        else if (region == objects::immutable_region)
+        {
+          out << IMM_REGION_ID << "[\"Immutable region\"]" << std::endl;
+          out << "  id0[nullptr]" << std::endl;
+        }
+        else if (region == objects::cown_region)
+        {
+          out << COWN_REGION_ID << "[\"Cown region\"]" << std::endl;
+          out << "  region" << region << "[\\" << region
+              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
+              << std::endl;
         }
         else
         {
-          out << std::endl;
+          out << " " << std::endl;
           out << "  region" << region << "[\\" << region
               << "<br/>lrc=" << region->local_reference_count
               << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
@@ -245,19 +258,6 @@ namespace rt::ui
         }
         out << "end" << std::endl;
       }
-    }
-
-    void draw_immutable_region()
-    {
-      // Output the immutable region.
-      out << "subgraph Immutable" << std::endl;
-      out << "  id0[nullptr]" << std::endl;
-      for (auto obj : immutable_objects)
-      {
-        out << "  id" << obj << std::endl;
-      }
-      out << "end" << std::endl;
-      out << "style Immutable fill:" << IMMUTABLE_REGION_COLOR << std::endl;
     }
 
     void draw_taint()
