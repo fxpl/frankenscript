@@ -179,6 +179,19 @@ namespace rt::core
       return std::nullopt;
     });
 
+    add_builtin("freeze_proto", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto value = pop(stack, "object to freeze the prototype");
+      if (value && value->get_prototype())
+      {
+        freeze(value->get_prototype());
+      }
+      rt::remove_reference(frame, value);
+
+      return std::nullopt;
+    });
+
     add_builtin("region", [](auto frame, auto stack, auto args) {
       assert(args == 1);
 
