@@ -42,6 +42,11 @@ namespace rt::objects
     // TODO: make this more efficient.
     std::set<DynObject*> objects{};
 
+    ~Region()
+    {
+      std::cout << "Destroying region: " << this << std::endl;
+    }
+
     size_t combined_lrc()
     {
       return local_reference_count + sub_region_reference_count;

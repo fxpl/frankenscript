@@ -90,7 +90,17 @@ namespace rt::objects
     if (src)
     {
       assert(target->parent == src);
+      std::cout << "Removing parent reference from region: " << src << " to " << target
+                << std::endl;
+      if (target->combined_lrc() != 0)
+      {
+        Region::dec_sbrc(target);
+        target->parent = nullptr;
+        return;
+      }
       target->parent = nullptr;
+      
+      Region::to_collect.push_back(target);
     }
     return;
   }
