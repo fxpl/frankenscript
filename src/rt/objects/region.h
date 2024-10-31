@@ -17,7 +17,7 @@ namespace rt::objects
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
-  void create_region(DynObject* object);
+  DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
 

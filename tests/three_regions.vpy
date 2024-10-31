@@ -1,21 +1,18 @@
 # Build three regions
-a = {}
+a = Region()
 a["self"] = a
 b = {}
 a["b"] = b
-region(a)
 mermaid_show_tainted(a)
 
-c = {}
+c = Region()
 c["self"] = c
 c["d"] = {}
-region(c)
 
 
-e = {}
+e = Region()
 e["self"] = e
 e["f"] = {}
-region(e)
 
 mermaid_taint(a)
 

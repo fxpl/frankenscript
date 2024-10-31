@@ -1,6 +1,5 @@
 # Creating a region
-a = {}
-region(a)
+a = Region()
 
 # LRC = 2
 r01 = a
