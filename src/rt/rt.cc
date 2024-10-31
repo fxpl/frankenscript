@@ -183,7 +183,7 @@ namespace rt
     return objects::DynObject::get_count();
   }
 
-  void post_run(size_t initial_count, ui::UI& ui)
+  void post_run(size_t initial_count, ui::UI* ui)
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
@@ -198,7 +198,7 @@ namespace rt
           roots.end(),
           [&globals](auto x) { return globals->contains(x); }),
         roots.end());
-      ui.output(roots, "Cycles detected in local region.");
+      ui->output(roots, "Cycles detected in local region.");
     }
 
     // Freeze global objects, to low the termination of the local region
@@ -221,7 +221,7 @@ namespace rt
       {
         roots.push_back(obj);
       }
-      ui.output(roots, "Memory leak detected!");
+      ui->output(roots, "Memory leak detected!");
 
       std::exit(1);
     }

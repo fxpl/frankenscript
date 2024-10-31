@@ -325,10 +325,8 @@ namespace rt::ui
     }
   };
 
-  MermaidUI::MermaidUI(int step_counter) : steps(step_counter)
+  MermaidUI::MermaidUI()
   {
-    path = "mermaid.md";
-
     hide_cown_region();
   }
 
@@ -423,5 +421,25 @@ namespace rt::ui
   {
     draw_cown_region = true;
     remove_always_hide(core::cownPrototypeObject());
+  }
+
+  void MermaidUI::error(std::string info)
+  {
+    // Make sure ui doesn't üause
+    steps += 10;
+
+    // Construct message
+    std::stringstream ss;
+    ss << "Error: " << info;
+    auto msg = ss.str();
+
+    // Get roots
+    auto nodes_set = objects::DynObject::all_objects;
+    std::vector<objects::DynObject*> nodes_vec(
+      nodes_set.begin(), nodes_set.end());
+
+    // Output
+    std::cerr << msg << std::endl;
+    output(nodes_vec, msg);
   }
 } // namespace rt::ui
