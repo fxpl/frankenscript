@@ -113,15 +113,21 @@ namespace rt::objects
 
       // Check if already parented to another region.
       if (r->parent != nullptr)
+      {
+        // FIXME: Highlight, once regions have been reified
         ui::error(
           "Region already has a parent: Creating region DAG not supported!");
+      }
 
       // Prevent creating a cycle
       auto ancestors = p->parent;
       while (ancestors != nullptr)
       {
         if (ancestors == r)
+        {
+          // FIXME: Highlight, once regions have been reified
           ui::error("Cycle created in region hierarchy");
+        }
         ancestors = ancestors->parent;
       }
 
