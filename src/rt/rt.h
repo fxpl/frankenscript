@@ -25,7 +25,7 @@ namespace rt
   objects::DynObject* make_cown(objects::DynObject* region);
 
   void freeze(objects::DynObject* obj);
-  void create_region(objects::DynObject* objects);
+  objects::DynObject* create_region();
 
   objects::DynObject* get(objects::DynObject* src, std::string key);
   objects::DynObject* get(objects::DynObject* src, objects::DynObject* key);

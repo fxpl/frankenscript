@@ -32,7 +32,8 @@ def new_list():
 list = new_list()
 
 # Required to not leak memory
-region(list)
+r = Region()
+r.list = list
 
 value = "x"
 

@@ -1,6 +1,5 @@
 # A simple cown
-a = {}
-region(a)
+a = Region()
 co = cown(move a)
 
 # Reading the cown is forbidden

@@ -46,7 +46,8 @@ drop freeze_and_hide_proto
 list = new_list()
 
 # Required to not leak memory
-region(list)
+r = Region()
+r.list = list
 
 value = "x"
 

@@ -1,6 +1,5 @@
 # A simple cown
-a = {}
-region(a)
+a = Region()
 co = cown(move a)
 
 # Modifying the cown is forbidden

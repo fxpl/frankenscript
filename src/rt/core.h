@@ -1,4 +1,5 @@
 #include "objects/prototype_object.h"
+#include "objects/region_object.h"
 #include "rt.h"
 
 #include <map>
@@ -232,6 +233,7 @@ namespace rt::core
   {
     static std::set<objects::DynObject*>* globals =
       new std::set<objects::DynObject*>{
+        objects::regionObjectPrototypeObject(),
         framePrototypeObject(),
         funcPrototypeObject(),
         bytecodeFuncPrototypeObject(),

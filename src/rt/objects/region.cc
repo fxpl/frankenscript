@@ -1,4 +1,5 @@
 #include "dyn_object.h"
+#include "region_object.h"
 
 namespace rt::objects
 {
@@ -231,12 +232,12 @@ namespace rt::objects
     delete obj;
   }
 
-  void create_region(DynObject* obj)
+  DynObject* create_region()
   {
     Region* r = new Region();
-    add_to_region(r, obj);
-    // Add root reference as external.
+    RegionObject* obj = new RegionObject(r);
     r->local_reference_count++;
+    return obj;
   }
 
 }

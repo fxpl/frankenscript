@@ -192,14 +192,11 @@ namespace rt::core
       return std::nullopt;
     });
 
-    add_builtin("region", [](auto frame, auto stack, auto args) {
-      assert(args == 1);
+    add_builtin("Region", [](auto frame, auto stack, auto args) {
+      assert(args == 0);
 
-      auto value = pop(stack, "region source");
-      rt::create_region(value);
-      rt::remove_reference(frame, value);
-
-      return std::nullopt;
+      auto value = rt::create_region();
+      return value;
     });
 
     add_builtin("unreachable", [](auto, auto, auto) {

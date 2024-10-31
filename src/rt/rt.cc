@@ -67,9 +67,9 @@ namespace rt
     obj->freeze();
   }
 
-  void create_region(objects::DynObject* object)
+  objects::DynObject* create_region()
   {
-    objects::create_region(object);
+    return objects::create_region();
   }
 
   objects::DynObject* get(objects::DynObject* obj, std::string key)
