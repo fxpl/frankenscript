@@ -33,8 +33,9 @@ namespace verona::wf
   inline const auto cond = Eq | Neq;
   inline const auto lv = Ident | Lookup;
   inline const auto rv =
-    lv | Empty | Null | String | Call | Method | Move | cond;
-  inline const auto cmp_values = Ident | Lookup | Null | Call | Method;
+    lv | Empty | Null | Int | String | Call | Method | Move | cond;
+  inline const auto cmp_values =
+    Ident | Lookup | Null | Call | Method | Int | String;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
 
@@ -60,15 +61,15 @@ namespace verona::wf
       SwapField | Drop | Null | CreateObject | IterNext | Print | Eq | Neq |
       Jump | JumpFalse | Label | Call | Return | ReturnValue | ClearStack |
       Dup)++) |
-    (CreateObject <<= (Dictionary | String | KeyIter | Func)) |
+    (CreateObject <<= (Dictionary | Int | String | KeyIter | Func)) |
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
 
 inline const auto COND = T(Eq, Neq);
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
-  T(Empty, Ident, Lookup, Null, String, Call, Method, Move, Eq, Neq);
-inline const auto CMP_V = T(Ident, Lookup, Null, Call, Method);
+  T(Empty, Ident, Lookup, Null, Int, String, Call, Method, Move, Eq, Neq);
+inline const auto CMP_V = T(Ident, Lookup, Null, Call, Method, Int, String);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);
 

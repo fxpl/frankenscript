@@ -68,7 +68,6 @@ namespace rt::core
           auto value = stack->back();
           mermaid->add_taint(value);
           taint.push_back(value);
-          rt::remove_reference(frame, value);
           stack->pop_back();
         }
 
@@ -79,6 +78,7 @@ namespace rt::core
         for (auto tainted : taint)
         {
           mermaid->remove_taint(tainted);
+          rt::remove_reference(frame, tainted);
         }
 
         return std::nullopt;

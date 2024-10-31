@@ -18,6 +18,7 @@ inline const trieste::TokenDef StoreField{"store_field"};
 inline const trieste::TokenDef SwapField{"swap_field"};
 inline const trieste::TokenDef CreateObject{"create_object"};
 inline const trieste::TokenDef Dictionary{"dictionary"};
+inline const trieste::TokenDef Int{"int", trieste::flag::print};
 inline const trieste::TokenDef String{"string", trieste::flag::print};
 inline const trieste::TokenDef KeyIter{"key_iter"};
 inline const trieste::TokenDef Func{"func"};

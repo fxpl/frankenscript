@@ -109,6 +109,8 @@ PassDef bytecode()
 
       T(Compile) << (T(Empty)) >>
         [](auto&) -> Node { return CreateObject << Dictionary; },
+      T(Compile) << (T(Int)[Int]) >>
+        [](auto& _) -> Node { return CreateObject << _(Int); },
       T(Compile) << (T(String)[String]) >>
         [](auto& _) -> Node { return CreateObject << _(String); },
 

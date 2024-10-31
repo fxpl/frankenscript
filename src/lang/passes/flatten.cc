@@ -8,8 +8,8 @@ namespace verona::wf
     (Body <<=
      (Assign | Move | Eq | Neq | Label | Jump | JumpFalse | Print | StoreFrame |
       LoadFrame | CreateObject | Ident | IterNext | StoreField | Lookup |
-      String | Call | Method | Return | ReturnValue | ClearStack)++) |
-    (CreateObject <<= (KeyIter | String | Dictionary | Func)) |
+      Int | String | Call | Method | Return | ReturnValue | ClearStack)++) |
+    (CreateObject <<= (KeyIter | Int | String | Dictionary | Func)) |
     (Func <<= Compile) | (Compile <<= Body) |
     (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Move <<= lv) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) | (Call <<= Ident * List) |

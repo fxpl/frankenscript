@@ -162,6 +162,11 @@ namespace verona::interpreter
         {
           obj = rt::make_object();
         }
+        else if (payload == Int)
+        {
+          auto int_value = std::stoul(std::string(payload->location().view()));
+          obj = rt::make_int(int_value);
+        }
         else if (payload == String)
         {
           obj = rt::make_str(std::string(payload->location().view()));

@@ -5,7 +5,7 @@ namespace verona::wf
   using namespace trieste::wf;
 
   inline const auto parse_tokens =
-    Ident | Lookup | Empty | Drop | Move | Null | String | Parens;
+    Ident | Lookup | Empty | Drop | Move | Null | Int | String | Parens;
   inline const auto parse_groups =
     Group | Assign | If | Else | Block | For | Func | List | Return | While;
 
@@ -170,7 +170,7 @@ trieste::Parse parser()
       "drop\\b" >> [](auto& m) { m.add(Drop); },
       "move\\b" >> [](auto& m) { m.add(Move); },
       "None\\b" >> [](auto& m) { m.add(Null); },
-      "[0-9A-Za-z_]+" >> [](auto& m) { m.add(Ident); },
+      "[A-Za-z_][0-9A-Za-z_]*" >> [](auto& m) { m.add(Ident); },
       "\\[" >> [](auto& m) { m.push(Lookup); },
       "\\]" >> [](auto& m) { m.term({Lookup}); },
       "\\.([0-9A-Za-z_]+)" >>
@@ -179,6 +179,7 @@ trieste::Parse parser()
           m.add(String, 1);
           m.term({Lookup});
         },
+      "[0-9]+" >> [](auto& m) { m.add(Int); },
       "\"([^\\n\"]+)\"" >> [](auto& m) { m.add(String, 1); },
       "==" >> [](auto& m) { m.seq(Eq); },
       "!=" >> [](auto& m) { m.seq(Neq); },
