@@ -423,7 +423,7 @@ namespace verona::interpreter
         }
         else
         {
-          rt::ui::error("Object is not a function");
+          rt::ui::error("Object is not a function", func);
         }
       }
 

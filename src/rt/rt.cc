@@ -78,11 +78,11 @@ namespace rt
     {
       if (obj->is_cown())
       {
-        ui::error("Cannot access data on a cown that is not aquired");
+        ui::error("Cannot access data on a cown that is not aquired", obj);
       }
       else
       {
-        ui::error("Cannot access data on an opaque type");
+        ui::error("Cannot access data on an opaque type", obj);
       }
     }
     return obj->get(key);
@@ -94,7 +94,7 @@ namespace rt
     // the prototype chain.
     if (key->get_prototype() != core::stringPrototypeObject())
     {
-      ui::error("Key must be a string.");
+      ui::error("Key must be a string.", key);
     }
     core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
     return str_key->as_key();
@@ -123,7 +123,7 @@ namespace rt
   {
     if (proto && proto->is_primitive() != nullptr)
     {
-      ui::error("Cannot set a primitive as a prototype.");
+      ui::error("Cannot set a primitive as a prototype.", proto);
     }
     if (obj == nullptr)
     {
@@ -131,7 +131,7 @@ namespace rt
     }
     if (obj->is_primitive() != nullptr)
     {
-      ui::error("Cannot set a prototype on a primitive object.");
+      ui::error("Cannot set a prototype on a primitive object.", obj);
     }
     return obj->set_prototype(proto);
   }
@@ -236,7 +236,7 @@ namespace rt
     assert(!iter->is_immutable());
     if (iter && iter->get_prototype() != core::keyIterPrototypeObject())
     {
-      ui::error("Object is not an iterator.");
+      ui::error("Object is not an iterator.", iter);
     }
 
     return reinterpret_cast<core::KeyIterObject*>(iter)->iter_next();
