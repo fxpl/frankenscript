@@ -15,6 +15,10 @@ namespace rt::ui
   public:
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
 
+    virtual void error(std::string){};
+    virtual void error(std::string, std::vector<objects::DynObject*>&){};
+    virtual void error(std::string, std::vector<objects::Edge>&){};
+
     virtual bool is_mermaid() = 0;
   };
 }
@@ -39,7 +43,7 @@ namespace rt::ui
     /// @brief Indicates how many steps should be taken until entering
     /// interactive mode again.
     int steps;
-    std::string path;
+    std::string path = "mermaid.md";
     std::ofstream out;
 
     /// Only visible if they're reachable.
@@ -56,12 +60,21 @@ namespace rt::ui
     /// Indicates if local functions should be visible
     bool draw_funcs;
 
-  public:
-    MermaidUI(int step_counter);
+    std::vector<objects::DynObject*> error_objects;
+    std::vector<objects::Edge> error_edges;
 
-    void output(std::vector<objects::DynObject*>& roots, std::string message);
+  public:
+    MermaidUI();
+
+    void output(
+      std::vector<objects::DynObject*>& roots, std::string message) override;
 
     void next_action();
+
+    void set_step_counter(int steps_)
+    {
+      this->steps = steps_;
+    }
 
     void break_next()
     {
@@ -120,11 +133,61 @@ namespace rt::ui
 
     void hide_cown_region();
     void show_cown_region();
+
+    void error(std::string) override;
+
+    void
+    error(std::string msg, std::vector<objects::DynObject*>& errors) override
+    {
+      std::swap(error_objects, errors);
+      error(msg);
+    };
+
+    void error(std::string msg, std::vector<objects::Edge>& errors) override
+    {
+      std::swap(error_edges, errors);
+      error(msg);
+    };
   };
+
+  inline UI* globalUI()
+  {
+    static UI* ui = new MermaidUI();
+    return ui;
+  }
 
   [[noreturn]] inline void error(const std::string& msg)
   {
-    std::cerr << "Error: " << msg << std::endl;
+    globalUI()->error(msg);
     std::exit(1);
   }
+
+  [[noreturn]] inline void
+  error(const std::string& msg, std::vector<objects::DynObject*>& errors)
+  {
+    globalUI()->error(msg, errors);
+    std::exit(1);
+  }
+
+  [[noreturn]] inline void
+  error(const std::string& msg, objects::DynObject* error_node)
+  {
+    std::vector<objects::DynObject*> errors = {error_node};
+    error(msg, errors);
+  }
+
+  [[noreturn]] inline void
+  error(const std::string& msg, std::vector<objects::Edge>& errors)
+  {
+    globalUI()->error(msg, errors);
+    std::exit(1);
+  }
+
+  [[noreturn]] inline void
+  error(const std::string& msg, objects::Edge error_edge)
+  {
+    std::vector<objects::Edge> errors = {error_edge};
+    error(msg, errors);
+  }
+
 } // namespace rt::ui
