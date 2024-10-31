@@ -42,6 +42,9 @@ namespace rt::objects
     // TODO: make this more efficient.
     std::set<DynObject*> objects{};
 
+    // Entry point object for the region.
+    DynObject* bridge{nullptr};
+
     ~Region()
     {
       std::cout << "Destroying region: " << this << std::endl;

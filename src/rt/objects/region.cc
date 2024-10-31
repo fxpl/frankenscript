@@ -246,6 +246,7 @@ namespace rt::objects
   {
     Region* r = new Region();
     RegionObject* obj = new RegionObject(r);
+    r->bridge = obj;
     r->local_reference_count++;
     return obj;
   }
