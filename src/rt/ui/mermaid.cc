@@ -15,6 +15,7 @@ namespace rt::ui
 
   const char* CROSS_REGION_EDGE_COLOR = "orange";
   const char* UNREACHABLE_NODE_COLOR = "red";
+  const char* ERROR_NODE_COLOR = "red";
 
   const char* IMMUTABLE_REGION_COLOR = "#32445d";
   const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
@@ -94,12 +95,15 @@ namespace rt::ui
       draw_nodes(roots);
       draw_regions();
       draw_taint();
+      draw_error();
       draw_info();
 
       out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
           << std::endl;
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
+      out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
+          << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
@@ -306,6 +310,15 @@ namespace rt::ui
       }
     }
 
+    void draw_error()
+    {
+      for (auto node : info->error_objects)
+      {
+        auto node_info = &this->nodes[node];
+        out << "class " << *node_info << " error;" << std::endl;
+      }
+    }
+
     void draw_info()
     {
       auto globals = rt::core::globals();
@@ -425,7 +438,7 @@ namespace rt::ui
 
   void MermaidUI::error(std::string info)
   {
-    // Make sure ui doesn't üause
+    // Make sure ui doesn't pause
     steps += 10;
 
     // Construct message
@@ -434,9 +447,28 @@ namespace rt::ui
     auto msg = ss.str();
 
     // Get roots
-    auto nodes_set = objects::DynObject::all_objects;
-    std::vector<objects::DynObject*> nodes_vec(
-      nodes_set.begin(), nodes_set.end());
+    auto local_set = objects::get_local_region()->get_objects();
+    std::vector<objects::DynObject*> nodes_vec;
+    for (auto item : local_set)
+    {
+      if (always_hide.contains(item) || unreachable_hide.contains(item))
+      {
+        continue;
+      }
+      nodes_vec.push_back(item);
+    }
+    for (auto item : error_objects)
+    {
+      always_hide.erase(item);
+      nodes_vec.push_back(item);
+    }
+    for (auto edge : error_edges)
+    {
+      always_hide.erase(edge.src);
+      always_hide.erase(edge.target);
+      nodes_vec.push_back(edge.src);
+      nodes_vec.push_back(edge.target);
+    }
 
     // Output
     std::cerr << msg << std::endl;
