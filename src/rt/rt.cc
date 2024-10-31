@@ -201,7 +201,7 @@ namespace rt
       ui->output(roots, "Cycles detected in local region.");
     }
 
-    // Freeze global objects, to low the termination of the local region
+    // Freeze global objects, to allow the termination of the local region
     std::cout << "Freezing global objects" << std::endl;
     for (auto obj : *globals)
     {
