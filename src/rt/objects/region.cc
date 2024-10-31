@@ -52,6 +52,11 @@ namespace rt::objects
         return false;
       }
 
+      if (obj->get_prototype() != objects::regionObjectPrototypeObject())
+      {
+        ui::error("Cannot add interior region object to another region");
+      }
+
       Region::set_parent(obj_region, r);
       Region::dec_lrc(obj_region);
       return false;
@@ -126,6 +131,11 @@ namespace rt::objects
     {
       add_to_region(src_region, target);
       return;
+    }
+
+    if (target->get_prototype() != objects::regionObjectPrototypeObject())
+    {
+      ui::error("Cannot add interior region object to another region");
     }
 
     Region::set_parent(target_region, src_region);
