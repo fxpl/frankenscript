@@ -40,6 +40,11 @@ namespace rt
     return new core::KeyIterObject(iter_src->fields);
   }
 
+  objects::DynObject* make_int(int value)
+  {
+    return new core::IntObject(value);
+  }
+
   objects::DynObject* make_str(std::string value)
   {
     return new core::StringObject(value);

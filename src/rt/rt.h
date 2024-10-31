@@ -19,6 +19,7 @@ namespace rt
 
   objects::DynObject* make_func(verona::interpreter::Bytecode* body);
   objects::DynObject* make_iter(objects::DynObject* iter_src);
+  objects::DynObject* make_int(int value);
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
   objects::DynObject* make_frame(objects::DynObject* parent);

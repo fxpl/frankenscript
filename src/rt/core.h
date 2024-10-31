@@ -98,6 +98,34 @@ namespace rt::core
     }
   };
 
+  inline PrototypeObject* intPrototypeObject()
+  {
+    static PrototypeObject* proto = new PrototypeObject("Integer");
+    return proto;
+  }
+
+  class IntObject : public objects::DynObject
+  {
+    int value;
+
+  public:
+    IntObject(int value_)
+    : objects::DynObject(intPrototypeObject()), value(value_)
+    {}
+
+    std::string get_name() override
+    {
+      std::stringstream stream;
+      stream << value;
+      return stream.str();
+    }
+
+    objects::DynObject* is_primitive() override
+    {
+      return this;
+    }
+  };
+
   inline PrototypeObject* stringPrototypeObject()
   {
     static PrototypeObject* proto = new PrototypeObject("String");
@@ -236,6 +264,7 @@ namespace rt::core
         funcPrototypeObject(),
         bytecodeFuncPrototypeObject(),
         builtinFuncPrototypeObject(),
+        intPrototypeObject(),
         stringPrototypeObject(),
         keyIterPrototypeObject(),
         cownPrototypeObject(),
