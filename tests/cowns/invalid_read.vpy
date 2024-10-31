@@ -1,7 +1,7 @@
 # A simple cown
 a = {}
 region(a)
-co = cown(take a)
+co = cown(move a)
 
 # Reading the cown is forbidden
-dummy = co.region
+dummy = co.value

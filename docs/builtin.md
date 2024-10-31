@@ -16,11 +16,11 @@ Aborts the interpreter process. It's intended to indicate that an execution bran
 
 Creates a new region object.
 
-#### `cown(take region)`
+#### `cown(move region)`
 
 Creates a new `cown` object.
 
-The region must have a local reference count of one. The `take` keyword is used to replace the local value with `None`.
+The region must have a local reference count of one. The `move` keyword is used to replace the local value with `None`.
 
 ### `create(proto)`
 
@@ -33,6 +33,10 @@ Creates a new object from the given prototype.
 Performs a deep freeze of the object and all referenced objects.
 
 This will move the objects out of their current region into the immutable region. Cowns will stop the freeze propagation, as they can be safely shared across threads and behaviors.
+
+#### `freeze_proto(obj)`
+
+Performs a deep freeze of the prototype of the object.
 
 ## Mermaid
 
@@ -64,3 +68,18 @@ The tainted status will remain until `mermaid_untaint` is called.
 
 Marks the given objects as untainted, thereby removing the highlights from the mermaid diagram.
 
+#### `mermaid_show_cown_region()`
+
+This explicitly shows the "Cown region" in the generated diagrams.
+
+#### `mermaid_hide_cown_region()`
+
+This hides the "Cown region" and cown prototype in diagram. (This is the default)
+
+#### `mermaid_show_functions()`
+
+Shows user defined functions in the diagram.
+
+#### `mermaid_hide_functions()`
+
+Hides user defined functions in the diagram. (This is the default)

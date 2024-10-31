@@ -113,6 +113,28 @@ namespace rt::core
         return std::nullopt;
       });
 
+    add_builtin("mermaid_show_cown_region", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->show_cown_region();
+      return std::nullopt;
+    });
+    add_builtin("mermaid_hide_cown_region", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->hide_cown_region();
+      return std::nullopt;
+    });
+
+    add_builtin("mermaid_show_functions", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->show_functions();
+      return std::nullopt;
+    });
+    add_builtin("mermaid_hide_functions", [mermaid](auto, auto, auto args) {
+      assert(args == 0);
+      mermaid->hide_functions();
+      return std::nullopt;
+    });
+
     add_builtin("breakpoint", [mermaid](auto, auto, auto args) {
       assert(args == 0);
 
@@ -152,6 +174,19 @@ namespace rt::core
 
       auto value = pop(stack, "object to freeze");
       freeze(value);
+      rt::remove_reference(frame, value);
+
+      return std::nullopt;
+    });
+
+    add_builtin("freeze_proto", [](auto frame, auto stack, auto args) {
+      assert(args == 1);
+
+      auto value = pop(stack, "object to freeze the prototype");
+      if (value && value->get_prototype())
+      {
+        freeze(value->get_prototype());
+      }
       rt::remove_reference(frame, value);
 
       return std::nullopt;

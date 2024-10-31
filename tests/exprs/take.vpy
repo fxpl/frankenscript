@@ -1,7 +1,7 @@
 a = {}
 a.var = "hey"
 
-temp = take a.var
-a.var = take temp
+temp = move a.var
+a.var = move temp
 
-a.var = take a.var
+a.var = move a.var

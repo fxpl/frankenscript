@@ -16,7 +16,7 @@ inline const TokenDef Else{"else"};
 inline const TokenDef Block{"block"};
 inline const TokenDef Empty{"empty"};
 inline const TokenDef Drop{"drop"};
-inline const TokenDef Take{"take"};
+inline const TokenDef Move{"move"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
 inline const TokenDef Method{"method"};
@@ -33,7 +33,7 @@ namespace verona::wf
   inline const auto cond = Eq | Neq;
   inline const auto lv = Ident | Lookup;
   inline const auto rv =
-    lv | Empty | Null | String | Call | Method | Take | cond;
+    lv | Empty | Null | String | Call | Method | Move | cond;
   inline const auto cmp_values = Ident | Lookup | Null | Call | Method;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
@@ -43,7 +43,7 @@ namespace verona::wf
     (Block <<=
      (Assign | If | For | While | Func | Return | ReturnValue | Call |
       Method)++) |
-    (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Take <<= (Lhs >>= lv)) |
+    (Assign <<= (Lhs >>= lv) * (Rhs >>= rv)) | (Move <<= (Lhs >>= lv)) |
     (Lookup <<= (Op >>= operand) * (Rhs >>= key)) |
     (If <<= (Op >>= cond) * Block * Block) | (While <<= (Op >>= cond) * Block) |
     (While <<= (Op >>= cond) * Block) |
@@ -67,7 +67,7 @@ namespace verona::wf
 inline const auto COND = T(Eq, Neq);
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
-  T(Empty, Ident, Lookup, Null, String, Call, Method, Take, Eq, Neq);
+  T(Empty, Ident, Lookup, Null, String, Call, Method, Move, Eq, Neq);
 inline const auto CMP_V = T(Ident, Lookup, Null, Call, Method);
 inline const auto KEY = T(Ident, Lookup, String);
 inline const auto OPERAND = T(Lookup, Call, Method, Ident);
