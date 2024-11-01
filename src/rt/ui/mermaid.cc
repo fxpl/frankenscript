@@ -84,7 +84,6 @@ namespace rt::ui
 
     // Give a nice id to each object.
     std::map<objects::DynObject*, NodeInfo> nodes;
-    std::map<objects::Region*, std::vector<std::size_t>> region_strings;
     std::map<objects::Region*, RegionInfo> regions;
 
   public:
@@ -198,8 +197,10 @@ namespace rt::ui
         // Footer
         out << markers.second;
         out
-          << (dst->is_immutable() ? ":::immutable" :
-                                    (reachable ? "" : ":::unreachable"));
+          << (dst->is_immutable() ?
+                ":::immutable" :
+                (reachable && info->highlight_unreachable ? "" :
+                                                            ":::unreachable"));
         out << std::endl;
 
         result = node;
@@ -503,6 +504,7 @@ namespace rt::ui
   {
     // Make sure ui doesn't pause
     steps += 10;
+    highlight_unreachable = false;
 
     // Construct message
     std::stringstream ss;

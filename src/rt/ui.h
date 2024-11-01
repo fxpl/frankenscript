@@ -60,6 +60,7 @@ namespace rt::ui
     bool draw_immutable_region;
     /// Indicates if local functions should be visible
     bool draw_funcs;
+    bool highlight_unreachable = true;
 
     std::vector<objects::DynObject*> error_objects;
     std::vector<objects::Edge> error_edges;
