@@ -106,9 +106,9 @@ namespace rt::objects
       // Check if already parented to another region.
       if (r->parent != nullptr)
       {
-        // FIXME: Highlight, once regions have been reified
         ui::error(
-          "Region already has a parent: Creating region DAG not supported!");
+          "Region already has a parent: Creating region DAG not supported!",
+          r->bridge);
       }
 
       // Prevent creating a cycle
@@ -118,7 +118,7 @@ namespace rt::objects
         if (ancestors == r)
         {
           // FIXME: Highlight, once regions have been reified
-          ui::error("Cycle created in region hierarchy");
+          ui::error("Cycle created in region hierarchy", r->bridge);
         }
         ancestors = ancestors->parent;
       }

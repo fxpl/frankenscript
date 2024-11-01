@@ -92,7 +92,7 @@ namespace rt
   {
     // TODO Add some checking.  This is need to lookup the correct function in
     // the prototype chain.
-    if (key->get_prototype() != core::stringPrototypeObject())
+    if (key && key->get_prototype() != core::stringPrototypeObject())
     {
       ui::error("Key must be a string.", key);
     }

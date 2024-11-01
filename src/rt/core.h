@@ -196,19 +196,24 @@ namespace rt::core
   class CownObject : public objects::DynObject
   {
   public:
-    CownObject(objects::DynObject* region)
+    CownObject(objects::DynObject* bridge)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
-      // FIXME: Add once regions are reified
-      // assert(
-      //   region->get_prototype() == regionPrototype() &&
-      //   "Cowns can only store regions");
-      //
-      // FIXME: Also check that the region has a LRC == 1, with 1
-      // being the reference passed into this constructor
+      auto region = objects::get_region(bridge);
+      if (region->bridge != bridge)
+      {
+        std::stringstream ss;
+        ss << bridge << " is not the bridge object of the region";
+        ui::error(ss.str(), bridge);
+      }
+
+      if (region->local_reference_count > 1)
+      {
+        ui::error("The given region has a LRC > 1", bridge);
+      }
 
       // this->set would fail, since this is a cown
-      this->fields["value"] = region;
+      this->fields["value"] = bridge;
     }
 
     std::string get_name() override
