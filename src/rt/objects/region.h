@@ -55,18 +55,7 @@ namespace rt::objects
       return local_reference_count + sub_region_reference_count;
     }
 
-    static void action(Region* r)
-    {
-      if ((r->local_reference_count == 0) && (r->parent == nullptr))
-      {
-        // TODO, this can be hooked to perform delayed operations like send.
-        //  Needs to check for sub_region_reference_count for send, but not
-        //  deallocate.
-
-        to_collect.push_back(r);
-        std::cout << "Collecting region: " << r << std::endl;
-      }
-    }
+    static void action(Region*);
 
     static void dec_lrc(Region* r)
     {
