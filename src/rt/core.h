@@ -233,7 +233,7 @@ namespace rt::core
   {
     static std::set<objects::DynObject*>* globals =
       new std::set<objects::DynObject*>{
-        objects::regionObjectPrototypeObject(),
+        objects::regionPrototypeObject(),
         framePrototypeObject(),
         funcPrototypeObject(),
         bytecodeFuncPrototypeObject(),
