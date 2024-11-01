@@ -1,3 +1,4 @@
+#pragma once
 
 #include "dyn_object.h"
 
@@ -8,8 +9,11 @@ namespace rt::objects
     std::string name;
 
   public:
-    PrototypeObject(std::string name_, objects::DynObject* prototype = nullptr)
-    : objects::DynObject(prototype), name(name_)
+    PrototypeObject(
+      std::string name_,
+      objects::DynObject* prototype = nullptr,
+      objects::Region* region = objects::immutable_region)
+    : objects::DynObject(prototype, region), name(name_)
     {}
 
     std::string get_name()

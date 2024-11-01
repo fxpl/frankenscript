@@ -6,9 +6,8 @@ mermaid_hide(x["__proto__"])
 drop x
 
 def add_cown(obj, name):
-    a = {}
+    a = Region()
     a.name = name
-    region(a)
     obj[name] = cown(move a)
 
 add_cown(global, "c1")

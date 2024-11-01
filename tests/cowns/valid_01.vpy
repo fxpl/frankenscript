@@ -1,9 +1,8 @@
 global = {}
 
 # A simple cown
-a = {}
+a = Region()
 a.b = {}
-region(a)
 
 
 c01 = cown(move a)

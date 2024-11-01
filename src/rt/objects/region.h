@@ -17,7 +17,7 @@ namespace rt::objects
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
-  void create_region(DynObject* object);
+  DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
 
@@ -41,6 +41,9 @@ namespace rt::objects
     // The objects in this region.
     // TODO: make this more efficient.
     std::set<DynObject*> objects{};
+
+    // Entry point object for the region.
+    DynObject* bridge{nullptr};
 
     ~Region()
     {

@@ -8,14 +8,12 @@
 # There is no current way to test for (b).  So we just test for (a).
 
 # Create a region with a self reference
-a = {}
+a = Region()
 a.self = a
-region(a)
 
 # Create a subregion with a self reference
-b = {}
+b = Region()
 b.self = b
-region(b)
 
 # Nest the regions
 a.b = b

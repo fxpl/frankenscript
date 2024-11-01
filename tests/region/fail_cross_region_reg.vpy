@@ -1,14 +1,11 @@
 # Root a
-a = {}
-region(a)
+a = Region()
 
 # Root b
-b = {}
-region(b)
+b = Region()
 
 # Child region
-c = {}
-region(c)
+c = Region()
 a.child = c
 
 # Error

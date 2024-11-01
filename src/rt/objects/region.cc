@@ -1,4 +1,5 @@
 #include "dyn_object.h"
+#include "region_object.h"
 
 namespace rt::objects
 {
@@ -49,6 +50,11 @@ namespace rt::objects
                   << std::endl;
         internal_references++;
         return false;
+      }
+
+      if (obj->get_prototype() != objects::regionObjectPrototypeObject())
+      {
+        ui::error("Cannot add interior region object to another region");
       }
 
       Region::set_parent(obj_region, r);
@@ -125,6 +131,11 @@ namespace rt::objects
     {
       add_to_region(src_region, target);
       return;
+    }
+
+    if (target->get_prototype() != objects::regionObjectPrototypeObject())
+    {
+      ui::error("Cannot add interior region object to another region");
     }
 
     Region::set_parent(target_region, src_region);
@@ -231,12 +242,13 @@ namespace rt::objects
     delete obj;
   }
 
-  void create_region(DynObject* obj)
+  DynObject* create_region()
   {
     Region* r = new Region();
-    add_to_region(r, obj);
-    // Add root reference as external.
+    RegionObject* obj = new RegionObject(r);
+    r->bridge = obj;
     r->local_reference_count++;
+    return obj;
   }
 
 }
