@@ -24,6 +24,8 @@ namespace rt::ui
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
 
+  const char* FONT_SIZE = "16px";
+
   void replace(std::string& text, std::string from, std::string replace)
   {
     size_t pos = 0;
@@ -90,6 +92,8 @@ namespace rt::ui
     {
       // Header
       out << "```mermaid" << std::endl;
+      out << "%%{init: {'themeVariables': { 'fontSize': '" << FONT_SIZE
+          << "' }}}%%";
       out << "graph TD" << std::endl;
 
       draw_nodes(roots);
