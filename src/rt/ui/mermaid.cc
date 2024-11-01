@@ -103,7 +103,6 @@ namespace rt::ui
       draw_regions();
       draw_taint();
       draw_error();
-      draw_info();
 
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
@@ -358,24 +357,6 @@ namespace rt::ui
         auto node_info = &this->nodes[node];
         out << "class " << *node_info << " error;" << std::endl;
       }
-    }
-
-    void draw_info()
-    {
-      auto globals = rt::core::globals();
-      auto local_ctn = objects::DynObject::get_count() - globals->size();
-
-      // Header
-      out << "subgraph info" << std::endl;
-      out << "  i01[";
-
-      // Info
-      out << "Locals: " << local_ctn << "<br/>";
-      out << "Globals: " << globals->size() << "<br/>";
-
-      // Footer
-      out << "]" << std::endl;
-      out << "end" << std::endl;
     }
   };
 
