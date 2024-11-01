@@ -46,6 +46,7 @@ namespace rt::ui
     replace(text, "<", "#60;");
     replace(text, ">", "#62;");
     replace(text, "\"", "#34;");
+    replace(text, "\n", "<br/>");
     return text;
   }
 
@@ -114,6 +115,22 @@ namespace rt::ui
     }
 
   private:
+    std::pair<const char*, const char*>
+    get_node_markers(objects::DynObject* obj)
+    {
+      if (obj->get_prototype() == core::cownPrototypeObject())
+      {
+        return {"[[", "]]"};
+      }
+
+      if (obj->get_prototype() == objects::regionPrototypeObject())
+      {
+        return {"[\\", "/]"};
+      }
+
+      return {"[", "]"};
+    }
+
     /// @brief Draws the target node and the edge from the source to the target.
     NodeInfo* draw_edge(objects::Edge e, bool reachable)
     {
@@ -144,10 +161,11 @@ namespace rt::ui
         // Draw a new node
         nodes[dst] = {id_counter++, dst->is_opaque()};
         auto node = &nodes[dst];
+        auto markers = get_node_markers(dst);
 
         // Header
         out << *node;
-        out << (dst->is_cown() ? "[[" : "[");
+        out << markers.first;
 
         // Content
         out << escape(dst->get_name());
@@ -155,7 +173,7 @@ namespace rt::ui
         out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
 
         // Footer
-        out << (dst->is_cown() ? "]]" : "]");
+        out << markers.second;
         out << (reachable ? "" : ":::unreachable");
         out << std::endl;
 
@@ -267,11 +285,7 @@ namespace rt::ui
         }
         else
         {
-          out << " " << std::endl;
-          out << "  region" << region << "[\\" << region
-              << "<br/>lrc=" << region->local_reference_count
-              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
-              << std::endl;
+          out << "region" << region << "[\" \"]" << std::endl;
         }
         for (auto obj : objects)
         {

@@ -52,7 +52,7 @@ namespace rt::objects
         return false;
       }
 
-      if (obj->get_prototype() != objects::regionObjectPrototypeObject())
+      if (obj->get_prototype() != objects::regionPrototypeObject())
       {
         ui::error("Cannot add interior region object to another region");
       }
@@ -133,7 +133,7 @@ namespace rt::objects
       return;
     }
 
-    if (target->get_prototype() != objects::regionObjectPrototypeObject())
+    if (target->get_prototype() != objects::regionPrototypeObject())
     {
       ui::error("Cannot add interior region object to another region");
     }
