@@ -423,7 +423,7 @@ namespace verona::interpreter
         }
         else
         {
-          rt::ui::error("Object is not a function");
+          rt::ui::error("Object is not a function", func);
         }
       }
 
@@ -536,11 +536,15 @@ namespace verona::interpreter
 
   void start(trieste::Node main_body, int step_counter)
   {
-    rt::ui::MermaidUI ui(step_counter);
+    auto ui = rt::ui::globalUI();
+    if (ui->is_mermaid())
+    {
+      reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
+    }
 
-    size_t initial = rt::pre_run(&ui);
+    size_t initial = rt::pre_run(ui);
 
-    Interpreter inter(&ui);
+    Interpreter inter(ui);
     inter.run(main_body);
 
     rt::post_run(initial, ui);

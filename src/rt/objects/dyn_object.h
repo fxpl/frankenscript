@@ -113,7 +113,7 @@ namespace rt::objects
         std::stringstream stream;
         stream << this;
         stream << "  still has references";
-        ui::error(stream.str());
+        ui::error(stream.str(), this);
       }
 
       auto r = get_region(this);
@@ -196,18 +196,18 @@ namespace rt::objects
     {
       if (is_immutable())
       {
-        ui::error("Cannot mutate immutable object");
+        ui::error("Cannot mutate immutable object", this);
       }
 
       if (is_opaque())
       {
         if (is_cown())
         {
-          ui::error("Cannot mutate a cown that is not aquired");
+          ui::error("Cannot mutate a cown that is not aquired", this);
         }
         else
         {
-          ui::error("Cannot mutate opaque object");
+          ui::error("Cannot mutate opaque object", this);
         }
       }
     }
