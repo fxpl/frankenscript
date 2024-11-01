@@ -266,5 +266,4 @@ namespace rt::objects
       }
     }
   }
-
 }

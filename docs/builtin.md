@@ -12,7 +12,7 @@ Aborts the interpreter process. It's intended to indicate that an execution bran
 
 ## Constructors
 
-#### `region()`
+#### `Region()`
 
 Creates a new region object.
 
@@ -74,7 +74,15 @@ This explicitly shows the "Cown region" in the generated diagrams.
 
 #### `mermaid_hide_cown_region()`
 
-This hides the "Cown region" and cown prototype in diagram. (This is the default)
+This hides the "Cown region" and cown prototype in diagram. (Default)
+
+#### `mermaid_show_immutable_region()`
+
+This explicitly shows the "Immutable region" in the generated diagrams
+
+#### `mermaid_hide_immutable_region()`
+
+This hides the "Immutable region" in diagram. (Default)
 
 #### `mermaid_show_functions()`
 
@@ -82,4 +90,4 @@ Shows user defined functions in the diagram.
 
 #### `mermaid_hide_functions()`
 
-Hides user defined functions in the diagram. (This is the default)
+Hides user defined functions in the diagram. (Default)

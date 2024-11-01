@@ -124,6 +124,19 @@ namespace rt::core
       return std::nullopt;
     });
 
+    add_builtin(
+      "mermaid_show_immutable_region", [mermaid](auto, auto, auto args) {
+        assert(args == 0);
+        mermaid->draw_immutable_region = true;
+        return std::nullopt;
+      });
+    add_builtin(
+      "mermaid_hide_immutable_region", [mermaid](auto, auto, auto args) {
+        assert(args == 0);
+        mermaid->draw_immutable_region = false;
+        return std::nullopt;
+      });
+
     add_builtin("mermaid_show_functions", [mermaid](auto, auto, auto args) {
       assert(args == 0);
       mermaid->show_functions();

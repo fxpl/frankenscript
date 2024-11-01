@@ -57,6 +57,7 @@ namespace rt::ui
     std::set<rt::objects::DynObject*> taint;
     /// Indicates if the cown region show be explicitly drawn
     bool draw_cown_region;
+    bool draw_immutable_region;
     /// Indicates if local functions should be visible
     bool draw_funcs;
 

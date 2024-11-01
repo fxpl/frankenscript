@@ -17,7 +17,8 @@ namespace rt::ui
   const char* UNREACHABLE_NODE_COLOR = "red";
   const char* ERROR_NODE_COLOR = "red";
 
-  const char* IMMUTABLE_REGION_COLOR = "#32445d";
+  const char* IMMUTABLE_NODE_COLOR = "#243042";
+  const char* IMMUTABLE_REGION_COLOR = "#485464";
   const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
 
   const char* LOCAL_REGION_ID = "LocalReg";
@@ -96,6 +97,7 @@ namespace rt::ui
       out << "%%{init: {'themeVariables': { 'fontSize': '" << FONT_SIZE
           << "' }}}%%";
       out << "graph TD" << std::endl;
+      out << "  id0(None):::immutable" << std::endl;
 
       draw_nodes(roots);
       draw_regions();
@@ -103,13 +105,12 @@ namespace rt::ui
       draw_error();
       draw_info();
 
-      out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
-          << std::endl;
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
       out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
           << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
+      out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
     }
@@ -125,6 +126,12 @@ namespace rt::ui
       if (obj->get_prototype() == objects::regionPrototypeObject())
       {
         return {"[\\", "/]"};
+      }
+
+      if (obj->is_immutable())
+      {
+        // Make sure to also update the None node, when editing these
+        return {"(", ")"};
       }
 
       return {"[", "]"};
@@ -181,6 +188,7 @@ namespace rt::ui
         // Footer
         out << markers.second;
         out << (reachable ? "" : ":::unreachable");
+        out << (dst->is_immutable() ? ":::immutable" : "");
         out << std::endl;
 
         result = node;
@@ -266,7 +274,10 @@ namespace rt::ui
       // Output all the region membership information
       for (auto [region, objects] : region_strings)
       {
-        if ((!info->draw_cown_region) && region == objects::cown_region)
+        if (
+          ((!info->draw_cown_region) && region == objects::cown_region) ||
+          ((!info->draw_immutable_region) &&
+           region == objects::immutable_region))
         {
           continue;
         }
@@ -280,7 +291,7 @@ namespace rt::ui
         else if (region == objects::immutable_region)
         {
           out << IMM_REGION_ID << "[\"Immutable region\"]" << std::endl;
-          out << "  id0[nullptr]" << std::endl;
+          out << "  id0" << std::endl;
         }
         else if (region == objects::cown_region)
         {
@@ -298,6 +309,12 @@ namespace rt::ui
           out << "  id" << obj << std::endl;
         }
         out << "end" << std::endl;
+      }
+
+      if (info->draw_immutable_region)
+      {
+        out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
+            << std::endl;
       }
     }
 
