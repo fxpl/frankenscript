@@ -55,18 +55,7 @@ namespace rt::objects
       return local_reference_count + sub_region_reference_count;
     }
 
-    static void action(Region* r)
-    {
-      if ((r->local_reference_count == 0) && (r->parent == nullptr))
-      {
-        // TODO, this can be hooked to perform delayed operations like send.
-        //  Needs to check for sub_region_reference_count for send, but not
-        //  deallocate.
-
-        to_collect.push_back(r);
-        std::cout << "Collecting region: " << r << std::endl;
-      }
-    }
+    static void action(Region*);
 
     static void dec_lrc(Region* r)
     {
@@ -117,9 +106,9 @@ namespace rt::objects
       // Check if already parented to another region.
       if (r->parent != nullptr)
       {
-        // FIXME: Highlight, once regions have been reified
         ui::error(
-          "Region already has a parent: Creating region DAG not supported!");
+          "Region already has a parent: Creating region DAG not supported!",
+          r->bridge);
       }
 
       // Prevent creating a cycle
@@ -129,7 +118,7 @@ namespace rt::objects
         if (ancestors == r)
         {
           // FIXME: Highlight, once regions have been reified
-          ui::error("Cycle created in region hierarchy");
+          ui::error("Cycle created in region hierarchy", r->bridge);
         }
         ancestors = ancestors->parent;
       }

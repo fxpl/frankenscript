@@ -4,7 +4,6 @@ global = {}
 a = Region()
 a.b = {}
 
-
 c01 = cown(move a)
 
 # Store the cown in a global
