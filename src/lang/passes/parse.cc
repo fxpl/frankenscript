@@ -13,8 +13,7 @@ namespace verona::wf
     (Assign <<= Group * (Lhs >>= (Group | cond))) |
     (If <<= Group * (Op >>= (cond | Group)) * Group) |
     (Else <<= Group * Group) | (Group <<= (parse_tokens | Block | List)++) |
-    (Block <<= (parse_tokens | parse_groups)++) | (Eq <<= Group * Group) |
-    (Neq <<= Group * Group) | (Lookup <<= Group) |
+    (Block <<= (parse_tokens | parse_groups)++) | (Lookup <<= Group) |
     (For <<= Group * List * Group * Group) |
     (While <<= Group * (Op >>= (cond | Group)) * Group) | (List <<= Group++) |
     (Parens <<= (Group | List)++) | (Func <<= Group * Group * Group) |
@@ -126,7 +125,7 @@ trieste::Parse parser()
       ":" >>
         [indent](auto& m) {
           // Exit conditionals expressions.
-          m.term({Eq, Neq});
+          m.term();
 
           Token toc = Empty;
           if (m.in(If))
@@ -181,8 +180,10 @@ trieste::Parse parser()
         },
       "[0-9]+" >> [](auto& m) { m.add(Int); },
       "\"([^\\n\"]+)\"" >> [](auto& m) { m.add(String, 1); },
-      "==" >> [](auto& m) { m.seq(Eq); },
-      "!=" >> [](auto& m) { m.seq(Neq); },
+      "==" >> [](auto& m) { m.add(Eq); },
+      "!=" >> [](auto& m) { m.add(Neq); },
+      "\\+" >> [](auto& m) { m.add(Plus); },
+      "-" >> [](auto& m) { m.add(Minus); },
       "=" >> [](auto& m) { m.seq(Assign); },
       "{}" >> [](auto& m) { m.add(Empty); },
     });

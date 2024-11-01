@@ -67,6 +67,7 @@ PassDef grouping()
         [](auto& _) {
           return Seq << Group << (Eq << _(Op) << (Ident ^ "True"));
         },
+
       COND[Op] << (Any[Lhs] * (T(Group) << CMP_V[Rhs] * End) * End) >>
         [](auto& _) {
           return create_from(_(Op)->type(), _(Op)) << _[Lhs] << _[Rhs];

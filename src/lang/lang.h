@@ -20,6 +20,8 @@ inline const TokenDef Move{"move"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
 inline const TokenDef Method{"method"};
+inline const TokenDef Plus{"+"};
+inline const TokenDef Minus{"-"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};
@@ -38,6 +40,7 @@ namespace verona::wf
     Ident | Lookup | Null | Call | Method | Int | String;
   inline const auto key = Ident | Lookup | String;
   inline const auto operand = Lookup | Call | Method | Ident;
+  inline const auto bin_op = Eq | Neq | Plus | Minus;
 
   inline const auto grouping = (Top <<= File) | (File <<= Body) |
     (Body <<= Block) |
@@ -65,6 +68,7 @@ namespace verona::wf
     (Func <<= Body) | (Label <<= Ident)[Ident];
 }
 
+inline const auto BIN_OP = T(Eq, Neq, Plus, Minus);
 inline const auto COND = T(Eq, Neq);
 inline const auto LV = T(Ident, Lookup);
 inline const auto RV =
