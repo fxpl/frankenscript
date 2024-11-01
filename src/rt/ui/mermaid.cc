@@ -115,8 +115,7 @@ namespace rt::ui
     }
 
   private:
-    std::pair<const char*, const char*>
-    get_node_markers(objects::DynObject* obj)
+    std::pair<const char*, const char*> get_node_style(objects::DynObject* obj)
     {
       if (obj->get_prototype() == core::cownPrototypeObject())
       {
@@ -129,6 +128,13 @@ namespace rt::ui
       }
 
       return {"[", "]"};
+    }
+
+    bool is_borrow_edge(objects::Edge e)
+    {
+      return e.src != nullptr && e.target != nullptr &&
+        objects::get_region(e.src) != objects::get_region(e.target) &&
+        objects::get_region(e.src) == objects::get_local_region();
     }
 
     /// @brief Draws the target node and the edge from the source to the target.
@@ -144,7 +150,7 @@ namespace rt::ui
       {
         auto src_node = &nodes[src];
         out << "  " << *src_node;
-        out << ((src_node->is_opaque) ? "-.->" : "-->");
+        out << (is_borrow_edge(e) ? "-.->" : "-->");
         out << " |" << escape(e.key) << "| ";
         edge_id = edge_counter;
         edge_counter += 1;
@@ -161,7 +167,7 @@ namespace rt::ui
         // Draw a new node
         nodes[dst] = {id_counter++, dst->is_opaque()};
         auto node = &nodes[dst];
-        auto markers = get_node_markers(dst);
+        auto markers = get_node_style(dst);
 
         // Header
         out << *node;
