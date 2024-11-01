@@ -21,6 +21,9 @@ namespace rt::ui
   const char* IMMUTABLE_REGION_COLOR = "#485464";
   const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
 
+  const char* REGION_COLORS[] = {
+    "#666", "#555", "#444", "#333", "#222", "#111"};
+
   const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
@@ -64,6 +67,13 @@ namespace rt::ui
     return os;
   }
 
+  struct RegionInfo
+  {
+    std::vector<size_t> nodes;
+    std::vector<objects::Region*> regions;
+    bool drawn;
+  };
+
   class MermaidDiagram
   {
     MermaidUI* info;
@@ -75,13 +85,14 @@ namespace rt::ui
     // Give a nice id to each object.
     std::map<objects::DynObject*, NodeInfo> nodes;
     std::map<objects::Region*, std::vector<std::size_t>> region_strings;
+    std::map<objects::Region*, RegionInfo> regions;
 
   public:
     MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out)
     {
       // Add nullptr
       nodes[nullptr] = {0};
-      region_strings[rt::objects::immutable_region].push_back(0);
+      regions[objects::immutable_region].nodes.push_back(0);
     }
 
     void color_edge(size_t edge_id, const char* color)
@@ -186,8 +197,9 @@ namespace rt::ui
 
         // Footer
         out << markers.second;
-        out << (reachable ? "" : ":::unreachable");
-        out << (dst->is_immutable() ? ":::immutable" : "");
+        out
+          << (dst->is_immutable() ? ":::immutable" :
+                                    (reachable ? "" : ":::unreachable"));
         out << std::endl;
 
         result = node;
@@ -232,7 +244,7 @@ namespace rt::ui
         auto region = objects::get_region(dst);
         if (region != nullptr)
         {
-          region_strings[region].push_back(node->id);
+          regions[region].nodes.push_back(node->id);
         }
 
         return true;
@@ -251,69 +263,98 @@ namespace rt::ui
       }
     }
 
+    void
+    draw_region_body(objects::Region* r, RegionInfo* info, std::string& indent)
+    {
+      indent += "  ";
+      for (auto obj : info->nodes)
+      {
+        out << indent << "id" << obj << std::endl;
+      }
+      for (auto reg : info->regions)
+      {
+        draw_region(reg, indent);
+      }
+      indent.erase(indent.size() - 2);
+    }
+
+    void draw_region(objects::Region* r, std::string& indent)
+    {
+      auto info = &regions[r];
+      if (info->drawn)
+      {
+        return;
+      }
+      info->drawn = true;
+      auto depth = indent.size() / 2;
+
+      // Header
+      out << indent << "subgraph ";
+      out << "reg" << r << "[\" \"]" << std::endl;
+
+      // Content
+      draw_region_body(r, info, indent);
+
+      // Footer
+      out << indent << "end" << std::endl;
+      out << indent << "style reg" << r
+          << " fill:" << REGION_COLORS[depth % std::size(REGION_COLORS)]
+          << std::endl;
+    }
+
     void draw_regions()
     {
-      // Output any region parent edges.
-      for (auto [region, objects] : region_strings)
+      // Build parent relations
+      for (auto [reg, _] : regions)
       {
-        if (region->parent == nullptr)
-        {
-          continue;
-        }
-        if ((!info->draw_cown_region) && region->parent == objects::cown_region)
-        {
-          continue;
-        }
+        regions[reg->parent].regions.push_back(reg);
+      }
 
-        out << "  region" << region->parent << "  <-.-o region" << region
+      std::string indent;
+      if (info->draw_cown_region)
+      {
+        auto region = objects::cown_region;
+        out << "subgraph " << COWN_REGION_ID << "[\"Cown region\"]"
             << std::endl;
-        edge_counter += 1;
-      }
-
-      // Output all the region membership information
-      for (auto [region, objects] : region_strings)
-      {
-        if (
-          ((!info->draw_cown_region) && region == objects::cown_region) ||
-          ((!info->draw_immutable_region) &&
-           region == objects::immutable_region))
-        {
-          continue;
-        }
-
-        out << "subgraph ";
-
-        if (region == objects::get_local_region())
-        {
-          out << LOCAL_REGION_ID << "[\"Local region\"]" << std::endl;
-        }
-        else if (region == objects::immutable_region)
-        {
-          out << IMM_REGION_ID << "[\"Immutable region\"]" << std::endl;
-          out << "  id0" << std::endl;
-        }
-        else if (region == objects::cown_region)
-        {
-          out << COWN_REGION_ID << "[\"Cown region\"]" << std::endl;
-          out << "  region" << region << "[\\" << region
-              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
-              << std::endl;
-        }
-        else
-        {
-          out << "region" << region << "[\" \"]" << std::endl;
-        }
-        for (auto obj : objects)
-        {
-          out << "  id" << obj << std::endl;
-        }
+        draw_region_body(region, &regions[region], indent);
         out << "end" << std::endl;
+        out << "style " << COWN_REGION_ID << " fill:" << REGION_COLORS[0]
+            << std::endl;
       }
+      regions[objects::cown_region].drawn = true;
 
       if (info->draw_immutable_region)
       {
+        auto region = objects::immutable_region;
+        out << "subgraph " << IMM_REGION_ID << "[\"Immutable region\"]"
+            << std::endl;
+        draw_region_body(region, &regions[region], indent);
+        out << "end" << std::endl;
         out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
             << std::endl;
+      }
+      regions[objects::immutable_region].drawn = true;
+
+      // Local region
+      {
+        auto region = objects::get_local_region();
+        out << "subgraph " << LOCAL_REGION_ID << "[\"Local region\"]"
+            << std::endl;
+        draw_region_body(objects::cown_region, &regions[region], indent);
+        out << "end" << std::endl;
+        out << "style " << LOCAL_REGION_ID << " fill:" << REGION_COLORS[0]
+            << std::endl;
+      }
+      regions[objects::get_local_region()].drawn = true;
+
+      // Draw all other regions
+      for (auto reg : regions[nullptr].regions)
+      {
+        draw_region(reg, indent);
+      }
+      for (auto reg : regions[objects::cown_region].regions)
+      {
+        draw_region(reg, indent);
       }
     }
 

@@ -20,7 +20,7 @@ mermaid_taint(a)
 a.c = c
 
 # Connect first region to third with single entry point
-a.b.e = e.f
+a.b.e = e
 
 mermaid_untaint(a)
 
