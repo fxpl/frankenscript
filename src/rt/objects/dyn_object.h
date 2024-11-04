@@ -163,8 +163,10 @@ namespace rt::objects
 
         auto r = get_region(obj);
         r->objects.erase(obj);
+        // FIXME: Region can remain clean, if the RC was 1 when this was called.
         r->mark_dirty();
         obj->region.set_ptr(immutable_region);
+        immutable_region->objects.insert(obj);
 
         return true;
       });

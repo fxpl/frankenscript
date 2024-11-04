@@ -111,6 +111,29 @@ namespace rt::objects
     return;
   }
 
+  void implicit_freeze(DynObject* target)
+  {
+    // The `freeze()` call is the only required thing, the rest is just needed
+    // for helpful UI output.
+    std::set<DynObject*> pre_objects = immutable_region->objects;
+    target->freeze();
+    std::set<DynObject*> post_objects = immutable_region->objects;
+
+    std::vector<DynObject*> effected_nodes;
+    std::set_difference(
+      post_objects.begin(),
+      post_objects.end(),
+      pre_objects.begin(),
+      pre_objects.end(),
+      std::back_inserter(effected_nodes));
+
+    std::stringstream ss;
+    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
+       << " node(s) starting from " << target;
+
+    ui::globalUI()->highlight(ss.str(), effected_nodes);
+  }
+
   void add_region_reference(Region* src_region, DynObject* target)
   {
     assert(target != nullptr);
@@ -133,11 +156,21 @@ namespace rt::objects
       return;
     }
 
+    // FIXME: This should also work for bridge objects right? Meaning this check
+    // is wrong/incomplete
     if (target->get_prototype() != objects::regionPrototypeObject())
     {
-      ui::error(
-        "Cannot reference an object from another region",
-        {src_region->bridge, "", target});
+      if (Region::pragma_implicit_freezing)
+      {
+        implicit_freeze(target);
+        return;
+      }
+      else
+      {
+        ui::error(
+          "Cannot reference an object from another region",
+          {src_region->bridge, "", target});
+      }
     }
 
     Region::set_parent(target_region, src_region);
@@ -180,13 +213,16 @@ namespace rt::objects
     assert(src != nullptr);
     assert(dst != nullptr);
     if (target == nullptr || target->is_immutable() || target->is_cown())
+    {
       return;
+    }
 
     auto src_region = get_region(src);
     auto dst_region = get_region(dst);
-
     if (src_region == dst_region)
+    {
       return;
+    }
 
     auto target_region = get_region(target);
 

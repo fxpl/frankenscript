@@ -15,9 +15,11 @@ namespace rt::ui
   public:
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
 
+    virtual void highlight(std::string, std::vector<objects::DynObject*>&) {};
+
     virtual void error(std::string){};
-    virtual void error(std::string, std::vector<objects::DynObject*>&){};
-    virtual void error(std::string, std::vector<objects::Edge>&){};
+    virtual void error(std::string, std::vector<objects::DynObject*>&) {};
+    virtual void error(std::string, std::vector<objects::Edge>&) {};
 
     virtual bool is_mermaid() = 0;
   };
@@ -62,6 +64,7 @@ namespace rt::ui
     bool draw_funcs;
     bool highlight_unreachable = true;
 
+    std::vector<objects::DynObject*> highlight_objects;
     std::vector<objects::DynObject*> error_objects;
     std::vector<objects::Edge> error_edges;
 
@@ -70,6 +73,10 @@ namespace rt::ui
 
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
+
+    void highlight(
+      std::string message,
+      std::vector<objects::DynObject*>& highlight) override;
 
     void next_action();
 
@@ -150,6 +157,11 @@ namespace rt::ui
       std::swap(error_edges, errors);
       error(msg);
     };
+
+  private:
+    /// Uses the local set to construct a reasonable set of roots, used for UI
+    /// methods that don't start from the local frame.
+    std::vector<objects::DynObject*> local_root_objects();
   };
 
   inline UI* globalUI()

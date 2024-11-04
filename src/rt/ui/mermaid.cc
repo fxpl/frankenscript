@@ -15,6 +15,7 @@ namespace rt::ui
 
   const char* CROSS_REGION_EDGE_COLOR = "orange";
   const char* UNREACHABLE_NODE_COLOR = "red";
+  const char* HIGHLIGHT_NODE_COLOR = "yellow";
   const char* ERROR_NODE_COLOR = "red";
 
   const char* IMMUTABLE_NODE_COLOR = "#243042";
@@ -112,10 +113,13 @@ namespace rt::ui
       draw_nodes(roots);
       draw_regions();
       draw_taint();
+      draw_highlight();
       draw_error();
 
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
+      out << "classDef highlight stroke-width:4px,stroke:"
+          << HIGHLIGHT_NODE_COLOR << std::endl;
       out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
           << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
@@ -392,6 +396,15 @@ namespace rt::ui
       }
     }
 
+    void draw_highlight()
+    {
+      for (auto node : info->highlight_objects)
+      {
+        auto node_info = &this->nodes[node];
+        out << "class " << *node_info << " highlight;" << std::endl;
+      }
+    }
+
     void draw_error()
     {
       for (auto node : info->error_objects)
@@ -459,6 +472,15 @@ namespace rt::ui
     {
       steps -= 1;
     }
+  }
+
+  void MermaidUI::highlight(
+    std::string message, std::vector<objects::DynObject*>& highlight)
+  {
+    std::swap(this->highlight_objects, highlight);
+    auto objs = local_root_objects();
+    output(objs, message);
+    std::swap(highlight, this->highlight_objects);
   }
 
   void print_help()
@@ -533,16 +555,7 @@ namespace rt::ui
     auto msg = ss.str();
 
     // Get roots
-    auto local_set = objects::get_local_region()->get_objects();
-    std::vector<objects::DynObject*> nodes_vec;
-    for (auto item : local_set)
-    {
-      if (always_hide.contains(item) || unreachable_hide.contains(item))
-      {
-        continue;
-      }
-      nodes_vec.push_back(item);
-    }
+    std::vector<objects::DynObject*> nodes_vec = local_root_objects();
     for (auto item : error_objects)
     {
       always_hide.erase(item);
@@ -559,5 +572,21 @@ namespace rt::ui
     // Output
     std::cerr << msg << std::endl;
     output(nodes_vec, msg);
+  }
+
+  std::vector<objects::DynObject*> MermaidUI::local_root_objects()
+  {
+    auto local_set = &objects::get_local_region()->objects;
+    std::vector<objects::DynObject*> nodes_vec;
+    for (auto item : *local_set)
+    {
+      if (always_hide.contains(item) || unreachable_hide.contains(item))
+      {
+        continue;
+      }
+      nodes_vec.push_back(item);
+    }
+
+    return nodes_vec;
   }
 } // namespace rt::ui

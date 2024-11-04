@@ -1,3 +1,5 @@
+pragma_disable_implicit_freezing()
+
 # Create two regions
 r1 = Region()
 r2 = Region()

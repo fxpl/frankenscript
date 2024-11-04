@@ -13,7 +13,6 @@ namespace rt::objects
 
   void add_to_region(Region* r, DynObject* target);
   void remove_region_reference(Region* src, Region* target);
-  void add_region_reference(Region* src_region, DynObject* target);
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
@@ -28,6 +27,10 @@ namespace rt::objects
     // This keeps track of all dirty regions. When walking to local region
     // to correct the LRC it can be done for all dirty regions at once
     static inline thread_local std::set<Region*> dirty_regions{};
+
+    /// Indicates if implicit freezing is enabled
+    static inline bool pragma_implicit_freezing = true;
+
     // The local reference count is the number of references to objects in the
     // region from local region. Using non-zero LRC for subregions ensures we
     // cannot send a region if a subregion has references into it.  Using zero

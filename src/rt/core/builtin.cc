@@ -218,10 +218,20 @@ namespace rt::core
     });
   }
 
+  void pragma_builtins()
+  {
+    add_builtin("pragma_disable_implicit_freezing", [](auto, auto, auto args) {
+      assert(args == 0);
+      objects::Region::pragma_implicit_freezing = false;
+      return std::nullopt;
+    });
+  }
+
   void init_builtins(ui::UI* ui)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
+    pragma_builtins();
   }
 }
