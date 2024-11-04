@@ -58,7 +58,7 @@ namespace rt::ui
   {
     size_t id;
     bool is_opaque;
-    std::vector<size_t> edges;
+    std::map<size_t, objects::DynObject*> edges;
   };
 
   std::ostream& operator<<(std::ostream& os, const NodeInfo& node)
@@ -94,10 +94,10 @@ namespace rt::ui
       regions[objects::immutable_region].nodes.push_back(0);
     }
 
-    void color_edge(size_t edge_id, const char* color)
+    void color_edge(size_t edge_id, const char* color, int width = 1)
     {
       out << "linkStyle " << edge_id << " stroke:" << color
-          << ",stroke-width:1px" << std::endl;
+          << ",stroke-width:" << width << "px" << std::endl;
     }
 
     void draw(std::vector<objects::DynObject*>& roots)
@@ -170,7 +170,7 @@ namespace rt::ui
         out << " |" << escape(e.key) << "| ";
         edge_id = edge_counter;
         edge_counter += 1;
-        src_node->edges.push_back(edge_id);
+        src_node->edges[edge_id] = dst;
       }
 
       // Draw target
@@ -378,7 +378,7 @@ namespace rt::ui
           return false;
         }
 
-        for (auto edge_id : node->edges)
+        for (auto [edge_id, _] : node->edges)
         {
           color_edge(edge_id, TAINT_EDGE_COLOR);
         }
@@ -398,6 +398,27 @@ namespace rt::ui
       {
         auto node_info = &this->nodes[node];
         out << "class " << *node_info << " error;" << std::endl;
+      }
+
+      for (auto e : info->error_edges)
+      {
+        auto dst = e.target;
+        auto src_info = &this->nodes[e.src];
+        auto edge = std::find_if(
+          src_info->edges.begin(),
+          src_info->edges.end(),
+          [dst](const auto& pair) { return pair.second == dst; });
+        if (edge != src_info->edges.end())
+        {
+          size_t edge_id = edge->first;
+          color_edge(edge_id, ERROR_NODE_COLOR, 4);
+        }
+        else
+        {
+          assert(
+            false &&
+            "All error edges should already be present in the diagram");
+        }
       }
     }
   };

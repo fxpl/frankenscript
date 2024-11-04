@@ -135,7 +135,9 @@ namespace rt::objects
 
     if (target->get_prototype() != objects::regionPrototypeObject())
     {
-      ui::error("Cannot add interior region object to another region");
+      ui::error(
+        "Cannot reference an object from another region",
+        {src_region->bridge, "", target});
     }
 
     Region::set_parent(target_region, src_region);

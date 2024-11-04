@@ -108,6 +108,7 @@ namespace rt
   objects::DynObject*
   set(objects::DynObject* obj, std::string key, objects::DynObject* value)
   {
+    assert(obj && "Given nullptr, expected a valid DynObject pointer");
     return obj->set(key, value);
   }
 
