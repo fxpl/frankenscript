@@ -25,11 +25,19 @@ namespace rt::objects
   struct Region
   {
     static inline thread_local std::vector<Region*> to_collect{};
+    // This keeps track of all dirty regions. When walking to local region
+    // to correct the LRC it can be done for all dirty regions at once
+    static inline thread_local std::set<Region*> dirty_regions{};
     // The local reference count is the number of references to objects in the
     // region from local region. Using non-zero LRC for subregions ensures we
     // cannot send a region if a subregion has references into it.  Using zero
     // and non-zero means we reduce the number of updates.
     size_t local_reference_count{0};
+
+    // The LRC might be dirty if nodes from this region has been frozen and the
+    // LRC hasn't been validated after the move. This flag can be stored as
+    // part of the LRC or other pointers in this struct.
+    bool is_lrc_dirty = false;
 
     // For nested regions, this points at the owning region.
     // This guarantees that the regions for trees.
@@ -134,6 +142,12 @@ namespace rt::objects
       inc_sbrc(r);
     }
 
+    void mark_dirty()
+    {
+      is_lrc_dirty = true;
+      dirty_regions.insert(this);
+    }
+
     void terminate_region()
     {
       to_collect.push_back(this);
@@ -162,6 +176,7 @@ namespace rt::objects
       {
         auto r = to_collect.back();
         to_collect.pop_back();
+        dirty_regions.erase(r);
         // Note destruct could re-enter here, ensure we don't hold onto a
         // pointer into to_collect.
         for (auto o : r->objects)

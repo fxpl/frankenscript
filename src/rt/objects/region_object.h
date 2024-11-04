@@ -23,7 +23,8 @@ namespace rt::objects
 
       std::stringstream stream;
       stream << this << std::endl;
-      stream << "lrc=" << region->local_reference_count << std::endl;
+      stream << "lrc=" << region->local_reference_count
+             << (region->is_lrc_dirty ? " (dirty)" : "") << std::endl;
       stream << "sbrc=" << region->sub_region_reference_count;
       return stream.str();
     }

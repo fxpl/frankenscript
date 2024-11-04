@@ -162,7 +162,8 @@ namespace rt::objects
           return false;
 
         auto r = get_region(obj);
-        get_region(obj)->objects.erase(obj);
+        r->objects.erase(obj);
+        r->mark_dirty();
         obj->region.set_ptr(immutable_region);
 
         return true;
