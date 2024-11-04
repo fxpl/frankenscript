@@ -169,6 +169,13 @@ namespace rt::core
       return cown;
     });
 
+    add_builtin("Region", [](auto frame, auto stack, auto args) {
+      assert(args == 0);
+
+      auto value = rt::create_region();
+      return value;
+    });
+
     add_builtin("create", [](auto frame, auto stack, auto args) {
       assert(args == 1);
 
@@ -190,26 +197,6 @@ namespace rt::core
       rt::remove_reference(frame, value);
 
       return std::nullopt;
-    });
-
-    add_builtin("freeze_proto", [](auto frame, auto stack, auto args) {
-      assert(args == 1);
-
-      auto value = pop(stack, "object to freeze the prototype");
-      if (value && value->get_prototype())
-      {
-        freeze(value->get_prototype());
-      }
-      rt::remove_reference(frame, value);
-
-      return std::nullopt;
-    });
-
-    add_builtin("Region", [](auto frame, auto stack, auto args) {
-      assert(args == 0);
-
-      auto value = rt::create_region();
-      return value;
     });
 
     add_builtin("unreachable", [](auto, auto, auto) {
