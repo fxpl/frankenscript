@@ -155,8 +155,9 @@ namespace rt::objects
 
     void freeze()
     {
+      std::vector<Region*> dead_regions;
       // TODO SCC algorithm
-      visit(this, [](Edge e) {
+      visit(this, [&](Edge e) {
         auto obj = e.target;
         if (!obj || obj->is_immutable() || obj->is_cown())
           return false;
@@ -165,11 +166,33 @@ namespace rt::objects
         r->objects.erase(obj);
         // FIXME: Region can remain clean, if the RC was 1 when this was called.
         r->mark_dirty();
+
+        // There are several options to deal with region objects that become
+        // frozen. They should be kept to some extent, to keep the existing
+        // object structure.
+        //
+        // The simplest approach taken here, is to simply remove the prototype
+        // therefore turning the object into an ordinary dictionary.
+        if (r->bridge == obj)
+        {
+          r->bridge = nullptr;
+          obj->set_prototype(nullptr);
+          dead_regions.push_back(r);
+        }
+
+        // Make obj immutable
         obj->region.set_ptr(immutable_region);
         immutable_region->objects.insert(obj);
 
         return true;
       });
+
+      // The termination has to be delayed to make sure that all object are
+      // frozen before the termination.
+      for (auto r : dead_regions)
+      {
+        r->terminate_region();
+      }
     }
 
     bool is_immutable()

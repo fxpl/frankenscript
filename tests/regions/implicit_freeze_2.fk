@@ -4,8 +4,9 @@ r2 = Region()
 
 # Create unfrozen data to share
 share = {}
-share.text = "Shared Info"
+share.region = Region()
+share.region.text = "Shared Info"
 r1.info = share
 
-# Trigger implicit freeze by referencing it from r2
+# Trigger implicit freeze of a nested region
 r2.info = share

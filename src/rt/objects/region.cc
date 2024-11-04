@@ -54,6 +54,7 @@ namespace rt::objects
 
       if (obj->get_prototype() != objects::regionPrototypeObject())
       {
+        // FIXME: This should probably also freeze?
         ui::error("Cannot add interior region object to another region");
       }
 
@@ -156,24 +157,33 @@ namespace rt::objects
       return;
     }
 
-    // FIXME: This should also work for bridge objects right? Meaning this check
-    // is wrong/incomplete
-    if (target->get_prototype() != objects::regionPrototypeObject())
+    auto is_region =
+      target->get_prototype() == objects::regionPrototypeObject();
+    if (is_region && target_region->parent == nullptr)
     {
-      if (Region::pragma_implicit_freezing)
-      {
-        implicit_freeze(target);
-        return;
-      }
-      else
-      {
-        ui::error(
-          "Cannot reference an object from another region",
-          {src_region->bridge, "", target});
-      }
+      Region::set_parent(target_region, src_region);
+      return;
     }
 
-    Region::set_parent(target_region, src_region);
+    if (Region::pragma_implicit_freezing)
+    {
+      implicit_freeze(target);
+      return;
+    }
+
+    if (is_region)
+    {
+      ui::error(
+        "Cannot reference an object from another region",
+        {src_region->bridge, "", target});
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << "Cannot reference region " << target << " from "
+         << src_region->bridge << " since it already has a parent";
+      ui::error(ss.str(), {src_region->bridge, "", target});
+    }
   }
 
   void add_reference(DynObject* src, DynObject* target)

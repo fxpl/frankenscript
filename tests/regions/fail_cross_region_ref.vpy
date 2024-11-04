@@ -1,3 +1,5 @@
+pragma_disable_implicit_freezing()
+
 # Root a
 a = Region()
 

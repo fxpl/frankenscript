@@ -23,9 +23,19 @@ namespace rt::objects
 
       std::stringstream stream;
       stream << this << std::endl;
-      stream << "lrc=" << region->local_reference_count
-             << (region->is_lrc_dirty ? " (dirty)" : "") << std::endl;
-      stream << "sbrc=" << region->sub_region_reference_count;
+
+      // Happens if an existing region has been frozen
+      if (region == immutable_region)
+      {
+        stream << "lrc=<frozen>" << std::endl;
+        stream << "sbrc=<frozen>";
+      }
+      else
+      {
+        stream << "lrc=" << region->local_reference_count
+               << (region->is_lrc_dirty ? " (dirty)" : "") << std::endl;
+        stream << "sbrc=" << region->sub_region_reference_count;
+      }
       return stream.str();
     }
   };
