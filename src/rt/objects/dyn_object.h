@@ -176,7 +176,8 @@ namespace rt::objects
         if (r->bridge == obj)
         {
           r->bridge = nullptr;
-          obj->set_prototype(nullptr);
+          auto old_proto = obj->set_prototype(nullptr);
+          rt::remove_reference(this, old_proto);
           dead_regions.push_back(r);
         }
 

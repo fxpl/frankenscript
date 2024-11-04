@@ -107,7 +107,7 @@ namespace rt::objects
       }
       target->parent = nullptr;
 
-      Region::to_collect.push_back(target);
+      Region::to_collect.insert(target);
     }
     return;
   }
@@ -309,7 +309,7 @@ namespace rt::objects
 
       if (r != get_local_region() && r != cown_region)
       {
-        to_collect.push_back(r);
+        to_collect.insert(r);
         std::cout << "Collecting region: " << r << std::endl;
       }
     }

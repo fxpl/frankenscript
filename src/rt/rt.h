@@ -48,6 +48,7 @@ namespace rt
     objects::DynObject* src,
     objects::DynObject* dst,
     objects::DynObject* target);
+  void remove_gloabl_rc(objects::DynObject* target);
 
   size_t pre_run(rt::ui::UI* ui);
   void post_run(size_t count, rt::ui::UI* ui);

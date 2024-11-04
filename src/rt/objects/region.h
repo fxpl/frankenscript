@@ -23,7 +23,7 @@ namespace rt::objects
   // Represents the region of objects
   struct Region
   {
-    static inline thread_local std::vector<Region*> to_collect{};
+    static inline thread_local std::set<Region*> to_collect{};
     // This keeps track of all dirty regions. When walking to local region
     // to correct the LRC it can be done for all dirty regions at once
     static inline thread_local std::set<Region*> dirty_regions{};
@@ -153,7 +153,7 @@ namespace rt::objects
 
     void terminate_region()
     {
-      to_collect.push_back(this);
+      to_collect.insert(this);
       collect();
     }
 
@@ -175,10 +175,8 @@ namespace rt::objects
       collecting = true;
 
       std::cout << "Starting collection" << std::endl;
-      while (!to_collect.empty())
+      for (auto r : to_collect)
       {
-        auto r = to_collect.back();
-        to_collect.pop_back();
         dirty_regions.erase(r);
         // Note destruct could re-enter here, ensure we don't hold onto a
         // pointer into to_collect.
@@ -191,7 +189,7 @@ namespace rt::objects
         delete r;
       }
       std::cout << "Finished collection" << std::endl;
-
+      to_collect.clear();
       collecting = false;
     }
   };
