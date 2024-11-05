@@ -17,12 +17,18 @@ namespace rt::ui
   const char* UNREACHABLE_NODE_COLOR = "red";
   const char* ERROR_NODE_COLOR = "red";
 
-  const char* IMMUTABLE_REGION_COLOR = "#32445d";
+  const char* IMMUTABLE_NODE_COLOR = "#243042";
+  const char* IMMUTABLE_REGION_COLOR = "#485464";
   const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
+
+  const char* REGION_COLORS[] = {
+    "#666", "#555", "#444", "#333", "#222", "#111"};
 
   const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
+
+  const char* FONT_SIZE = "16px";
 
   void replace(std::string& text, std::string from, std::string replace)
   {
@@ -44,6 +50,7 @@ namespace rt::ui
     replace(text, "<", "#60;");
     replace(text, ">", "#62;");
     replace(text, "\"", "#34;");
+    replace(text, "\n", "<br/>");
     return text;
   }
 
@@ -60,6 +67,13 @@ namespace rt::ui
     return os;
   }
 
+  struct RegionInfo
+  {
+    std::vector<size_t> nodes;
+    std::vector<objects::Region*> regions;
+    bool drawn;
+  };
+
   class MermaidDiagram
   {
     MermaidUI* info;
@@ -70,14 +84,14 @@ namespace rt::ui
 
     // Give a nice id to each object.
     std::map<objects::DynObject*, NodeInfo> nodes;
-    std::map<objects::Region*, std::vector<std::size_t>> region_strings;
+    std::map<objects::Region*, RegionInfo> regions;
 
   public:
     MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out)
     {
       // Add nullptr
       nodes[nullptr] = {0};
-      region_strings[rt::objects::immutable_region].push_back(0);
+      regions[objects::immutable_region].nodes.push_back(0);
     }
 
     void color_edge(size_t edge_id, const char* color)
@@ -90,26 +104,55 @@ namespace rt::ui
     {
       // Header
       out << "```mermaid" << std::endl;
+      out << "%%{init: {'themeVariables': { 'fontSize': '" << FONT_SIZE
+          << "' }}}%%";
       out << "graph TD" << std::endl;
+      out << "  id0(None):::immutable" << std::endl;
 
       draw_nodes(roots);
       draw_regions();
       draw_taint();
       draw_error();
-      draw_info();
 
-      out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
-          << std::endl;
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
       out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
           << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
+      out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
     }
 
   private:
+    std::pair<const char*, const char*> get_node_style(objects::DynObject* obj)
+    {
+      if (obj->get_prototype() == core::cownPrototypeObject())
+      {
+        return {"[[", "]]"};
+      }
+
+      if (obj->get_prototype() == objects::regionPrototypeObject())
+      {
+        return {"[\\", "/]"};
+      }
+
+      if (obj->is_immutable())
+      {
+        // Make sure to also update the None node, when editing these
+        return {"(", ")"};
+      }
+
+      return {"[", "]"};
+    }
+
+    bool is_borrow_edge(objects::Edge e)
+    {
+      return e.src != nullptr && e.target != nullptr &&
+        objects::get_region(e.src) != objects::get_region(e.target) &&
+        objects::get_region(e.src) == objects::get_local_region();
+    }
+
     /// @brief Draws the target node and the edge from the source to the target.
     NodeInfo* draw_edge(objects::Edge e, bool reachable)
     {
@@ -123,7 +166,7 @@ namespace rt::ui
       {
         auto src_node = &nodes[src];
         out << "  " << *src_node;
-        out << ((src_node->is_opaque) ? "-.->" : "-->");
+        out << (is_borrow_edge(e) ? "-.->" : "-->");
         out << " |" << escape(e.key) << "| ";
         edge_id = edge_counter;
         edge_counter += 1;
@@ -140,10 +183,11 @@ namespace rt::ui
         // Draw a new node
         nodes[dst] = {id_counter++, dst->is_opaque()};
         auto node = &nodes[dst];
+        auto markers = get_node_style(dst);
 
         // Header
         out << *node;
-        out << (dst->is_cown() ? "[[" : "[");
+        out << markers.first;
 
         // Content
         out << escape(dst->get_name());
@@ -151,8 +195,12 @@ namespace rt::ui
         out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
 
         // Footer
-        out << (dst->is_cown() ? "]]" : "]");
-        out << (reachable ? "" : ":::unreachable");
+        out << markers.second;
+        out
+          << (dst->is_immutable() ?
+                ":::immutable" :
+                (reachable && info->highlight_unreachable ? "" :
+                                                            ":::unreachable"));
         out << std::endl;
 
         result = node;
@@ -197,7 +245,7 @@ namespace rt::ui
         auto region = objects::get_region(dst);
         if (region != nullptr)
         {
-          region_strings[region].push_back(node->id);
+          regions[region].nodes.push_back(node->id);
         }
 
         return true;
@@ -216,64 +264,98 @@ namespace rt::ui
       }
     }
 
+    void
+    draw_region_body(objects::Region* r, RegionInfo* info, std::string& indent)
+    {
+      indent += "  ";
+      for (auto obj : info->nodes)
+      {
+        out << indent << "id" << obj << std::endl;
+      }
+      for (auto reg : info->regions)
+      {
+        draw_region(reg, indent);
+      }
+      indent.erase(indent.size() - 2);
+    }
+
+    void draw_region(objects::Region* r, std::string& indent)
+    {
+      auto info = &regions[r];
+      if (info->drawn)
+      {
+        return;
+      }
+      info->drawn = true;
+      auto depth = indent.size() / 2;
+
+      // Header
+      out << indent << "subgraph ";
+      out << "reg" << r << "[\" \"]" << std::endl;
+
+      // Content
+      draw_region_body(r, info, indent);
+
+      // Footer
+      out << indent << "end" << std::endl;
+      out << indent << "style reg" << r
+          << " fill:" << REGION_COLORS[depth % std::size(REGION_COLORS)]
+          << std::endl;
+    }
+
     void draw_regions()
     {
-      // Output any region parent edges.
-      for (auto [region, objects] : region_strings)
+      // Build parent relations
+      for (auto [reg, _] : regions)
       {
-        if (region->parent == nullptr)
-        {
-          continue;
-        }
-        if ((!info->draw_cown_region) && region->parent == objects::cown_region)
-        {
-          continue;
-        }
-
-        out << "  region" << region->parent << "  <-.-o region" << region
-            << std::endl;
-        edge_counter += 1;
+        regions[reg->parent].regions.push_back(reg);
       }
 
-      // Output all the region membership information
-      for (auto [region, objects] : region_strings)
+      std::string indent;
+      if (info->draw_cown_region)
       {
-        if ((!info->draw_cown_region) && region == objects::cown_region)
-        {
-          continue;
-        }
-
-        out << "subgraph ";
-
-        if (region == objects::get_local_region())
-        {
-          out << LOCAL_REGION_ID << "[\"Local region\"]" << std::endl;
-        }
-        else if (region == objects::immutable_region)
-        {
-          out << IMM_REGION_ID << "[\"Immutable region\"]" << std::endl;
-          out << "  id0[nullptr]" << std::endl;
-        }
-        else if (region == objects::cown_region)
-        {
-          out << COWN_REGION_ID << "[\"Cown region\"]" << std::endl;
-          out << "  region" << region << "[\\" << region
-              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
-              << std::endl;
-        }
-        else
-        {
-          out << " " << std::endl;
-          out << "  region" << region << "[\\" << region
-              << "<br/>lrc=" << region->local_reference_count
-              << "<br/>sbrc=" << region->sub_region_reference_count << "/]"
-              << std::endl;
-        }
-        for (auto obj : objects)
-        {
-          out << "  id" << obj << std::endl;
-        }
+        auto region = objects::cown_region;
+        out << "subgraph " << COWN_REGION_ID << "[\"Cown region\"]"
+            << std::endl;
+        draw_region_body(region, &regions[region], indent);
         out << "end" << std::endl;
+        out << "style " << COWN_REGION_ID << " fill:" << REGION_COLORS[0]
+            << std::endl;
+      }
+      regions[objects::cown_region].drawn = true;
+
+      if (info->draw_immutable_region)
+      {
+        auto region = objects::immutable_region;
+        out << "subgraph " << IMM_REGION_ID << "[\"Immutable region\"]"
+            << std::endl;
+        draw_region_body(region, &regions[region], indent);
+        out << "end" << std::endl;
+        out << "style " << IMM_REGION_ID << " fill:" << IMMUTABLE_REGION_COLOR
+            << std::endl;
+      }
+      regions[objects::immutable_region].drawn = true;
+
+      // Local region
+      {
+        auto region = objects::get_local_region();
+        out << "subgraph " << LOCAL_REGION_ID << "[\"Local region\"]"
+            << std::endl;
+        draw_region_body(objects::cown_region, &regions[region], indent);
+        out << "end" << std::endl;
+        out << "style " << LOCAL_REGION_ID << " fill:" << REGION_COLORS[0]
+            << std::endl;
+      }
+      regions[objects::get_local_region()].drawn = true;
+
+      // Draw all other regions
+      for (auto reg : regions[nullptr].regions)
+      {
+        draw_region(reg, indent);
+      }
+      for (auto reg : regions[objects::cown_region].regions)
+      {
+        draw_region(reg, indent);
       }
     }
 
@@ -317,24 +399,6 @@ namespace rt::ui
         auto node_info = &this->nodes[node];
         out << "class " << *node_info << " error;" << std::endl;
       }
-    }
-
-    void draw_info()
-    {
-      auto globals = rt::core::globals();
-      auto local_ctn = objects::DynObject::get_count() - globals->size();
-
-      // Header
-      out << "subgraph info" << std::endl;
-      out << "  i01[";
-
-      // Info
-      out << "Locals: " << local_ctn << "<br/>";
-      out << "Globals: " << globals->size() << "<br/>";
-
-      // Footer
-      out << "]" << std::endl;
-      out << "end" << std::endl;
     }
   };
 
@@ -440,6 +504,7 @@ namespace rt::ui
   {
     // Make sure ui doesn't pause
     steps += 10;
+    highlight_unreachable = false;
 
     // Construct message
     std::stringstream ss;
