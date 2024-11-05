@@ -147,6 +147,18 @@ namespace rt
     return core::falseObject();
   }
 
+  objects::DynObject* get_bool(bool value)
+  {
+    if (value)
+    {
+      return get_true();
+    }
+    else
+    {
+      return get_false();
+    }
+  }
+
   void add_reference(objects::DynObject* src, objects::DynObject* target)
   {
     objects::add_reference(src, target);

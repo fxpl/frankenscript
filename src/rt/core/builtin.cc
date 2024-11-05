@@ -187,6 +187,56 @@ namespace rt::core
     });
   }
 
+  bool close_function_impl(
+    objects::DynObject* frame,
+    std::vector<objects::DynObject*>* stack,
+    size_t args,
+    bool force_close)
+  {
+    assert(args == 1);
+
+    auto bridge = pop(stack, "region to close");
+    auto region = objects::get_region(bridge);
+    if (region->bridge != bridge)
+    {
+      std::stringstream ss;
+      ss << bridge << " is not the bridge object of the region";
+      ui::error(ss.str(), bridge);
+    }
+
+    // The region has an LRC from being on the stack
+    if (region->local_reference_count == 1)
+    {
+      // The region might be deleted if this was the only pointer, so we can
+      // only check that the region is closed, if the rc is 2
+      if (bridge->get_rc() == 2)
+      {
+        rt::remove_reference(frame, bridge);
+        assert(region->is_closed());
+      }
+      else
+      {
+        rt::remove_reference(frame, bridge);
+      }
+    }
+    else
+    {
+      // We have to remove our reference, as it would otherwise break the
+      // `is_closed()` check from the forced close
+      rt::remove_reference(frame, bridge);
+      if (force_close)
+      {
+        region->close();
+      }
+      else
+      {
+        region->try_close();
+      }
+    }
+
+    return region->is_closed();
+  }
+
   void action_builtins()
   {
     add_builtin("freeze", [](auto frame, auto stack, auto args) {
@@ -202,6 +252,15 @@ namespace rt::core
     add_builtin("unreachable", [](auto, auto, auto) {
       ui::error("this method should never be called");
       return std::nullopt;
+    });
+
+    add_builtin("close", [](auto frame, auto stack, auto args) {
+      close_function_impl(frame, stack, args, true);
+      return std::nullopt;
+    });
+    add_builtin("try_close", [](auto frame, auto stack, auto args) {
+      auto result = close_function_impl(frame, stack, args, false);
+      return rt::get_bool(result);
     });
   }
 

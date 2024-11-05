@@ -41,6 +41,7 @@ namespace rt
 
   objects::DynObject* get_true();
   objects::DynObject* get_false();
+  objects::DynObject* get_bool(bool value);
 
   void add_reference(objects::DynObject* src, objects::DynObject* target);
   void remove_reference(objects::DynObject* src, objects::DynObject* target);

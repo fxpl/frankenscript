@@ -147,7 +147,21 @@ namespace rt::objects
       inc_sbrc(r);
     }
 
+    /// Cleans the LRC's and forces the region to close, by setting all local
+    /// references to `None`
+    static void clean_lrcs_and_close(Region* reg = nullptr);
     static void clean_lrcs();
+
+    bool is_closed()
+    {
+      return this->local_reference_count == 0;
+    }
+
+    /// Forces the region to be closed, by setting all references from the local
+    /// reagion to `None`
+    void close();
+    /// Checks if the region can be closed, returns false if it remain open.
+    bool try_close();
 
     void mark_dirty()
     {

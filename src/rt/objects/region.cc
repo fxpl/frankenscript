@@ -242,14 +242,25 @@ namespace rt::objects
     remove_region_reference(src_region, target_region);
   }
 
-  void Region::clean_lrcs()
+  void Region::clean_lrcs_and_close(Region* to_close_reg)
   {
-    if (dirty_regions.empty())
+    // TODO: This currently only clears references from the local frame, not the
+    // stack...
+    if (
+      dirty_regions.empty() &&
+      (to_close_reg == nullptr || to_close_reg->is_closed()))
     {
       return;
     }
 
-    std::cout << "Cleaning LRCs" << std::endl;
+    if (to_close_reg)
+    {
+      std::cout << "Cleaning LRCs and closing " << to_close_reg << std::endl;
+    }
+    else
+    {
+      std::cout << "Cleaning LRCs" << std::endl;
+    }
 
     for (auto r : dirty_regions)
     {
@@ -259,16 +270,26 @@ namespace rt::objects
     std::set<DynObject*> seen;
     visit(get_local_region(), [&](Edge e) {
       auto src = e.src;
-      if (!src)
+      auto dst = e.target;
+      if (!src || !dst)
       {
-        return true;
+        return !!dst;
       }
 
-      auto dst_reg = get_region(e.target);
+      auto dst_reg = get_region(dst);
       if (dst_reg == get_local_region())
       {
         // Insert and continue if this was a new value
-        return seen.insert(e.target).second;
+        return seen.insert(dst).second;
+      }
+
+      if (dst_reg == to_close_reg)
+      {
+        auto old = src->set(e.key, nullptr);
+        assert(old == dst);
+        add_reference(src, nullptr);
+        remove_reference(src, dst);
+        return false;
       }
 
       if (dirty_regions.contains(dst_reg))
@@ -289,8 +310,37 @@ namespace rt::objects
         action(r);
       }
     }
-
     dirty_regions.clear();
+
+    assert(
+      (!to_close_reg || to_close_reg->is_closed()) &&
+      "The region should be closed now");
+  }
+
+  void Region::clean_lrcs()
+  {
+    clean_lrcs_and_close(nullptr);
+  }
+
+  void Region::close()
+  {
+    clean_lrcs_and_close(this);
+  }
+
+  bool Region::try_close()
+  {
+    // TODO: Is this correct, or should it be the combined LRC?
+    if (is_closed())
+    {
+      return true;
+    }
+
+    if (this->is_lrc_dirty)
+    {
+      clean_lrcs();
+    }
+
+    return is_closed();
   }
 
   void destruct(DynObject* obj)
