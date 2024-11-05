@@ -97,7 +97,7 @@ namespace rt::ui
 
     void color_edge(size_t edge_id, const char* color, int width = 1)
     {
-      out << "linkStyle " << edge_id << " stroke:" << color
+      out << "  linkStyle " << edge_id << " stroke:" << color
           << ",stroke-width:" << width << "px" << std::endl;
     }
 
@@ -169,7 +169,7 @@ namespace rt::ui
       if (src != nullptr)
       {
         auto src_node = &nodes[src];
-        out << "  " << *src_node;
+        out << *src_node;
         out << (is_borrow_edge(e) ? "-.->" : "-->");
         out << " |" << escape(e.key) << "| ";
         edge_id = edge_counter;
@@ -421,17 +421,18 @@ namespace rt::ui
           src_info->edges.begin(),
           src_info->edges.end(),
           [dst](const auto& pair) { return pair.second == dst; });
+        size_t edge_id;
         if (edge != src_info->edges.end())
         {
-          size_t edge_id = edge->first;
-          color_edge(edge_id, ERROR_NODE_COLOR, 4);
+          edge_id = edge->first;
         }
         else
         {
-          assert(
-            false &&
-            "All error edges should already be present in the diagram");
+          out << *src_info << "--> | ERROR | " << this->nodes[dst] << std::endl;
+          edge_id = edge_counter;
+          edge_counter += 1;
         }
+        color_edge(edge_id, ERROR_NODE_COLOR, 4);
       }
     }
   };

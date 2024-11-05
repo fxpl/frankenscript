@@ -1,4 +1,5 @@
 #include "objects/prototype_object.h"
+#include "objects/region.h"
 #include "objects/region_object.h"
 #include "rt.h"
 
@@ -210,6 +211,15 @@ namespace rt::core
       if (region->local_reference_count > 1)
       {
         ui::error("The given region has a LRC > 1", bridge);
+      }
+
+      if (region->parent != nullptr)
+      {
+        std::stringstream ss;
+        ss << "A cown can only be created from a free region" << std::endl;
+        ss << "| " << bridge << " is currently a subregion of "
+           << region->parent->bridge;
+        ui::error(ss.str(), {this, "", bridge});
       }
 
       // this->set would fail, since this is a cown
