@@ -323,4 +323,13 @@ namespace rt::objects
     visit(Edge{nullptr, "", start}, pre, post);
   }
 
+  template<typename Pre, typename Post>
+  inline void visit(Region* start, Pre pre, Post post)
+  {
+    for (auto obj : start->objects)
+    {
+      visit(obj, pre, post);
+    }
+  }
+
 } // namespace rt::objects

@@ -242,6 +242,57 @@ namespace rt::objects
     remove_region_reference(src_region, target_region);
   }
 
+  void Region::clean_lrcs()
+  {
+    if (dirty_regions.empty())
+    {
+      return;
+    }
+
+    std::cout << "Cleaning LRCs" << std::endl;
+
+    for (auto r : dirty_regions)
+    {
+      r->local_reference_count = 0;
+    }
+
+    std::set<DynObject*> seen;
+    visit(get_local_region(), [&](Edge e) {
+      auto src = e.src;
+      if (!src)
+      {
+        return true;
+      }
+
+      auto dst_reg = get_region(e.target);
+      if (dst_reg == get_local_region())
+      {
+        // Insert and continue if this was a new value
+        return seen.insert(e.target).second;
+      }
+
+      if (dirty_regions.contains(dst_reg))
+      {
+        dst_reg->local_reference_count += 1;
+      }
+
+      return false;
+    });
+
+    for (auto r : dirty_regions)
+    {
+      std::cout << "Corrected LRC of " << r << " to "
+                << r->local_reference_count << std::endl;
+      r->is_lrc_dirty = false;
+      if (r->combined_lrc() == 0)
+      {
+        action(r);
+      }
+    }
+
+    dirty_regions.clear();
+  }
+
   void destruct(DynObject* obj)
   {
     // Called from the region destructor.

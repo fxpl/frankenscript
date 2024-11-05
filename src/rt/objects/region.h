@@ -16,6 +16,7 @@ namespace rt::objects
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
+  void clean_lrcs();
   DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
@@ -145,6 +146,8 @@ namespace rt::objects
 
       inc_sbrc(r);
     }
+
+    static void clean_lrcs();
 
     void mark_dirty()
     {

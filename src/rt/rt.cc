@@ -188,6 +188,8 @@ namespace rt
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
+    objects::Region::clean_lrcs();
+    objects::Region::collect();
     auto globals = core::globals();
     if (objects::DynObject::get_count() != initial_count)
     {
