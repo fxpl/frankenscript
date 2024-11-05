@@ -296,6 +296,7 @@ namespace rt::objects
     RegionObject* obj = new RegionObject(r);
     r->bridge = obj;
     r->local_reference_count++;
+    std::cout << "Created region " << r << " with bridge " << obj << std::endl;
     return obj;
   }
 

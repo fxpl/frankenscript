@@ -165,12 +165,6 @@ namespace rt
     objects::move_reference(src, dst, target);
   }
 
-  void remove_gloabl_rc(objects::DynObject* target)
-  {
-    assert(target);
-    target->change_rc(-1);
-  }
-
   size_t pre_run(ui::UI* ui)
   {
     std::cout << "Initilizing global objects" << std::endl;

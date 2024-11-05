@@ -57,7 +57,7 @@ namespace verona::interpreter
 
     ~InterpreterFrame()
     {
-      rt::remove_gloabl_rc(frame);
+      rt::remove_reference(frame, frame);
     }
   };
 

@@ -58,10 +58,10 @@ namespace rt::ui
     /// nodes are highlighted.
     std::set<rt::objects::DynObject*> taint;
     /// Indicates if the cown region show be explicitly drawn
-    bool draw_cown_region;
-    bool draw_immutable_region;
+    bool draw_cown_region = false;
+    bool draw_immutable_region = false;
     /// Indicates if local functions should be visible
-    bool draw_funcs;
+    bool draw_funcs = false;
     bool highlight_unreachable = true;
 
     std::vector<objects::DynObject*> highlight_objects;
