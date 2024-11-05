@@ -26,6 +26,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release, Debug]
+        extra-cmake-flags: [""]
+        include:
+          - os: ubuntu-latest
+            build_type: RelWithDebInfo
+            extra-cmake-flags: "-DSANITIZER=address"
+          - os: ubuntu-latest
+            build_type: RelWithDebInfo
+            extra-cmake-flags: "-DSANITIZER=undefined"
 
     steps:
     - uses: actions/checkout@v4
@@ -42,7 +50,7 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ${{ matrix.extra-cmake-flags }}
         -S ${{ github.workspace }}
 
     - name: Build
