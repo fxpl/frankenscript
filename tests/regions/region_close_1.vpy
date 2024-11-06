@@ -10,9 +10,9 @@ r2.b.c = {}
 
 # Create local references
 lref1 = r2.a
-lref2 = r2.c
+lref2 = r2.b.c
 
-breakpoint()
+# r2.LRC is now 3, from: r2, lref1, lref2
 
 # Fail `try_close()`
 if try_close(r2):

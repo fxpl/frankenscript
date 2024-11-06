@@ -218,6 +218,8 @@ namespace rt::core
       {
         rt::remove_reference(frame, bridge);
       }
+      // We have to return `true` since the region might be deleted after this
+      return true;
     }
     else
     {
@@ -253,14 +255,23 @@ namespace rt::core
       ui::error("this method should never be called");
       return std::nullopt;
     });
+    add_builtin("pass", [](auto, auto, auto args) {
+      assert(args == 0);
+      return std::nullopt;
+    });
 
+    // TODO: Document
     add_builtin("close", [](auto frame, auto stack, auto args) {
       close_function_impl(frame, stack, args, true);
       return std::nullopt;
     });
     add_builtin("try_close", [](auto frame, auto stack, auto args) {
       auto result = close_function_impl(frame, stack, args, false);
-      return rt::get_bool(result);
+      auto result_obj = rt::get_bool(result);
+      // The return will be linked to the frame by the interpreter, but the RC
+      // has to be increased here.
+      result_obj->change_rc(1);
+      return result_obj;
     });
   }
 
