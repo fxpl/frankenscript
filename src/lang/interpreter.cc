@@ -52,13 +52,7 @@ namespace verona::interpreter
   {
     trieste::NodeIt ip;
     trieste::Node body;
-    rt::objects::DynObject* frame;
-    std::vector<rt::objects::DynObject*> stack;
-
-    ~InterpreterFrame()
-    {
-      rt::remove_reference(frame, frame);
-    }
+    FrameObj* frame;
   };
 
   class Interpreter
@@ -68,14 +62,14 @@ namespace verona::interpreter
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
     {
-      rt::objects::DynObject* parent_obj = nullptr;
+      FrameObj* parent_obj = nullptr;
       if (!frame_stack.empty())
       {
         parent_obj = frame_stack.back()->frame;
       }
 
-      auto frame = new InterpreterFrame{
-        body->begin(), body, rt::make_frame(parent_obj), {}};
+      auto frame =
+        new InterpreterFrame{body->begin(), body, rt::make_frame(parent_obj)};
       frame_stack.push_back(frame);
       return frame;
     }
@@ -84,6 +78,7 @@ namespace verona::interpreter
     {
       auto frame = frame_stack.back();
       frame_stack.pop_back();
+      rt::remove_reference(frame->frame->object(), frame->frame->object());
       delete frame;
 
       if (frame_stack.empty())
@@ -101,27 +96,14 @@ namespace verona::interpreter
       return frame_stack[frame_stack.size() - 2];
     }
 
-    std::vector<rt::objects::DynObject*>& stack()
-    {
-      return frame_stack.back()->stack;
-    }
-
-    rt::objects::DynObject* frame()
+    FrameObj* frame()
     {
       return frame_stack.back()->frame;
     }
 
-    rt::objects::DynObject* global_frame()
+    FrameObj* global_frame()
     {
       return frame_stack.front()->frame;
-    }
-
-    rt::objects::DynObject* pop(char const* data_info)
-    {
-      auto v = stack().back();
-      stack().pop_back();
-      std::cout << "pop " << v << " (" << data_info << ")" << std::endl;
-      return v;
     }
 
     std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn>
@@ -136,7 +118,7 @@ namespace verona::interpreter
         std::cout << node->location().view() << std::endl << std::endl;
 
         // Mermaid output
-        std::vector<rt::objects::DynObject*> roots{frame()};
+        std::vector<rt::objects::DynObject*> roots{frame()->object()};
         ui->output(roots, std::string(node->location().view()));
 
         // Continue
@@ -168,9 +150,9 @@ namespace verona::interpreter
         }
         else if (payload == KeyIter)
         {
-          auto v = pop("iterator source");
+          auto v = frame()->stack_pop("iterator source");
           obj = rt::make_iter(v);
-          rt::remove_reference(frame(), v);
+          rt::remove_reference(frame()->object(), v);
         }
         else if (payload == Func)
         {
@@ -184,22 +166,21 @@ namespace verona::interpreter
           assert(false && "CreateObject has to specify a value");
         }
 
-        stack().push_back(obj);
-        std::cout << "push " << obj << std::endl;
+        // NO: rt::add_reference since objects are created with an rc of 1
+        frame()->stack_push(obj, "new object", false);
         return ExecNext{};
       }
 
       if (node == Null)
       {
-        stack().push_back(nullptr);
-        std::cout << "push nullptr" << std::endl;
+        frame()->stack_push(nullptr, "null");
         return ExecNext{};
       }
 
       if (node == LoadFrame)
       {
         std::string field{node->location().view()};
-        auto v = rt::get(frame(), field);
+        auto v = rt::get(frame()->object(), field);
         if (!v)
         {
           if (field == "True")
@@ -212,9 +193,7 @@ namespace verona::interpreter
           }
         }
 
-        rt::add_reference(frame(), v);
-        stack().push_back(v);
-        std::cout << "push " << v << std::endl;
+        frame()->stack_push(v, "load from frame");
         return ExecNext{};
       }
 
@@ -223,12 +202,12 @@ namespace verona::interpreter
         std::string field{node->location().view()};
 
         // Local frame
-        auto v = rt::get(frame(), field);
+        auto v = rt::get(frame()->object(), field);
 
         // User globals
         if (!v)
         {
-          v = rt::get(global_frame(), field);
+          v = rt::get(global_frame()->object(), field);
         }
 
         // Builtin globals
@@ -237,39 +216,38 @@ namespace verona::interpreter
           v = rt::get_builtin(field);
         }
 
-        rt::add_reference(frame(), v);
-        stack().push_back(v);
-        std::cout << "push " << v << std::endl;
+        frame()->stack_push(v, "load from global");
         return ExecNext{};
       }
 
       if (node == StoreFrame)
       {
-        assert(stack().size() >= 1 && "the stack is too small");
-        auto v = pop("value to store");
+        assert(frame()->get_stack_size() >= 1 && "the stack is too small");
+        auto v = frame()->stack_pop("value to store");
         std::string field{node->location().view()};
-        auto v2 = rt::set(frame(), field, v);
-        rt::remove_reference(frame(), v2);
+        auto v2 = rt::set(frame()->object(), field, v);
+        rt::remove_reference(frame()->object(), v2);
         return ExecNext{};
       }
 
       if (node == SwapFrame)
       {
-        assert(stack().size() >= 1 && "the stack is too small");
-        auto new_var = pop("swap value");
+        assert(frame()->get_stack_size() >= 1 && "the stack is too small");
+        auto new_var = frame()->stack_pop("swap value");
         std::string field{node->location().view()};
 
-        auto old_var = rt::set(frame(), field, new_var);
-        stack().push_back(old_var);
+        auto old_var = rt::set(frame()->object(), field, new_var);
+        // RC stays the same
+        frame()->stack_push(old_var, "swaped", false);
 
         return ExecNext{};
       }
 
       if (node == LoadField)
       {
-        assert(stack().size() >= 2 && "the stack is too small");
-        auto k = pop("lookup-key");
-        auto v = pop("lookup-value");
+        assert(frame()->get_stack_size() >= 2 && "the stack is too small");
+        auto k = frame()->stack_pop("lookup-key");
+        auto v = frame()->stack_pop("lookup-value");
 
         if (!v)
         {
@@ -279,49 +257,47 @@ namespace verona::interpreter
         }
 
         auto v2 = rt::get(v, k);
-        stack().push_back(v2);
-        std::cout << "push " << v2 << std::endl;
-        rt::add_reference(frame(), v2);
-        rt::remove_reference(frame(), k);
-        rt::remove_reference(frame(), v);
+        frame()->stack_push(v2, "loaded field");
+        rt::remove_reference(frame()->object(), k);
+        rt::remove_reference(frame()->object(), v);
         return ExecNext{};
       }
 
       if (node == StoreField)
       {
-        assert(stack().size() >= 3 && "the stack is too small");
-        auto v = pop("value to store");
-        auto k = pop("lookup-key");
-        auto v2 = pop("lookup-value");
+        assert(frame()->get_stack_size() >= 3 && "the stack is too small");
+        auto v = frame()->stack_pop("value to store");
+        auto k = frame()->stack_pop("lookup-key");
+        auto v2 = frame()->stack_pop("lookup-value");
         auto v3 = rt::set(v2, k, v);
-        rt::move_reference(frame(), v2, v);
-        rt::remove_reference(frame(), k);
-        rt::remove_reference(frame(), v2);
+        rt::move_reference(frame()->object(), v2, v);
+        rt::remove_reference(frame()->object(), k);
+        rt::remove_reference(frame()->object(), v2);
         rt::remove_reference(v2, v3);
         return ExecNext{};
       }
 
       if (node == SwapField)
       {
-        assert(stack().size() >= 3 && "the stack is too small");
-        auto new_var = pop("swap value");
-        auto key = pop("lookup-key");
-        auto obj = pop("lookup-value");
+        assert(frame()->get_stack_size() >= 3 && "the stack is too small");
+        auto new_var = frame()->stack_pop("swap value");
+        auto key = frame()->stack_pop("lookup-key");
+        auto obj = frame()->stack_pop("lookup-value");
         auto old_var = rt::set(obj, key, new_var);
-        stack().push_back(old_var);
+        // RC stays the same
+        frame()->stack_push(old_var, "swapped value", false);
 
-        rt::move_reference(frame(), obj, new_var);
-        rt::move_reference(obj, frame(), old_var);
-        rt::remove_reference(frame(), obj);
-        rt::remove_reference(frame(), key);
+        rt::move_reference(frame()->object(), obj, new_var);
+        rt::remove_reference(frame()->object(), obj);
+        rt::remove_reference(frame()->object(), key);
 
         return ExecNext{};
       }
 
       if (node == Eq || node == Neq)
       {
-        auto b = pop("Rhs");
-        auto a = pop("Lhs");
+        auto b = frame()->stack_pop("Rhs");
+        auto a = frame()->stack_pop("Lhs");
 
         auto bool_result = (a == b);
         if (node == Neq)
@@ -341,13 +317,10 @@ namespace verona::interpreter
           result = rt::get_false();
           result_str = "false";
         }
-        rt::add_reference(frame(), result);
-        stack().push_back(result);
-        std::cout << "push " << result << " (" << result_str << ")"
-                  << std::endl;
+        frame()->stack_push(result, result_str);
 
-        rt::remove_reference(frame(), a);
-        rt::remove_reference(frame(), b);
+        rt::remove_reference(frame()->object(), a);
+        rt::remove_reference(frame()->object(), b);
         return ExecNext{};
       }
 
@@ -358,9 +331,9 @@ namespace verona::interpreter
 
       if (node == JumpFalse)
       {
-        auto v = pop("jump condition");
+        auto v = frame()->stack_pop("jump condition");
         auto jump = (v == rt::get_false());
-        rt::remove_reference(frame(), v);
+        rt::remove_reference(frame()->object(), v);
         if (jump)
         {
           return ExecJump{node->location()};
@@ -373,37 +346,33 @@ namespace verona::interpreter
 
       if (node == IterNext)
       {
-        auto it = pop("iterator");
+        auto it = frame()->stack_pop("iterator");
 
         auto obj = rt::iter_next(it);
-        rt::remove_reference(frame(), it);
+        rt::remove_reference(frame()->object(), it);
 
-        stack().push_back(obj);
-        std::cout << "push " << obj << " (next from iter)" << std::endl;
+        frame()->stack_push(obj, "next from iter", false);
         return ExecNext{};
       }
 
       if (node == ClearStack)
       {
-        if (!stack().empty())
+        while (!frame()->stack_is_empty())
         {
-          while (!stack().empty())
-          {
-            rt::remove_reference(frame(), stack().back());
-            stack().pop_back();
-          }
+          auto value = frame()->stack_pop("value to clear");
+          rt::remove_reference(frame()->object(), value);
         }
         return ExecNext{};
       }
 
       if (node == Call)
       {
-        auto func = pop("function");
+        auto func = frame()->stack_pop("function");
         auto arg_ctn = std::stoul(std::string(node->location().view()));
 
         if (auto bytecode = rt::try_get_bytecode(func))
         {
-          rt::remove_reference(frame(), func);
+          rt::remove_reference(frame()->object(), func);
           return ExecFunc{bytecode.value()->body, arg_ctn};
         }
         else if (auto builtin = rt::try_get_builtin_func(func))
@@ -413,12 +382,13 @@ namespace verona::interpreter
           // easier and makes builtins more powerful. The tradeoff is that the
           // arguments are still in reverse order on the stack, and the function
           // can potentially modify the "calling" frame.
-          auto result = (builtin.value())(frame(), &stack(), arg_ctn);
+          auto result = (builtin.value())(frame(), arg_ctn);
           if (result)
           {
-            stack().push_back(result.value());
+            auto value = result.value();
+            frame()->stack_push(value, "result from builtin", false);
           }
-          rt::remove_reference(frame(), func);
+          rt::remove_reference(frame()->object(), func);
           return ExecNext{};
         }
         else
@@ -432,15 +402,13 @@ namespace verona::interpreter
         // This breaks the normal idea of a stack machine, but every other
         // solution would require more effort and would be messier
         auto dup_idx = std::stoul(std::string(node->location().view()));
-        auto stack_size = stack().size();
+        auto stack_size = frame()->get_stack_size();
         assert(
           dup_idx < stack_size &&
           "the stack is too small for this duplication");
 
-        auto var = stack()[stack_size - dup_idx - 1];
-        stack().push_back(var);
-        std::cout << "push " << var << std::endl;
-        rt::add_reference(frame(), var);
+        auto var = frame()->stack_get(stack_size - dup_idx - 1);
+        frame()->stack_push(var, "duplicated value");
 
         return ExecNext{};
       }
@@ -452,7 +420,7 @@ namespace verona::interpreter
 
       if (node == ReturnValue)
       {
-        auto value = pop("return value");
+        auto value = frame()->stack_pop("return value");
         // RC is transfered to the stack of the parent frame
         return ExecReturn{value};
       }
@@ -499,10 +467,10 @@ namespace verona::interpreter
           // Setup the new frame
           for (size_t i = 0; i < func.arg_ctn; i++)
           {
-            auto value = parent_frame->stack.back();
-            frame->stack.push_back(value);
-            rt::move_reference(parent_frame->frame, frame->frame, value);
-            parent_frame->stack.pop_back();
+            auto value = parent_frame->frame->stack_pop("argument");
+            frame->frame->stack_push(value, "argument", false);
+            rt::move_reference(
+              parent_frame->frame->object(), frame->frame->object(), value);
           }
         }
         else if (std::holds_alternative<ExecReturn>(action))
@@ -523,8 +491,9 @@ namespace verona::interpreter
             {
               auto parent = parent_stack_frame();
               auto value = return_.value.value();
-              rt::move_reference(frame->frame, parent->frame, value);
-              parent->stack.push_back(value);
+              parent->frame->stack_push(value, "return", false);
+              rt::move_reference(
+                frame->frame->object(), parent->frame->object(), value);
             }
           }
 

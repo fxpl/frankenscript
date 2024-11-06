@@ -50,9 +50,17 @@ namespace rt
     return new objects::DynObject();
   }
 
-  objects::DynObject* make_frame(objects::DynObject* parent)
+  verona::interpreter::FrameObj*
+  make_frame(verona::interpreter::FrameObj* parent)
   {
-    return new core::FrameObject(parent);
+    if (parent)
+    {
+      return new core::FrameObject(parent->object());
+    }
+    else
+    {
+      return new core::FrameObject(nullptr);
+    }
   }
 
   objects::DynObject* make_cown(objects::DynObject* region)

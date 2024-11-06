@@ -219,6 +219,33 @@ namespace rt::objects
       return nullptr;
     }
 
+    /// A destructive read of the value.
+    [[nodiscard]] DynObject* erase(std::string name)
+    {
+      auto result = fields.find(name);
+      if (result != fields.end())
+      {
+        auto value = result->second;
+        fields.erase(result);
+        return value;
+      }
+
+      if (name == PrototypeField)
+      {
+        auto value = prototype;
+        prototype = nullptr;
+        return value;
+      }
+
+      // Search the prototype chain.
+      // TODO make this iterative.
+      if (prototype != nullptr)
+        return prototype->erase(name);
+
+      // No field or prototype chain found.
+      return nullptr;
+    }
+
     void assert_modifiable()
     {
       if (is_immutable())
