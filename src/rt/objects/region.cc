@@ -244,8 +244,6 @@ namespace rt::objects
 
   void Region::clean_lrcs_and_close(Region* to_close_reg)
   {
-    // TODO: This currently only clears references from the local frame, not the
-    // stack...
     if (
       dirty_regions.empty() &&
       (to_close_reg == nullptr || to_close_reg->is_closed()))
@@ -267,13 +265,14 @@ namespace rt::objects
       r->local_reference_count = 0;
     }
 
+    bool continue_visit = true;
     std::set<DynObject*> seen;
     visit(get_local_region(), [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
       if (!src || !dst)
       {
-        return !!dst;
+        return continue_visit;
       }
 
       auto dst_reg = get_region(dst);
@@ -283,12 +282,18 @@ namespace rt::objects
         return seen.insert(dst).second;
       }
 
-      if (dst_reg == to_close_reg)
+      auto invalidate = dst_reg == to_close_reg;
+      invalidate |=
+        (to_close_reg->sub_region_reference_count != 0 &&
+         Region::is_ancestor(dst_reg, to_close_reg));
+      if (invalidate)
       {
         auto old = src->set(e.key, nullptr);
         assert(old == dst);
         add_reference(src, nullptr);
         remove_reference(src, dst);
+
+        continue_visit &= to_close_reg->is_closed();
         return false;
       }
 

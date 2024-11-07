@@ -184,7 +184,7 @@ namespace rt::core
     }
 
     // The region has an LRC from being on the stack
-    if (region->local_reference_count == 1)
+    if (region->combined_lrc() == 1)
     {
       // The region might be deleted if this was the only pointer, so we can
       // only check that the region is closed, if the rc is 2
@@ -231,7 +231,7 @@ namespace rt::core
     });
 
     add_builtin("unreachable", [](auto, auto) {
-      ui::error("this method should never be called");
+      ui::error("unreachable code was called");
       return std::nullopt;
     });
     add_builtin("pass", [](auto, auto args) {

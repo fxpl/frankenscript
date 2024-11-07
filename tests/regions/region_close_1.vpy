@@ -20,3 +20,11 @@ if try_close(r2):
 
 # Force close
 close(r2)
+
+# Check lref was invalidated
+if lref1 != None:
+    unreachable()
+
+# Check lref was invalidated
+if lref2 != None:
+    unreachable()

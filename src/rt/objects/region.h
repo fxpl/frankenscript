@@ -112,6 +112,19 @@ namespace rt::objects
       }
     }
 
+    static bool is_ancestor(Region* child, Region* ancestor)
+    {
+      while (child)
+      {
+        if (child->parent == ancestor)
+        {
+          return true;
+        }
+        child = child->parent;
+      }
+      return false;
+    }
+
     static void set_parent(Region* r, Region* p)
     {
       assert(r->local_reference_count != 0);
@@ -125,15 +138,9 @@ namespace rt::objects
       }
 
       // Prevent creating a cycle
-      auto ancestors = p->parent;
-      while (ancestors != nullptr)
+      if (is_ancestor(p, r))
       {
-        if (ancestors == r)
-        {
-          // FIXME: Highlight, once regions have been reified
-          ui::error("Cycle created in region hierarchy", r->bridge);
-        }
-        ancestors = ancestors->parent;
+        ui::error("Cycle created in region hierarchy", r->bridge);
       }
 
       // Set the parent and increment the parent reference count.
@@ -154,7 +161,7 @@ namespace rt::objects
 
     bool is_closed()
     {
-      return this->local_reference_count == 0;
+      return this->combined_lrc() == 0;
     }
 
     /// Forces the region to be closed, by setting all references from the local
