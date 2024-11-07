@@ -287,6 +287,7 @@ namespace verona::interpreter
         // RC stays the same
         frame()->stack_push(old_var, "swapped value", false);
 
+        rt::move_reference(obj, frame()->object(), old_var);
         rt::move_reference(frame()->object(), obj, new_var);
         rt::remove_reference(frame()->object(), obj);
         rt::remove_reference(frame()->object(), key);

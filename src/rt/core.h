@@ -25,7 +25,7 @@ namespace rt::core
 
     FrameObject() : objects::DynObject(framePrototypeObject()) {}
 
-    std::string& stack_name(int idx)
+    std::string& stack_name(size_t idx)
     {
       if (idx == stack_keys.size())
       {

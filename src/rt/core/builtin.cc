@@ -239,7 +239,6 @@ namespace rt::core
       return std::nullopt;
     });
 
-    // TODO: Document
     add_builtin("close", [](auto frame, auto args) {
       close_function_impl(frame, args, true);
       return std::nullopt;

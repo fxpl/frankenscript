@@ -15,11 +15,13 @@ namespace rt::ui
   public:
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
 
-    virtual void highlight(std::string, std::vector<objects::DynObject*>&) {};
+    virtual void highlight(std::string, std::vector<objects::DynObject*>&) {}
 
-    virtual void error(std::string){};
-    virtual void error(std::string, std::vector<objects::DynObject*>&) {};
-    virtual void error(std::string, std::vector<objects::Edge>&) {};
+    virtual void error(std::string) {}
+
+    virtual void error(std::string, std::vector<objects::DynObject*>&) {}
+
+    virtual void error(std::string, std::vector<objects::Edge>&) {}
 
     virtual bool is_mermaid() = 0;
   };
@@ -159,8 +161,8 @@ namespace rt::ui
     };
 
   private:
-    /// Uses the local set to construct a reasonable set of roots, used for UI
-    /// methods that don't start from the local frame.
+    /// Uses the local region to construct a reasonable set of roots, used for
+    /// UI methods that don't start from the local frame.
     std::vector<objects::DynObject*> local_root_objects();
   };
 

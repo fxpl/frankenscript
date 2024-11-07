@@ -10,6 +10,10 @@ Causes the interpreter to enter *interactive mode*.
 
 Aborts the interpreter process. It's intended to indicate that an execution branch is not reachable.
 
+#### `pass()`
+
+Does nothing it can be used to fill empty blocks
+
 ## Constructors
 
 #### `Region()`
@@ -22,7 +26,7 @@ Creates a new `cown` object.
 
 The region must have a local reference count of one. The `move` keyword is used to replace the local value with `None`.
 
-### `create(proto)`
+#### `create(proto)`
 
 Creates a new object from the given prototype.
 
@@ -33,6 +37,24 @@ Creates a new object from the given prototype.
 Performs a deep freeze of the object and all referenced objects.
 
 This will move the objects out of their current region into the immutable region. Cowns will stop the freeze propagation, as they can be safely shared across threads and behaviors.
+
+#### `close(reg)`
+
+Forces the given region to close by invalidating all local references into to region and its subregions.
+
+This function will also correct all dirty LRCs.
+
+#### `try_close(reg)`
+
+Checks if the given region can be closed. If the LRC is dirty or subreagions are open, it will correct all dirty LRCs.
+
+Returns `True`, if the region is closed in the end, `False` otherwise.
+
+## Pragmas
+
+#### `pragma_disable_implicit_freezing()`
+
+Disables implicit freezing for the rest of the program.
 
 ## Mermaid
 

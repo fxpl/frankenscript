@@ -1,6 +1,8 @@
 #include "dyn_object.h"
 #include "region_object.h"
 
+#include <algorithm>
+
 namespace rt::objects
 {
   Region* get_region(DynObject* obj)
@@ -284,7 +286,7 @@ namespace rt::objects
 
       auto invalidate = dst_reg == to_close_reg;
       invalidate |=
-        (to_close_reg->sub_region_reference_count != 0 &&
+        (to_close_reg && to_close_reg->sub_region_reference_count != 0 &&
          Region::is_ancestor(dst_reg, to_close_reg));
       if (invalidate)
       {
@@ -334,13 +336,12 @@ namespace rt::objects
 
   bool Region::try_close()
   {
-    // TODO: Is this correct, or should it be the combined LRC?
     if (is_closed())
     {
       return true;
     }
 
-    if (this->is_lrc_dirty)
+    if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
     {
       clean_lrcs();
     }
