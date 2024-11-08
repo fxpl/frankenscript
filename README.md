@@ -37,7 +37,7 @@ ctest
 The project can be run by
 
 ```bash
-./build/frank build foo.fs
+./build/frankenscript build foo.frank
 ```
 
 where `foo.fs` is a FrankenScript program. This generates a file `mermaid.md` that contains the Mermaid representation of the heap after each step of the program.
@@ -45,7 +45,7 @@ where `foo.fs` is a FrankenScript program. This generates a file `mermaid.md` th
 You can run in interactive mode by running:
 
 ```bash
-./build/frank build --interactive foo.fs
+./build/frankenscript build --interactive foo.frank
 ```
 
 Which will keep overwritting the `mermaid.md` file with the new heap state after each step.

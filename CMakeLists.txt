@@ -49,10 +49,10 @@ add_library(
 )
 target_link_libraries(lang PRIVATE trieste::trieste)
 
-add_executable(verona_dyn src/main.cc)
-target_link_libraries(verona_dyn PRIVATE rt lang)
+add_executable(frankenscript src/main.cc)
+target_link_libraries(frankenscript PRIVATE rt lang)
 
-set_property(TARGET verona_dyn PROPERTY COMPILE_WARNING_AS_ERROR ON)
+set_property(TARGET frankenscript PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
 # Add snmallocs clang format targets
 clangformat_targets()
@@ -68,7 +68,7 @@ enable_testing()
 foreach(FILE ${ALL_FILES})
   get_filename_component(FILENAME ${FILE} NAME)
   message(STATUS "Adding test: ${FILENAME} -- ${FILE}")
-  add_test(NAME ${FILENAME} COMMAND verona_dyn build ${FILE})
+  add_test(NAME ${FILENAME} COMMAND frankenscript build ${FILE})
 endforeach()
 
 set_property(TEST three_regions.frank PROPERTY WILL_FAIL true)
