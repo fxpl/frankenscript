@@ -10,7 +10,7 @@
 
 namespace rt::ui
 {
-  const char* TAINT_NODE_COLOR = "#43a";
+  const char* TAINT_NODE_COLOR = "#8e84cc";
   const char* TAINT_EDGE_COLOR = "#9589dc";
 
   const char* CROSS_REGION_EDGE_COLOR = "orange";
@@ -18,12 +18,19 @@ namespace rt::ui
   const char* HIGHLIGHT_NODE_COLOR = "yellow";
   const char* ERROR_NODE_COLOR = "red";
 
-  const char* IMMUTABLE_NODE_COLOR = "#243042";
-  const char* IMMUTABLE_REGION_COLOR = "#485464";
-  const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
+  const char* IMMUTABLE_NODE_COLOR = "#94f7ff";
+  const char* IMMUTABLE_REGION_COLOR = "#e9fdff";
+  const char* IMMUTABLE_EDGE_COLOR = "#76c5cc";
 
+  const char* LOCAL_REGION_COLOR = "#eefcdd";
   const char* REGION_COLORS[] = {
-    "#666", "#555", "#444", "#333", "#222", "#111"};
+    "#fcfbdd",
+    "#f9f7bc",
+    "#f7f39b",
+    "#f4ef7a",
+    "#f2ec59",
+    "#d9d450",
+  };
 
   const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
@@ -104,9 +111,11 @@ namespace rt::ui
     void draw(std::vector<objects::DynObject*>& roots)
     {
       // Header
+      out << "<div style='background: #fff'>" << std::endl;
+      out << std::endl;
       out << "```mermaid" << std::endl;
-      out << "%%{init: {'themeVariables': { 'fontSize': '" << FONT_SIZE
-          << "' }}}%%";
+      out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
+          << FONT_SIZE << "' }}}%%" << std::endl;
       out << "graph TD" << std::endl;
       out << "  id0(None):::immutable" << std::endl;
 
@@ -126,6 +135,8 @@ namespace rt::ui
       out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
+      out << "</div>" << std::endl;
+      out << std::endl;
     }
 
   private:
@@ -347,7 +358,7 @@ namespace rt::ui
             << std::endl;
         draw_region_body(objects::cown_region, &regions[region], indent);
         out << "end" << std::endl;
-        out << "style " << LOCAL_REGION_ID << " fill:" << REGION_COLORS[0]
+        out << "style " << LOCAL_REGION_ID << " fill:" << LOCAL_REGION_COLOR
             << std::endl;
       }
       regions[objects::get_local_region()].drawn = true;
