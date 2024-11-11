@@ -10,7 +10,8 @@
 
 # FrankenScript
 
-FrankenScript is a monster of our creation. It's a toy language intended to explore how regions can be used in dynamic programming languages to reason about memory in concurrent programs. The semantics are inspired by Python and JavaScript. The output of FrankenScript are several diagrams that show the evolution of the memory.
+<!-- FrankenScript is a monster of our creation. -->
+FrankenScript a toy language intended to explore how regions can be used in dynamic programming languages to reason about memory in concurrent programs. The semantics are inspired by Python and JavaScript. The output of FrankenScript are several diagrams that show the evolution of the memory.
 
 This document shows how FrankenScript can be used. It's assumed that the reader has a rough understanding of reference counting, regions, and cowns, as explained in the paper.
 
@@ -35,6 +36,8 @@ reference = obj.f1
 ```
 
 The curly brackets `{}` create new empty dictionary. Line 2 populates the field `f1` with a new empty dictionary. The final line creates a reference to the dictionary in the field. The example will generate the following diagram:
+
+<!-- Don't mention paper, make the story clear, from safe to concurrency -->
 
 <!-- FIXME: Add background differently here, since GH doesn't like this diff -->
 <div style='background: #fff'>
@@ -99,6 +102,8 @@ Region objects use a trapezoid shape and display the number of incoming borrowed
 ### Arguing With Cowns
 
 Concurrent Owners (Cowns) are special objects in FrankenScript used to enforce ownership and argue about memory safety. While FrankenScript doesn't support concurrency, it allows the simulation of blocking access to cowns and the highlight of the mutable state. This allows reasoning about cowns and the safety of our ownership model.
+
+
 
 ### Legend
 
