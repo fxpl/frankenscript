@@ -23,6 +23,29 @@ namespace rt::objects
     local_region = region;
   }
 
+  void implicit_freeze(DynObject* target)
+  {
+    // The `freeze()` call is the only required thing, the rest is just needed
+    // for helpful UI output.
+    std::set<DynObject*> pre_objects = immutable_region->objects;
+    target->freeze();
+    std::set<DynObject*> post_objects = immutable_region->objects;
+
+    std::vector<DynObject*> effected_nodes;
+    std::set_difference(
+      post_objects.begin(),
+      post_objects.end(),
+      pre_objects.begin(),
+      pre_objects.end(),
+      std::back_inserter(effected_nodes));
+
+    std::stringstream ss;
+    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
+       << " node(s) starting from " << target;
+
+    ui::globalUI()->highlight(ss.str(), effected_nodes);
+  }
+
   void add_to_region(Region* r, DynObject* target)
   {
     size_t internal_references{0};
@@ -56,8 +79,17 @@ namespace rt::objects
 
       if (obj->get_prototype() != objects::regionPrototypeObject())
       {
-        // FIXME: This should probably also freeze?
-        ui::error("Cannot add interior region object to another region");
+        if (Region::pragma_implicit_freezing)
+        {
+          implicit_freeze(obj);
+          return false;
+        }
+        else
+        {
+          ui::error(
+            "Cannot reference an object from another region",
+            {r->bridge, "", obj});
+        }
       }
 
       Region::set_parent(obj_region, r);
@@ -112,29 +144,6 @@ namespace rt::objects
       Region::to_collect.insert(target);
     }
     return;
-  }
-
-  void implicit_freeze(DynObject* target)
-  {
-    // The `freeze()` call is the only required thing, the rest is just needed
-    // for helpful UI output.
-    std::set<DynObject*> pre_objects = immutable_region->objects;
-    target->freeze();
-    std::set<DynObject*> post_objects = immutable_region->objects;
-
-    std::vector<DynObject*> effected_nodes;
-    std::set_difference(
-      post_objects.begin(),
-      post_objects.end(),
-      pre_objects.begin(),
-      pre_objects.end(),
-      std::back_inserter(effected_nodes));
-
-    std::stringstream ss;
-    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
-       << " node(s) starting from " << target;
-
-    ui::globalUI()->highlight(ss.str(), effected_nodes);
   }
 
   void add_region_reference(Region* src_region, DynObject* target)

@@ -255,6 +255,8 @@ namespace rt::core
     CownObject(objects::DynObject* bridge)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
+      // TODO: Make sure we're parenting the region and add third state, like
+      // pending
       auto region = objects::get_region(bridge);
       if (region->bridge != bridge)
       {
