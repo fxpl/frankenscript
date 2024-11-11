@@ -23,6 +23,8 @@ namespace rt::ui
   const char* IMMUTABLE_EDGE_COLOR = "#76c5cc";
 
   const char* LOCAL_REGION_COLOR = "#eefcdd";
+  const char* DEFAULT_EDGE_COLOR = "#777777";
+
   const char* REGION_COLORS[] = {
     "#fcfbdd",
     "#f9f7bc",
@@ -37,6 +39,8 @@ namespace rt::ui
   const char* COWN_REGION_ID = "CownReg";
 
   const char* FONT_SIZE = "16px";
+  const int EDGE_WIDTH = 2;
+  const int ERROR_EDGE_WIDTH = 4;
 
   void replace(std::string& text, std::string from, std::string replace)
   {
@@ -102,7 +106,7 @@ namespace rt::ui
       regions[objects::immutable_region].nodes.push_back(0);
     }
 
-    void color_edge(size_t edge_id, const char* color, int width = 1)
+    void color_edge(size_t edge_id, const char* color, int width = EDGE_WIDTH)
     {
       out << "  linkStyle " << edge_id << " stroke:" << color
           << ",stroke-width:" << width << "px" << std::endl;
@@ -231,6 +235,10 @@ namespace rt::ui
         else if (rt::objects::get_region(src) != rt::objects::get_region(dst))
         {
           color_edge(edge_id, CROSS_REGION_EDGE_COLOR);
+        }
+        else
+        {
+          color_edge(edge_id, DEFAULT_EDGE_COLOR);
         }
       }
 
@@ -443,7 +451,7 @@ namespace rt::ui
           edge_id = edge_counter;
           edge_counter += 1;
         }
-        color_edge(edge_id, ERROR_NODE_COLOR, 4);
+        color_edge(edge_id, ERROR_NODE_COLOR, ERROR_EDGE_WIDTH);
       }
     }
   };
