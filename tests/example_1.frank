@@ -1,0 +1,3 @@
+obj = {}
+obj.f1 = {}
+reference = obj.f1
