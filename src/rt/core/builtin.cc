@@ -180,10 +180,10 @@ namespace rt::core
 
   void ctor_builtins()
   {
-    add_builtin("cown", [](auto frame, auto args) {
+    add_builtin("Cown", [](auto frame, auto args) {
       if (args != 1)
       {
-        ui::error("cown() expected 1 argument");
+        ui::error("Cown() expected 1 argument");
       }
 
       auto region = frame->stack_pop("region for cown creation");

@@ -1,3 +1,4 @@
+# Define the list
 def new_list():
     def insert(self, item):
         node = self.head
@@ -45,10 +46,9 @@ drop freeze_and_hide_proto
 
 list = new_list()
 
-# Required to not leak memory
+# Move the list into a region
 r = Region()
 r.list = list
-
 value = "x"
 
 list.insert({})
@@ -56,6 +56,3 @@ list.insert({})
 list.insert(value)
 list.insert({})
 list.remove(value)
-
-drop value
-drop list
