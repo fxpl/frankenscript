@@ -353,7 +353,7 @@ namespace rt::objects
   template<typename Pre, typename Post>
   inline void visit(Region* start, Pre pre, Post post)
   {
-    for (auto obj : start->objects)
+    for (auto obj : start->get_objects())
     {
       visit(obj, pre, post);
     }

@@ -200,9 +200,11 @@ namespace rt::objects
       collecting = true;
 
       std::cout << "Starting collection" << std::endl;
-      for (auto r : to_collect)
+      while (!to_collect.empty())
       {
+        auto r = *to_collect.begin();
         dirty_regions.erase(r);
+        to_collect.erase(r);
         // Note destruct could re-enter here, ensure we don't hold onto a
         // pointer into to_collect.
         for (auto o : r->objects)
@@ -214,7 +216,6 @@ namespace rt::objects
         delete r;
       }
       std::cout << "Finished collection" << std::endl;
-      to_collect.clear();
       collecting = false;
     }
   };

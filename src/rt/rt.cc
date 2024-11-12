@@ -116,7 +116,10 @@ namespace rt
   objects::DynObject*
   set(objects::DynObject* obj, std::string key, objects::DynObject* value)
   {
-    assert(obj && "Given nullptr, expected a valid DynObject pointer");
+    if (!obj)
+    {
+      ui::error("fields can't be set on `None`");
+    }
     return obj->set(key, value);
   }
 
