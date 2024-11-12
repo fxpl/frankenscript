@@ -11,7 +11,7 @@ namespace rt::objects
   class DynObject;
   struct Region;
 
-  void add_to_region(Region* r, DynObject* target);
+  void add_to_region(Region* r, DynObject* target, DynObject* source = nullptr);
   void remove_region_reference(Region* src, Region* target);
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);

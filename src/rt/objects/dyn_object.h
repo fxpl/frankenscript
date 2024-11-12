@@ -45,7 +45,7 @@ namespace rt::objects
     template<typename Pre, typename Post>
     friend void visit(Edge, Pre, Post);
     friend Region* get_region(DynObject* obj);
-    friend void add_to_region(Region* r, DynObject* target);
+    friend void add_to_region(Region* r, DynObject* target, DynObject* source);
 
     // TODO: Not concurrency safe
     inline static size_t count{0};

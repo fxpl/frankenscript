@@ -172,6 +172,19 @@ namespace rt::ui
         objects::get_region(e.src) == objects::get_local_region();
     }
 
+    std::string node_decoration(objects::DynObject* dst, bool reachable)
+    {
+      if (dst->is_immutable())
+      {
+        return ":::immutable";
+      }
+      if (!reachable && info->highlight_unreachable)
+      {
+        return ":::unreachable";
+      }
+      return "";
+    }
+
     /// @brief Draws the target node and the edge from the source to the target.
     NodeInfo* draw_edge(objects::Edge e, bool reachable)
     {
@@ -215,11 +228,7 @@ namespace rt::ui
 
         // Footer
         out << markers.second;
-        out
-          << (dst->is_immutable() ?
-                ":::immutable" :
-                (reachable && info->highlight_unreachable ? "" :
-                                                            ":::unreachable"));
+        out << node_decoration(dst, reachable);
         out << std::endl;
 
         result = node;

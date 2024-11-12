@@ -40,6 +40,7 @@ namespace rt::ui
   {
   public:
     static inline bool pragma_draw_regions_nested = true;
+    static inline bool highlight_unreachable = false;
 
   private:
     friend class MermaidDiagram;
@@ -68,7 +69,6 @@ namespace rt::ui
     bool draw_immutable_region = false;
     /// Indicates if local functions should be visible
     bool draw_funcs = false;
-    bool highlight_unreachable = true;
 
     std::vector<objects::DynObject*> highlight_objects;
     std::vector<objects::DynObject*> error_objects;

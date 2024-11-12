@@ -46,12 +46,13 @@ namespace rt::objects
     ui::globalUI()->highlight(ss.str(), effected_nodes);
   }
 
-  void add_to_region(Region* r, DynObject* target)
+  // Using an edge, to make the error message better
+  void add_to_region(Region* r, DynObject* target, DynObject* source)
   {
     size_t internal_references{0};
     size_t rc_of_added_objects{0};
 
-    visit(target, [&](Edge e) {
+    visit({source, "", target}, [&](Edge e) {
       auto obj = e.target;
       if (obj == nullptr || obj->is_immutable())
         return false;
@@ -86,9 +87,15 @@ namespace rt::objects
         }
         else
         {
-          ui::error(
-            "Cannot reference an object from another region",
-            {r->bridge, "", obj});
+          if (e.src)
+          {
+            ui::error("Cannot reference an object from another region", e);
+          }
+          else
+          {
+            ui::error(
+              "Cannot reference an object from another region", e.target);
+          }
         }
       }
 
@@ -146,7 +153,9 @@ namespace rt::objects
     return;
   }
 
-  void add_region_reference(Region* src_region, DynObject* target)
+  /// The `source` object is only used for better error reporting
+  void
+  add_region_reference(Region* src_region, DynObject* target, DynObject* source)
   {
     assert(target != nullptr);
     if (target->is_immutable())
@@ -164,7 +173,7 @@ namespace rt::objects
 
     if (target_region == get_local_region())
     {
-      add_to_region(src_region, target);
+      add_to_region(src_region, target, source);
       return;
     }
 
@@ -206,7 +215,7 @@ namespace rt::objects
     target->change_rc(1);
 
     auto src_region = get_region(src);
-    add_region_reference(src_region, target);
+    add_region_reference(src_region, target, src);
   }
 
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial)
@@ -247,7 +256,7 @@ namespace rt::objects
 
     auto target_region = get_region(target);
 
-    add_region_reference(dst_region, target);
+    add_region_reference(dst_region, target, src);
     // Note that target_region and get_region(target) are not necessarily the
     // same.
     remove_region_reference(src_region, target_region);
