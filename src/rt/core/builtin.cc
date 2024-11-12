@@ -300,7 +300,7 @@ namespace rt::core
       close_function_impl(frame, args, true);
       return std::nullopt;
     });
-    add_builtin("try_close", [](auto frame, auto args) {
+    add_builtin("is_closed", [](auto frame, auto args) {
       auto result = close_function_impl(frame, args, false);
       auto result_obj = rt::get_bool(result);
       // The return will be linked to the frame by the interpreter, but the RC

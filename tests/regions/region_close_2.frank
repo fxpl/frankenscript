@@ -9,8 +9,8 @@ r1.r2.b = {}
 # r2.LRC is now 0
 # r2.LRC will be 1, from the value on the stack
 
-# Succeed `try_close()`
-if try_close(r1.r2):
+# Succeed `is_closed()`
+if is_closed(r1.r2):
     pass()
 else:
     unreachable()

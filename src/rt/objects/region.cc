@@ -308,6 +308,11 @@ namespace rt::objects
          Region::is_ancestor(dst_reg, to_close_reg));
       if (invalidate)
       {
+        if (e.key == PrototypeField)
+        {
+          ui::error("Can't close the region due to this prototype", e);
+        }
+
         auto old = src->set(e.key, nullptr);
         assert(old == dst);
         add_reference(src, nullptr);

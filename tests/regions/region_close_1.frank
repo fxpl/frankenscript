@@ -14,8 +14,8 @@ lref2 = r2.b.c
 
 # r2.LRC is now 3, from: r2, lref1, lref2
 
-# Fail `try_close()`
-if try_close(r2):
+# Fail `is_closed()`
+if is_closed(r2):
     unreachable()
 
 # Force close

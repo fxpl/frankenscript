@@ -1,0 +1,11 @@
+# Construct regions
+r1 = Region()
+
+# Create a local string to share the `String` prototype
+local_string = "Hello Local"
+
+# This also moves the `String` prototype
+r1.something = "Important string"
+
+# This should fail, since implicit freezing is disabled
+close(r1)

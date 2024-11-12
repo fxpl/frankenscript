@@ -44,7 +44,7 @@ Forces the given region to close by invalidating all local references into to re
 
 This function will also correct all dirty LRCs.
 
-#### `try_close(reg)`
+#### `is_closed(reg)`
 
 Checks if the given region can be closed. If the LRC is dirty or subreagions are open, it will correct all dirty LRCs.
 
