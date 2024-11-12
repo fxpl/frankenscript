@@ -1,3 +1,5 @@
+pragma_disable_implicit_freezing()
+
 # Fails: can't add anything but the bridge object to a region
 r = Region()
 r2 = Region()
