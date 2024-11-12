@@ -189,7 +189,7 @@ namespace verona::interpreter
           }
           else if (field == "False")
           {
-            rt::get_false();
+            v = rt::get_false();
           }
         }
 

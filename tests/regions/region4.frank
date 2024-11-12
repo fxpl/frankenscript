@@ -22,6 +22,9 @@ r4.n = move r5
 r3.n = move r4
 drop r3
 
+pragma_mermaid_draw_regions_nested(False)
+pragma_mermaid_draw_regions_nested(True)
+
 # Move this into a cown
 c = cown(move r1)
 

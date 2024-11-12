@@ -23,12 +23,36 @@ namespace rt::objects
     local_region = region;
   }
 
-  void add_to_region(Region* r, DynObject* target)
+  void implicit_freeze(DynObject* target)
+  {
+    // The `freeze()` call is the only required thing, the rest is just needed
+    // for helpful UI output.
+    std::set<DynObject*> pre_objects = immutable_region->objects;
+    target->freeze();
+    std::set<DynObject*> post_objects = immutable_region->objects;
+
+    std::vector<DynObject*> effected_nodes;
+    std::set_difference(
+      post_objects.begin(),
+      post_objects.end(),
+      pre_objects.begin(),
+      pre_objects.end(),
+      std::back_inserter(effected_nodes));
+
+    std::stringstream ss;
+    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
+       << " node(s) starting from " << target;
+
+    ui::globalUI()->highlight(ss.str(), effected_nodes);
+  }
+
+  // Using an edge, to make the error message better
+  void add_to_region(Region* r, DynObject* target, DynObject* source)
   {
     size_t internal_references{0};
     size_t rc_of_added_objects{0};
 
-    visit(target, [&](Edge e) {
+    visit({source, "", target}, [&](Edge e) {
       auto obj = e.target;
       if (obj == nullptr || obj->is_immutable())
         return false;
@@ -56,8 +80,23 @@ namespace rt::objects
 
       if (obj->get_prototype() != objects::regionPrototypeObject())
       {
-        // FIXME: This should probably also freeze?
-        ui::error("Cannot add interior region object to another region");
+        if (Region::pragma_implicit_freezing)
+        {
+          implicit_freeze(obj);
+          return false;
+        }
+        else
+        {
+          if (e.src)
+          {
+            ui::error("Cannot reference an object from another region", e);
+          }
+          else
+          {
+            ui::error(
+              "Cannot reference an object from another region", e.target);
+          }
+        }
       }
 
       Region::set_parent(obj_region, r);
@@ -114,30 +153,9 @@ namespace rt::objects
     return;
   }
 
-  void implicit_freeze(DynObject* target)
-  {
-    // The `freeze()` call is the only required thing, the rest is just needed
-    // for helpful UI output.
-    std::set<DynObject*> pre_objects = immutable_region->objects;
-    target->freeze();
-    std::set<DynObject*> post_objects = immutable_region->objects;
-
-    std::vector<DynObject*> effected_nodes;
-    std::set_difference(
-      post_objects.begin(),
-      post_objects.end(),
-      pre_objects.begin(),
-      pre_objects.end(),
-      std::back_inserter(effected_nodes));
-
-    std::stringstream ss;
-    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
-       << " node(s) starting from " << target;
-
-    ui::globalUI()->highlight(ss.str(), effected_nodes);
-  }
-
-  void add_region_reference(Region* src_region, DynObject* target)
+  /// The `source` object is only used for better error reporting
+  void
+  add_region_reference(Region* src_region, DynObject* target, DynObject* source)
   {
     assert(target != nullptr);
     if (target->is_immutable())
@@ -155,7 +173,7 @@ namespace rt::objects
 
     if (target_region == get_local_region())
     {
-      add_to_region(src_region, target);
+      add_to_region(src_region, target, source);
       return;
     }
 
@@ -197,7 +215,7 @@ namespace rt::objects
     target->change_rc(1);
 
     auto src_region = get_region(src);
-    add_region_reference(src_region, target);
+    add_region_reference(src_region, target, src);
   }
 
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial)
@@ -238,7 +256,7 @@ namespace rt::objects
 
     auto target_region = get_region(target);
 
-    add_region_reference(dst_region, target);
+    add_region_reference(dst_region, target, src);
     // Note that target_region and get_region(target) are not necessarily the
     // same.
     remove_region_reference(src_region, target_region);
@@ -290,6 +308,11 @@ namespace rt::objects
          Region::is_ancestor(dst_reg, to_close_reg));
       if (invalidate)
       {
+        if (e.key == PrototypeField)
+        {
+          ui::error("Can't close the region due to this prototype", e);
+        }
+
         auto old = src->set(e.key, nullptr);
         assert(old == dst);
         add_reference(src, nullptr);

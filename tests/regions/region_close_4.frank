@@ -9,7 +9,7 @@ r0.r1.r2.r3.a = {}
 lref = r0.r1.r2.r3.a
 
 # Fail try close, since r3 is open
-if try_close(r0.r1):
+if is_closed(r0.r1):
     unreachable()
 
 # Force close

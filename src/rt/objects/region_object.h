@@ -8,7 +8,8 @@ namespace rt::objects
   // The prototype object for region entry point objects
   inline PrototypeObject* regionPrototypeObject()
   {
-    static PrototypeObject* proto = new PrototypeObject("RegionObject");
+    static PrototypeObject* proto =
+      new PrototypeObject("RegionObject", nullptr, objects::immutable_region);
     return proto;
   }
 

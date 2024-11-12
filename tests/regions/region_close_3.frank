@@ -21,8 +21,8 @@ lref2 = r2.b.c
 freeze(r2.b)
 r2 = None
 
-# Succeed `try_close()` after LRC cleaning
-if try_close(r1.r2):
+# Succeed `is_closed()` after LRC cleaning
+if is_closed(r1.r2):
     pass()
 else:
     unreachable()

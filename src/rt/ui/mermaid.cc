@@ -10,7 +10,7 @@
 
 namespace rt::ui
 {
-  const char* TAINT_NODE_COLOR = "#43a";
+  const char* TAINT_NODE_COLOR = "#8e84cc";
   const char* TAINT_EDGE_COLOR = "#9589dc";
 
   const char* CROSS_REGION_EDGE_COLOR = "orange";
@@ -18,18 +18,29 @@ namespace rt::ui
   const char* HIGHLIGHT_NODE_COLOR = "yellow";
   const char* ERROR_NODE_COLOR = "red";
 
-  const char* IMMUTABLE_NODE_COLOR = "#243042";
-  const char* IMMUTABLE_REGION_COLOR = "#485464";
-  const char* IMMUTABLE_EDGE_COLOR = "#94f7ff";
+  const char* IMMUTABLE_NODE_COLOR = "#94f7ff";
+  const char* IMMUTABLE_REGION_COLOR = "#e9fdff";
+  const char* IMMUTABLE_EDGE_COLOR = "#76c5cc";
+
+  const char* LOCAL_REGION_COLOR = "#eefcdd";
+  const char* DEFAULT_EDGE_COLOR = "#777777";
 
   const char* REGION_COLORS[] = {
-    "#666", "#555", "#444", "#333", "#222", "#111"};
+    "#fcfbdd",
+    "#f9f7bc",
+    "#f7f39b",
+    "#f4ef7a",
+    "#f2ec59",
+    "#d9d450",
+  };
 
   const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
 
   const char* FONT_SIZE = "16px";
+  const int EDGE_WIDTH = 2;
+  const int ERROR_EDGE_WIDTH = 4;
 
   void replace(std::string& text, std::string from, std::string replace)
   {
@@ -95,7 +106,7 @@ namespace rt::ui
       regions[objects::immutable_region].nodes.push_back(0);
     }
 
-    void color_edge(size_t edge_id, const char* color, int width = 1)
+    void color_edge(size_t edge_id, const char* color, int width = EDGE_WIDTH)
     {
       out << "  linkStyle " << edge_id << " stroke:" << color
           << ",stroke-width:" << width << "px" << std::endl;
@@ -104,9 +115,11 @@ namespace rt::ui
     void draw(std::vector<objects::DynObject*>& roots)
     {
       // Header
+      out << "<div style='background: #fff'>" << std::endl;
+      out << std::endl;
       out << "```mermaid" << std::endl;
-      out << "%%{init: {'themeVariables': { 'fontSize': '" << FONT_SIZE
-          << "' }}}%%";
+      out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
+          << FONT_SIZE << "' }}}%%" << std::endl;
       out << "graph TD" << std::endl;
       out << "  id0(None):::immutable" << std::endl;
 
@@ -126,6 +139,8 @@ namespace rt::ui
       out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
+      out << "</div>" << std::endl;
+      out << std::endl;
     }
 
   private:
@@ -155,6 +170,19 @@ namespace rt::ui
       return e.src != nullptr && e.target != nullptr &&
         objects::get_region(e.src) != objects::get_region(e.target) &&
         objects::get_region(e.src) == objects::get_local_region();
+    }
+
+    std::string node_decoration(objects::DynObject* dst, bool reachable)
+    {
+      if (dst->is_immutable())
+      {
+        return ":::immutable";
+      }
+      if (!reachable && info->highlight_unreachable)
+      {
+        return ":::unreachable";
+      }
+      return "";
     }
 
     /// @brief Draws the target node and the edge from the source to the target.
@@ -200,11 +228,7 @@ namespace rt::ui
 
         // Footer
         out << markers.second;
-        out
-          << (dst->is_immutable() ?
-                ":::immutable" :
-                (reachable && info->highlight_unreachable ? "" :
-                                                            ":::unreachable"));
+        out << node_decoration(dst, reachable);
         out << std::endl;
 
         result = node;
@@ -220,6 +244,10 @@ namespace rt::ui
         else if (rt::objects::get_region(src) != rt::objects::get_region(dst))
         {
           color_edge(edge_id, CROSS_REGION_EDGE_COLOR);
+        }
+        else
+        {
+          color_edge(edge_id, DEFAULT_EDGE_COLOR);
         }
       }
 
@@ -276,9 +304,12 @@ namespace rt::ui
       {
         out << indent << "id" << obj << std::endl;
       }
-      for (auto reg : info->regions)
+      if (MermaidUI::pragma_draw_regions_nested)
       {
-        draw_region(reg, indent);
+        for (auto reg : info->regions)
+        {
+          draw_region(reg, indent);
+        }
       }
       indent.erase(indent.size() - 2);
     }
@@ -347,19 +378,32 @@ namespace rt::ui
             << std::endl;
         draw_region_body(objects::cown_region, &regions[region], indent);
         out << "end" << std::endl;
-        out << "style " << LOCAL_REGION_ID << " fill:" << REGION_COLORS[0]
+        out << "style " << LOCAL_REGION_ID << " fill:" << LOCAL_REGION_COLOR
             << std::endl;
       }
       regions[objects::get_local_region()].drawn = true;
 
       // Draw all other regions
-      for (auto reg : regions[nullptr].regions)
+      if (MermaidUI::pragma_draw_regions_nested)
       {
-        draw_region(reg, indent);
+        for (auto reg : regions[nullptr].regions)
+        {
+          draw_region(reg, indent);
+        }
+        for (auto reg : regions[objects::cown_region].regions)
+        {
+          draw_region(reg, indent);
+        }
       }
-      for (auto reg : regions[objects::cown_region].regions)
+      else
       {
-        draw_region(reg, indent);
+        for (const auto& [reg, _] : regions)
+        {
+          if (reg != nullptr)
+          {
+            draw_region(reg, indent);
+          }
+        }
       }
     }
 
@@ -432,7 +476,7 @@ namespace rt::ui
           edge_id = edge_counter;
           edge_counter += 1;
         }
-        color_edge(edge_id, ERROR_NODE_COLOR, 4);
+        color_edge(edge_id, ERROR_NODE_COLOR, ERROR_EDGE_WIDTH);
       }
     }
   };

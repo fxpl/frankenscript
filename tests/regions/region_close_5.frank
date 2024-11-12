@@ -1,9 +1,9 @@
 # Helper to close the region while a ref is on the stack
 def close_and_get(r1):
     # Check that the region is currently open
-    if try_close(r1.r2):
+    if is_closed(r1.r2):
         unreachable()
-    
+
     # Force close it
     close(r1.r2)
 

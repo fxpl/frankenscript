@@ -224,6 +224,7 @@ namespace rt
           roots.end(),
           [&globals](auto x) { return globals->contains(x); }),
         roots.end());
+      ui::MermaidUI::highlight_unreachable = true;
       ui->output(roots, "Cycles detected in local region.");
     }
 
@@ -247,6 +248,7 @@ namespace rt
       {
         roots.push_back(obj);
       }
+      ui::MermaidUI::highlight_unreachable = true;
       ui->output(roots, "Memory leak detected!");
 
       std::exit(1);

@@ -44,7 +44,7 @@ Forces the given region to close by invalidating all local references into to re
 
 This function will also correct all dirty LRCs.
 
-#### `try_close(reg)`
+#### `is_closed(reg)`
 
 Checks if the given region can be closed. If the LRC is dirty or subreagions are open, it will correct all dirty LRCs.
 
@@ -55,6 +55,10 @@ Returns `True`, if the region is closed in the end, `False` otherwise.
 #### `pragma_disable_implicit_freezing()`
 
 Disables implicit freezing for the rest of the program.
+
+#### `pragma_mermaid_draw_regions_nested(bool)`
+
+Indicates if nested regions should be drawn as nested or floating boxes in the diagram.
 
 ## Mermaid
 

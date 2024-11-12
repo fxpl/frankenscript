@@ -5,5 +5,7 @@ a.v = {}
 # LRC = 2
 r01 = a.v
 
-# Error due to invalid LRC
+# The cown can be created but is pending
 co = cown(move a)
+
+co.value.field = "modifiable"

@@ -251,21 +251,45 @@ namespace rt::core
 
   class CownObject : public objects::DynObject
   {
+  private:
+    enum class Status
+    {
+      Pending,
+      Released,
+      Acquired
+    };
+
+    static std::string to_string(Status status)
+    {
+      switch (status)
+      {
+        case Status::Pending:
+          return "Pending";
+        case Status::Released:
+          return "Released";
+        case Status::Acquired:
+          return "Acquired";
+        default:
+          return "Unknown";
+      }
+    }
+
+    Status status;
+
   public:
     CownObject(objects::DynObject* bridge)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
+      status = Status::Pending;
+
+      // TODO: Make sure we're parenting the region and add third state, like
+      // pending
       auto region = objects::get_region(bridge);
       if (region->bridge != bridge)
       {
         std::stringstream ss;
         ss << bridge << " is not the bridge object of the region";
         ui::error(ss.str(), bridge);
-      }
-
-      if (region->local_reference_count > 1)
-      {
-        ui::error("The given region has a LRC > 1", bridge);
       }
 
       if (region->parent != nullptr)
@@ -277,13 +301,22 @@ namespace rt::core
         ui::error(ss.str(), {this, "", bridge});
       }
 
-      // this->set would fail, since this is a cown
-      this->fields["value"] = bridge;
+      auto old = set("value", bridge);
+      assert(!old);
+
+      // 1x LRC from the stack
+      if (region->local_reference_count == 1)
+      {
+        status = Status::Released;
+      }
     }
 
     std::string get_name() override
     {
-      return "<cown>";
+      std::stringstream ss;
+      ss << "<cown>" << std::endl;
+      ss << "status=" << to_string(status);
+      return ss.str();
     }
 
     objects::DynObject* is_primitive() override
@@ -293,9 +326,17 @@ namespace rt::core
 
     bool is_opaque() override
     {
-      // For now there is no mechanism to aquire the cown, it'll therefore
-      // always be opaque.
-      return true;
+      switch (status)
+      {
+        // Acquired would usually also check the current thread ID
+        // but this is single threaded
+        case Status::Acquired:
+        case Status::Pending:
+          return false;
+        case Status::Released:
+        default:
+          return true;
+      }
     }
   };
 
