@@ -155,18 +155,45 @@ namespace rt::objects
 
     void freeze()
     {
+      std::vector<Region*> dead_regions;
       // TODO SCC algorithm
-      visit(this, [](Edge e) {
+      visit(this, [&](Edge e) {
         auto obj = e.target;
         if (!obj || obj->is_immutable() || obj->is_cown())
           return false;
 
         auto r = get_region(obj);
-        get_region(obj)->objects.erase(obj);
+        r->objects.erase(obj);
+        // FIXME: Region can remain clean, if the RC was 1 when this was called.
+        r->mark_dirty();
+
+        // There are several options to deal with region objects that become
+        // frozen. They should be kept to some extent, to keep the existing
+        // object structure.
+        //
+        // The simplest approach taken here, is to simply remove the prototype
+        // therefore turning the object into an ordinary dictionary.
+        if (r->bridge == obj)
+        {
+          r->bridge = nullptr;
+          auto old_proto = obj->set_prototype(nullptr);
+          rt::remove_reference(this, old_proto);
+          dead_regions.push_back(r);
+        }
+
+        // Make obj immutable
         obj->region.set_ptr(immutable_region);
+        immutable_region->objects.insert(obj);
 
         return true;
       });
+
+      // The termination has to be delayed to make sure that all object are
+      // frozen before the termination.
+      for (auto r : dead_regions)
+      {
+        r->terminate_region();
+      }
     }
 
     bool is_immutable()
@@ -187,6 +214,33 @@ namespace rt::objects
       // TODO make this iterative.
       if (prototype != nullptr)
         return prototype->get(name);
+
+      // No field or prototype chain found.
+      return nullptr;
+    }
+
+    /// A destructive read of the value.
+    [[nodiscard]] DynObject* erase(std::string name)
+    {
+      auto result = fields.find(name);
+      if (result != fields.end())
+      {
+        auto value = result->second;
+        fields.erase(result);
+        return value;
+      }
+
+      if (name == PrototypeField)
+      {
+        auto value = prototype;
+        prototype = nullptr;
+        return value;
+      }
+
+      // Search the prototype chain.
+      // TODO make this iterative.
+      if (prototype != nullptr)
+        return prototype->erase(name);
 
       // No field or prototype chain found.
       return nullptr;
@@ -294,6 +348,15 @@ namespace rt::objects
   inline void visit(DynObject* start, Pre pre, Post post)
   {
     visit(Edge{nullptr, "", start}, pre, post);
+  }
+
+  template<typename Pre, typename Post>
+  inline void visit(Region* start, Pre pre, Post post)
+  {
+    for (auto obj : start->get_objects())
+    {
+      visit(obj, pre, post);
+    }
   }
 
 } // namespace rt::objects

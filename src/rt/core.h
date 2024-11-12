@@ -1,4 +1,6 @@
+#include "../lang/interpreter.h"
 #include "objects/prototype_object.h"
+#include "objects/region.h"
 #include "objects/region_object.h"
 #include "rt.h"
 
@@ -14,9 +16,26 @@ namespace rt::core
     return proto;
   }
 
-  class FrameObject : public objects::DynObject
+  class FrameObject : public objects::DynObject,
+                      public verona::interpreter::FrameObj
   {
+    static constexpr std::string_view STACK_PREFIX = "_stack";
+    static inline thread_local std::vector<std::string> stack_keys;
+    size_t stack_size = 0;
+
     FrameObject() : objects::DynObject(framePrototypeObject()) {}
+
+    std::string& stack_name(size_t idx)
+    {
+      if (idx == stack_keys.size())
+      {
+        std::stringstream ss;
+        ss << STACK_PREFIX << "[" << idx << "]";
+        stack_keys.push_back(ss.str());
+      }
+
+      return stack_keys[idx];
+    }
 
   public:
     FrameObject(objects::DynObject* parent_frame)
@@ -33,6 +52,43 @@ namespace rt::core
     static FrameObject* create_first_stack()
     {
       return new FrameObject();
+    }
+
+    rt::objects::DynObject* object()
+    {
+      return this;
+    }
+
+    void stack_push(
+      rt::objects::DynObject* value, const char* info, bool rc_add = true)
+    {
+      auto old = this->set(stack_name(stack_size), value);
+      assert(old == nullptr && "the stack already had a value");
+      stack_size += 1;
+
+      std::cout << "pushed " << value << " (" << info << ")" << std::endl;
+      if (rc_add)
+      {
+        rt::add_reference(this, value);
+      }
+    }
+
+    rt::objects::DynObject* stack_pop(char const* info)
+    {
+      stack_size -= 1;
+      auto value = erase(stack_name(stack_size));
+      std::cout << "poped " << value << " (" << value << ")" << std::endl;
+      return value;
+    }
+
+    size_t get_stack_size()
+    {
+      return stack_size;
+    }
+
+    rt::objects::DynObject* stack_get(size_t index)
+    {
+      return get(stack_name(index));
     }
   };
 
@@ -210,6 +266,15 @@ namespace rt::core
       if (region->local_reference_count > 1)
       {
         ui::error("The given region has a LRC > 1", bridge);
+      }
+
+      if (region->parent != nullptr)
+      {
+        std::stringstream ss;
+        ss << "A cown can only be created from a free region" << std::endl;
+        ss << "| " << bridge << " is currently a subregion of "
+           << region->parent->bridge;
+        ui::error(ss.str(), {this, "", bridge});
       }
 
       // this->set would fail, since this is a cown

@@ -7,6 +7,7 @@
 namespace rt::objects
 {
   class DynObject;
+  struct Region;
 
   struct Edge
   {
@@ -22,4 +23,7 @@ namespace rt::objects
 
   template<typename Pre, typename Post = NopDO>
   inline void visit(DynObject* start, Pre pre, Post post = {});
+
+  template<typename Pre, typename Post = NopDO>
+  inline void visit(Region* start, Pre pre, Post post = {});
 }

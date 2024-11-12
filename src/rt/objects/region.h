@@ -13,10 +13,10 @@ namespace rt::objects
 
   void add_to_region(Region* r, DynObject* target);
   void remove_region_reference(Region* src, Region* target);
-  void add_region_reference(Region* src_region, DynObject* target);
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
+  void clean_lrcs();
   DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
@@ -24,12 +24,24 @@ namespace rt::objects
   // Represents the region of objects
   struct Region
   {
-    static inline thread_local std::vector<Region*> to_collect{};
+    static inline thread_local std::set<Region*> to_collect{};
+    // This keeps track of all dirty regions. When walking to local region
+    // to correct the LRC it can be done for all dirty regions at once
+    static inline thread_local std::set<Region*> dirty_regions{};
+
+    /// Indicates if implicit freezing is enabled
+    static inline bool pragma_implicit_freezing = true;
+
     // The local reference count is the number of references to objects in the
     // region from local region. Using non-zero LRC for subregions ensures we
     // cannot send a region if a subregion has references into it.  Using zero
     // and non-zero means we reduce the number of updates.
     size_t local_reference_count{0};
+
+    // The LRC might be dirty if nodes from this region has been frozen and the
+    // LRC hasn't been validated after the move. This flag can be stored as
+    // part of the LRC or other pointers in this struct.
+    bool is_lrc_dirty = false;
 
     // For nested regions, this points at the owning region.
     // This guarantees that the regions for trees.
@@ -47,7 +59,8 @@ namespace rt::objects
 
     ~Region()
     {
-      std::cout << "Destroying region: " << this << std::endl;
+      std::cout << "Destroying region: " << this << " with bridge "
+                << this->bridge << std::endl;
     }
 
     size_t combined_lrc()
@@ -99,6 +112,19 @@ namespace rt::objects
       }
     }
 
+    static bool is_ancestor(Region* child, Region* ancestor)
+    {
+      while (child)
+      {
+        if (child->parent == ancestor)
+        {
+          return true;
+        }
+        child = child->parent;
+      }
+      return false;
+    }
+
     static void set_parent(Region* r, Region* p)
     {
       assert(r->local_reference_count != 0);
@@ -112,15 +138,9 @@ namespace rt::objects
       }
 
       // Prevent creating a cycle
-      auto ancestors = p->parent;
-      while (ancestors != nullptr)
+      if (is_ancestor(p, r))
       {
-        if (ancestors == r)
-        {
-          // FIXME: Highlight, once regions have been reified
-          ui::error("Cycle created in region hierarchy", r->bridge);
-        }
-        ancestors = ancestors->parent;
+        ui::error("Cycle created in region hierarchy", r->bridge);
       }
 
       // Set the parent and increment the parent reference count.
@@ -134,9 +154,31 @@ namespace rt::objects
       inc_sbrc(r);
     }
 
+    /// Cleans the LRC's and forces the region to close, by setting all local
+    /// references to `None`
+    static void clean_lrcs_and_close(Region* reg = nullptr);
+    static void clean_lrcs();
+
+    bool is_closed()
+    {
+      return this->combined_lrc() == 0;
+    }
+
+    /// Forces the region to be closed, by setting all references from the local
+    /// reagion to `None`
+    void close();
+    /// Checks if the region can be closed, returns false if it remain open.
+    bool try_close();
+
+    void mark_dirty()
+    {
+      is_lrc_dirty = true;
+      dirty_regions.insert(this);
+    }
+
     void terminate_region()
     {
-      to_collect.push_back(this);
+      to_collect.insert(this);
       collect();
     }
 
@@ -160,8 +202,9 @@ namespace rt::objects
       std::cout << "Starting collection" << std::endl;
       while (!to_collect.empty())
       {
-        auto r = to_collect.back();
-        to_collect.pop_back();
+        auto r = *to_collect.begin();
+        dirty_regions.erase(r);
+        to_collect.erase(r);
         // Note destruct could re-enter here, ensure we don't hold onto a
         // pointer into to_collect.
         for (auto o : r->objects)
@@ -173,7 +216,6 @@ namespace rt::objects
         delete r;
       }
       std::cout << "Finished collection" << std::endl;
-
       collecting = false;
     }
   };

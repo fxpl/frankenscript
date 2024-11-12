@@ -26,6 +26,9 @@ set (TRIESTE_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable_ExcludeFromAll(trieste)
 set(CMAKE_CXX_STANDARD 20)
 
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+# set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
+
 add_library(
   rt OBJECT
   src/rt/rt.cc

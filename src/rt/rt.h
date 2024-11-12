@@ -11,17 +11,17 @@
 
 namespace rt
 {
-
   using BuiltinFuncPtr = std::function<std::optional<objects::DynObject*>(
-    objects::DynObject*, std::vector<objects::DynObject*>*, size_t)>;
+    verona::interpreter::FrameObj*, size_t)>;
   void add_builtin(std::string name, BuiltinFuncPtr func);
   objects::DynObject* get_builtin(std::string name);
+  verona::interpreter::FrameObj*
+  make_frame(verona::interpreter::FrameObj* parent);
 
   objects::DynObject* make_func(verona::interpreter::Bytecode* body);
   objects::DynObject* make_iter(objects::DynObject* iter_src);
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
-  objects::DynObject* make_frame(objects::DynObject* parent);
   objects::DynObject* make_cown(objects::DynObject* region);
 
   void freeze(objects::DynObject* obj);
@@ -41,6 +41,7 @@ namespace rt
 
   objects::DynObject* get_true();
   objects::DynObject* get_false();
+  objects::DynObject* get_bool(bool value);
 
   void add_reference(objects::DynObject* src, objects::DynObject* target);
   void remove_reference(objects::DynObject* src, objects::DynObject* target);

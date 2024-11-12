@@ -1,6 +1,8 @@
 #include "dyn_object.h"
 #include "region_object.h"
 
+#include <algorithm>
+
 namespace rt::objects
 {
   Region* get_region(DynObject* obj)
@@ -54,6 +56,7 @@ namespace rt::objects
 
       if (obj->get_prototype() != objects::regionPrototypeObject())
       {
+        // FIXME: This should probably also freeze?
         ui::error("Cannot add interior region object to another region");
       }
 
@@ -106,9 +109,32 @@ namespace rt::objects
       }
       target->parent = nullptr;
 
-      Region::to_collect.push_back(target);
+      Region::to_collect.insert(target);
     }
     return;
+  }
+
+  void implicit_freeze(DynObject* target)
+  {
+    // The `freeze()` call is the only required thing, the rest is just needed
+    // for helpful UI output.
+    std::set<DynObject*> pre_objects = immutable_region->objects;
+    target->freeze();
+    std::set<DynObject*> post_objects = immutable_region->objects;
+
+    std::vector<DynObject*> effected_nodes;
+    std::set_difference(
+      post_objects.begin(),
+      post_objects.end(),
+      pre_objects.begin(),
+      pre_objects.end(),
+      std::back_inserter(effected_nodes));
+
+    std::stringstream ss;
+    ss << "Internal: Implicit freeze effected " << effected_nodes.size()
+       << " node(s) starting from " << target;
+
+    ui::globalUI()->highlight(ss.str(), effected_nodes);
   }
 
   void add_region_reference(Region* src_region, DynObject* target)
@@ -133,12 +159,33 @@ namespace rt::objects
       return;
     }
 
-    if (target->get_prototype() != objects::regionPrototypeObject())
+    auto is_region =
+      target->get_prototype() == objects::regionPrototypeObject();
+    if (is_region && target_region->parent == nullptr)
     {
-      ui::error("Cannot add interior region object to another region");
+      Region::set_parent(target_region, src_region);
+      return;
     }
 
-    Region::set_parent(target_region, src_region);
+    if (Region::pragma_implicit_freezing)
+    {
+      implicit_freeze(target);
+      return;
+    }
+
+    if (is_region)
+    {
+      ui::error(
+        "Cannot reference an object from another region",
+        {src_region->bridge, "", target});
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << "Cannot reference region " << target << " from "
+         << src_region->bridge << " since it already has a parent";
+      ui::error(ss.str(), {src_region->bridge, "", target});
+    }
   }
 
   void add_reference(DynObject* src, DynObject* target)
@@ -178,13 +225,16 @@ namespace rt::objects
     assert(src != nullptr);
     assert(dst != nullptr);
     if (target == nullptr || target->is_immutable() || target->is_cown())
+    {
       return;
+    }
 
     auto src_region = get_region(src);
     auto dst_region = get_region(dst);
-
     if (src_region == dst_region)
+    {
       return;
+    }
 
     auto target_region = get_region(target);
 
@@ -192,6 +242,111 @@ namespace rt::objects
     // Note that target_region and get_region(target) are not necessarily the
     // same.
     remove_region_reference(src_region, target_region);
+  }
+
+  void Region::clean_lrcs_and_close(Region* to_close_reg)
+  {
+    if (
+      dirty_regions.empty() &&
+      (to_close_reg == nullptr || to_close_reg->is_closed()))
+    {
+      return;
+    }
+
+    if (to_close_reg)
+    {
+      std::cout << "Cleaning LRCs and closing " << to_close_reg << std::endl;
+    }
+    else
+    {
+      std::cout << "Cleaning LRCs" << std::endl;
+    }
+
+    for (auto r : dirty_regions)
+    {
+      r->local_reference_count = 0;
+    }
+
+    bool continue_visit = true;
+    std::set<DynObject*> seen;
+    visit(get_local_region(), [&](Edge e) {
+      auto src = e.src;
+      auto dst = e.target;
+      if (!src || !dst)
+      {
+        return continue_visit;
+      }
+
+      auto dst_reg = get_region(dst);
+      if (dst_reg == get_local_region())
+      {
+        // Insert and continue if this was a new value
+        return seen.insert(dst).second;
+      }
+
+      auto invalidate = dst_reg == to_close_reg;
+      invalidate |=
+        (to_close_reg && to_close_reg->sub_region_reference_count != 0 &&
+         Region::is_ancestor(dst_reg, to_close_reg));
+      if (invalidate)
+      {
+        auto old = src->set(e.key, nullptr);
+        assert(old == dst);
+        add_reference(src, nullptr);
+        remove_reference(src, dst);
+
+        continue_visit &= to_close_reg->is_closed();
+        return false;
+      }
+
+      if (dirty_regions.contains(dst_reg))
+      {
+        dst_reg->local_reference_count += 1;
+      }
+
+      return false;
+    });
+
+    for (auto r : dirty_regions)
+    {
+      std::cout << "Corrected LRC of " << r << " to "
+                << r->local_reference_count << std::endl;
+      r->is_lrc_dirty = false;
+      if (r->combined_lrc() == 0)
+      {
+        action(r);
+      }
+    }
+    dirty_regions.clear();
+
+    assert(
+      (!to_close_reg || to_close_reg->is_closed()) &&
+      "The region should be closed now");
+  }
+
+  void Region::clean_lrcs()
+  {
+    clean_lrcs_and_close(nullptr);
+  }
+
+  void Region::close()
+  {
+    clean_lrcs_and_close(this);
+  }
+
+  bool Region::try_close()
+  {
+    if (is_closed())
+    {
+      return true;
+    }
+
+    if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
+    {
+      clean_lrcs();
+    }
+
+    return is_closed();
   }
 
   void destruct(DynObject* obj)
@@ -248,6 +403,7 @@ namespace rt::objects
     RegionObject* obj = new RegionObject(r);
     r->bridge = obj;
     r->local_reference_count++;
+    std::cout << "Created region " << r << " with bridge " << obj << std::endl;
     return obj;
   }
 
@@ -261,7 +417,7 @@ namespace rt::objects
 
       if (r != get_local_region() && r != cown_region)
       {
-        to_collect.push_back(r);
+        to_collect.insert(r);
         std::cout << "Collecting region: " << r << std::endl;
       }
     }

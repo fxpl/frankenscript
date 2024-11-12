@@ -1,0 +1,12 @@
+# Create two regions
+r1 = Region()
+r2 = Region()
+
+# Create unfrozen data to share
+share = {}
+share.region = Region()
+share.region.text = "Shared Info"
+r1.info = share
+
+# Trigger implicit freeze of a nested region
+r2.info = share

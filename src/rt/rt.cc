@@ -50,9 +50,17 @@ namespace rt
     return new objects::DynObject();
   }
 
-  objects::DynObject* make_frame(objects::DynObject* parent)
+  verona::interpreter::FrameObj*
+  make_frame(verona::interpreter::FrameObj* parent)
   {
-    return new core::FrameObject(parent);
+    if (parent)
+    {
+      return new core::FrameObject(parent->object());
+    }
+    else
+    {
+      return new core::FrameObject(nullptr);
+    }
   }
 
   objects::DynObject* make_cown(objects::DynObject* region)
@@ -108,6 +116,10 @@ namespace rt
   objects::DynObject*
   set(objects::DynObject* obj, std::string key, objects::DynObject* value)
   {
+    if (!obj)
+    {
+      ui::error("fields can't be set on `None`");
+    }
     return obj->set(key, value);
   }
 
@@ -144,6 +156,18 @@ namespace rt
   objects::DynObject* get_false()
   {
     return core::falseObject();
+  }
+
+  objects::DynObject* get_bool(bool value)
+  {
+    if (value)
+    {
+      return get_true();
+    }
+    else
+    {
+      return get_false();
+    }
   }
 
   void add_reference(objects::DynObject* src, objects::DynObject* target)
@@ -187,6 +211,8 @@ namespace rt
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
+    objects::Region::clean_lrcs();
+    objects::Region::collect();
     auto globals = core::globals();
     if (objects::DynObject::get_count() != initial_count)
     {
