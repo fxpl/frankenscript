@@ -1,0 +1,28 @@
+# Showcase what happens with shared memory 
+
+# setup
+MyClass = "[MyClass]"
+mermaid_hide(MyClass["__proto__"])
+def new(self):
+    obj = {}
+    obj["__proto__"] = self
+    return obj
+MyClass.new = move new
+
+# Create a thread 1 with an object from `MyClass`
+t1 = "Thread 1"
+t1.obj_1 = MyClass.new()
+
+# Create a thread 2 with an object from `MyClass`
+t2 = "Thread 2"
+t2.obj_2 = MyClass.new()
+
+MyClass = None
+
+breakpoint()
+
+# With shared memory, both threads could manipulate the prototype
+# potentially overwriting their changes. The result will depend on
+# the interleaving of these statements.
+t1.obj_1["__proto__"].length = "15"
+t2.obj_2["__proto__"].length = "0"

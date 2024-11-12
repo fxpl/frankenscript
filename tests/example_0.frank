@@ -1,0 +1,20 @@
+# Big picture example of what objects exist in frankenscript
+
+# Basic objects
+a = {}
+a.b = {}
+c = {}
+c.d = {}
+
+# Freezing
+freeze(c)
+
+# Regions
+r1 = Region()
+r2 = Region()
+
+# Referencing immutable data
+r1.c = c
+r2.c = c
+
+
