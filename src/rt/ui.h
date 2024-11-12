@@ -38,6 +38,10 @@ namespace rt::ui
 
   class MermaidUI : public UI
   {
+  public:
+    static inline bool pragma_draw_regions_nested = true;
+
+  private:
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 

@@ -56,6 +56,10 @@ Returns `True`, if the region is closed in the end, `False` otherwise.
 
 Disables implicit freezing for the rest of the program.
 
+#### `pragma_mermaid_draw_regions_nested(bool)`
+
+Indicates if nested regions should be drawn as nested or floating boxes in the diagram.
+
 ## Mermaid
 
 #### `mermaid_hide(obj, ..)`

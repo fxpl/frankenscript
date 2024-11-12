@@ -295,9 +295,12 @@ namespace rt::ui
       {
         out << indent << "id" << obj << std::endl;
       }
-      for (auto reg : info->regions)
+      if (MermaidUI::pragma_draw_regions_nested)
       {
-        draw_region(reg, indent);
+        for (auto reg : info->regions)
+        {
+          draw_region(reg, indent);
+        }
       }
       indent.erase(indent.size() - 2);
     }
@@ -372,13 +375,26 @@ namespace rt::ui
       regions[objects::get_local_region()].drawn = true;
 
       // Draw all other regions
-      for (auto reg : regions[nullptr].regions)
+      if (MermaidUI::pragma_draw_regions_nested)
       {
-        draw_region(reg, indent);
+        for (auto reg : regions[nullptr].regions)
+        {
+          draw_region(reg, indent);
+        }
+        for (auto reg : regions[objects::cown_region].regions)
+        {
+          draw_region(reg, indent);
+        }
       }
-      for (auto reg : regions[objects::cown_region].regions)
+      else
       {
-        draw_region(reg, indent);
+        for (const auto& [reg, _] : regions)
+        {
+          if (reg != nullptr)
+          {
+            draw_region(reg, indent);
+          }
+        }
       }
     }
 
