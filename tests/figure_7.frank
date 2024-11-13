@@ -1,0 +1,12 @@
+_7 = "7"
+freeze(_7)
+mermaid_hide(_7["__proto__"])
+
+
+Obj = {}
+x = create(Obj)
+x.g = create(Obj)
+r = Region()
+r.h = x
+x.f = _7
+x = None

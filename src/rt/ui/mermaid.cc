@@ -140,6 +140,7 @@ namespace rt::ui
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
       out << "</div>" << std::endl;
+      out << "<div style='break-after:page'></div>" << std::endl;
       out << std::endl;
     }
 
