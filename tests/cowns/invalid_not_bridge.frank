@@ -4,4 +4,4 @@ a.b = {}
 
 # Error: Only the bridge object can be used for cown construction
 b = a.b
-c01 = cown(move b)
+c01 = Cown(move b)
