@@ -1,0 +1,14 @@
+# Create two regions
+r1 = Region()
+r2 = Region()
+
+# Create unfrozen data to share
+share = {}
+share.text = "Shared Info"
+r1.info = share
+
+# Trigger implicit freeze by referencing it from r2
+r2.info = share
+
+# Should succeed, as 'share' is now immutable
+c = cown(move share)

@@ -277,31 +277,36 @@ namespace rt::core
     Status status;
 
   public:
-    CownObject(objects::DynObject* bridge)
+    CownObject(objects::DynObject* obj)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
       status = Status::Pending;
+      auto region = objects::get_region(obj);
 
-      // TODO: Make sure we're parenting the region and add third state, like
-      // pending
-      auto region = objects::get_region(bridge);
-      if (region->bridge != bridge)
+      if (!obj->is_immutable() && !obj->is_cown())
       {
+        // TODO: Make sure we're parenting the region and add third state, like
+        // pending
+        
+        // Potentiall error message
         std::stringstream ss;
-        ss << bridge << " is not the bridge object of the region";
-        ui::error(ss.str(), bridge);
+        ss << "Object is neither immutable nor a cown, attempted to threat it as a bridge but..." << std::endl;
+        if (region->bridge != obj)
+        {
+          ss << obj << " is not the bridge object of the region";
+          ui::error(ss.str(), obj);
+        }
+
+        if (region->parent != nullptr)
+        {
+          ss << "A cown can only be created from a free region" << std::endl;
+          ss << "| " << obj << " is currently a subregion of "
+            << region->parent->bridge;
+          ui::error(ss.str(), {this, "", obj});
+        }
       }
 
-      if (region->parent != nullptr)
-      {
-        std::stringstream ss;
-        ss << "A cown can only be created from a free region" << std::endl;
-        ss << "| " << bridge << " is currently a subregion of "
-           << region->parent->bridge;
-        ui::error(ss.str(), {this, "", bridge});
-      }
-
-      auto old = set("value", bridge);
+      auto old = set("value", obj);
       assert(!old);
 
       // 1x LRC from the stack
