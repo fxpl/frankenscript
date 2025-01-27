@@ -287,6 +287,7 @@ namespace rt::core
       {
         // TODO: Make sure we're parenting the region and add third state, like
         // pending
+        // Staring in an aquired state will allow the normal usage of `set`
         
         // Potentiall error message
         std::stringstream ss;

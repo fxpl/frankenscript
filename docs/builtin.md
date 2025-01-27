@@ -20,7 +20,7 @@ Does nothing it can be used to fill empty blocks
 
 Creates a new region object.
 
-#### `cown(move region)`
+#### `Cown(move region)`
 
 Creates a new `cown` object.
 

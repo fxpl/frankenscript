@@ -11,4 +11,4 @@ r1.info = share
 r2.info = share
 
 # Should succeed, as 'share' is now immutable
-c = cown(move share)
+c = Cown(move share)

@@ -26,7 +26,7 @@ pragma_mermaid_draw_regions_nested(False)
 pragma_mermaid_draw_regions_nested(True)
 
 # Move this into a cown
-c = cown(move r1)
+c = Cown(move r1)
 
 # Check the visuals
 mermaid_show_cown_region()

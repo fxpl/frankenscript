@@ -1,0 +1,17 @@
+# Create a string for the number 7
+_7 = "7"
+# Make the string immutable
+freeze(_7)
+# Hide the `[String]` prototype to
+# make the diagram cleaner
+mermaid_hide(_7["__proto__"])
+
+# Create a new object
+Obj = {}
+# Instanciate an object from `Obj`
+x = create(Obj)
+x.g = create(Obj)
+r = Region()
+r.h = x # trigger transfer
+x.f = _7 # immutable
+x = None # immutable

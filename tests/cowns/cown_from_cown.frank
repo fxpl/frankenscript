@@ -1,7 +1,7 @@
 # A simple cown
 a = Region()
 a.b = {}
-c01 = cown(move a)
+c01 = Cown(move a)
 
 # Should succeed, cowns can contain other cowns
-c02 = cown(move c01)
+c02 = Cown(move c01)
