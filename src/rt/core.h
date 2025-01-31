@@ -284,6 +284,7 @@ namespace rt::core
 
       // TODO: Make sure we're parenting the region and add third state, like
       // pending
+      // Starting in an aquired state will allow the normal usage of `set`
       auto region = objects::get_region(bridge);
       if (region->bridge != bridge)
       {

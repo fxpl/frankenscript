@@ -7,7 +7,7 @@ drop x
 def add_cown(obj, name):
     a = Region()
     a.name = {}
-    obj[name] = cown(move a)
+    obj[name] = Cown(move a)
 
 add_cown(global, "c1")
 add_cown(global, "c2")

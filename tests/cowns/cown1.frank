@@ -1,17 +1,22 @@
-global = {}
+# Creates a simple region with some data.
+r = Region()
+r.a = {}
 
-# A simple cown
-a = Region()
-a.b = {}
+# Create a new cown to share region r.
+# The `move` keyword closes the region thereby releasing the cown.
+cown = Cown(move r)
 
-c01 = cown(move a)
+# Create a new object and point it to the cown.
+state = {}
+state.data = {}
+state.cown = move cown
 
-# Store the cown in a global
-global.cown = move c01
+# This function shows the transitive closure of mutable state
+# reachable from the given variable.
+mermaid_show_tainted(state)
 
-mermaid_show_tainted(global)
+# Freeze `state` to share it with other states and regions.
+freeze(state)
 
-# Freeze global with a cown
-freeze(global)
-
-drop global
+# Test for tainting immutable objects
+mermaid_show_tainted(state)

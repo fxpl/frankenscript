@@ -1,6 +1,6 @@
 # A simple cown
 a = Region()
-co = cown(move a)
+co = Cown(move a)
 
 # Reading the cown is forbidden
 dummy = co.value
