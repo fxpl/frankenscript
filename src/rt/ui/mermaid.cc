@@ -10,7 +10,7 @@
 
 namespace rt::ui
 {
-  const char* TAINT_NODE_COLOR = "#8e84cc";
+  const char* TAINT_NODE_COLOR = "#afa8db";
   const char* TAINT_EDGE_COLOR = "#9589dc";
 
   const char* CROSS_REGION_EDGE_COLOR = "orange";
@@ -136,10 +136,13 @@ namespace rt::ui
       out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
           << std::endl;
       out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
+      out << "classDef tainted_immutable stroke-width:4px,stroke:"
+          << TAINT_NODE_COLOR << std::endl;
       out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
       // Footer (end of mermaid graph)
       out << "```" << std::endl;
       out << "</div>" << std::endl;
+      out << "<div style='break-after:page'></div>" << std::endl;
       out << std::endl;
     }
 
@@ -418,7 +421,12 @@ namespace rt::ui
           return false;
         }
         auto node = &this->nodes[dst];
-        out << "class " << *node << " tainted;" << std::endl;
+        auto css_class = "tainted";
+        if (dst->is_immutable() || dst->is_opaque())
+        {
+          css_class = "tainted_immutable";
+        }
+        out << "class " << *node << " " << css_class << ";" << std::endl;
         tainted.insert(dst);
 
         if (dst->is_opaque())

@@ -20,6 +20,7 @@ namespace rt::objects
   DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
+  void merge_regions(DynObject* src, DynObject* sink);
 
   // Represents the region of objects
   struct Region
@@ -80,7 +81,7 @@ namespace rt::objects
       else
         action(r);
     }
-
+    // Decrements sbrc for ancestors of 'r'
     static void dec_sbrc(Region* r)
     {
       while (r->parent != nullptr)
@@ -218,6 +219,7 @@ namespace rt::objects
       std::cout << "Finished collection" << std::endl;
       collecting = false;
     }
+
   };
 
   // Represents the region of specific object. Uses small pointers to

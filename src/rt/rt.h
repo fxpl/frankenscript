@@ -58,4 +58,6 @@ namespace rt
   try_get_bytecode(objects::DynObject* func);
   std::optional<BuiltinFuncPtr> try_get_builtin_func(objects::DynObject* func);
 
+  void merge(objects::DynObject* src, objects::DynObject* sink);
+
 } // namespace rt

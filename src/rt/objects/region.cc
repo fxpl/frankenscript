@@ -218,7 +218,7 @@ namespace rt::objects
     add_region_reference(src_region, target, src);
   }
 
-  void remove_reference(DynObject* src_initial, DynObject* old_dst_initial)
+  void  remove_reference(DynObject* src_initial, DynObject* old_dst_initial)
   {
     visit(
       {src_initial, "", old_dst_initial},
@@ -440,9 +440,61 @@ namespace rt::objects
 
       if (r != get_local_region() && r != cown_region)
       {
+        //assert(r->bridge->get_rc() == 0);
         to_collect.insert(r);
-        std::cout << "Collecting region: " << r << std::endl;
+        std::cout << "Collecting region: " << r << " with bridge: " << r->bridge << std::endl;
       }
     }
+  }
+
+  void merge_regions(DynObject* src, DynObject* sink)
+  {
+    // TODO The 'sink' should have state *closed* in order to be merged
+    assert(src != nullptr);
+    assert(sink != nullptr);
+    assert(src->get_prototype() == objects::regionPrototypeObject());
+    assert(sink->get_prototype() == objects::regionPrototypeObject());
+
+    auto src_region = get_region(src);
+    auto sink_region = get_region(sink);
+    
+    // TODO yield error?
+    if (src_region == sink_region)
+    {
+      return;
+    }
+
+
+    if(src_region->parent != sink_region)
+    {
+      ui::error(
+      "Sink is not a parent of source",
+      src_region->bridge);
+    }
+
+
+
+    for (auto obj : src_region->objects)
+    {
+      obj->region = {sink_region};
+      sink_region->objects.insert(obj);
+      src_region->objects.erase(obj);
+    }
+
+    auto old_proto = src_region->bridge->set_prototype(nullptr);
+    remove_reference(src_region->bridge, old_proto);
+    src_region->bridge->region = {sink_region};
+    sink_region->objects.insert(src_region->bridge);
+    src_region->objects.erase(src_region->bridge);
+    src_region->bridge = nullptr;
+    sink_region->sub_region_reference_count--;
+    // TODO why is this needed?
+    sink->change_rc(-1);
+    src->change_rc(-1);
+
+
+
+    
+
   }
 }

@@ -289,4 +289,19 @@ namespace rt
     return std::nullopt;
   }
 
+  void merge(objects::DynObject* src, objects::DynObject* sink)
+  {
+
+    if(src && src->get_prototype() != objects::regionPrototypeObject())
+    {
+      ui::error("Source is not a region");
+    } 
+    if(sink && sink->get_prototype() != objects::regionPrototypeObject())
+    {
+      ui::error("Sink is not a region");
+    } 
+    objects::merge_regions(src, sink);
+
+  }
+
 } // namespace rt
