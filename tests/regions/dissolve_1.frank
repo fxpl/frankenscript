@@ -1,0 +1,4 @@
+r1 = Region()
+r2 = Region()
+r1.r2 = r2
+dissolve_region(r1)

@@ -20,6 +20,8 @@ namespace rt::objects
   DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
+  void merge_regions(DynObject* src, DynObject* sink);
+  void dissolve_region(DynObject* bridge);
 
   // Represents the region of objects
   struct Region
@@ -57,6 +59,10 @@ namespace rt::objects
     // Entry point object for the region.
     DynObject* bridge{nullptr};
 
+    // Bridge children of the region
+    std::set<DynObject*> direct_subregions{};
+    
+
     ~Region()
     {
       std::cout << "Destroying region: " << this << " with bridge "
@@ -80,7 +86,7 @@ namespace rt::objects
       else
         action(r);
     }
-
+    // Decrements sbrc for ancestors of 'r'
     static void dec_sbrc(Region* r)
     {
       while (r->parent != nullptr)
@@ -143,6 +149,7 @@ namespace rt::objects
         ui::error("Cycle created in region hierarchy", r->bridge);
       }
 
+      p->direct_subregions.insert(r->bridge);
       // Set the parent and increment the parent reference count.
       r->parent = p;
 
@@ -218,6 +225,7 @@ namespace rt::objects
       std::cout << "Finished collection" << std::endl;
       collecting = false;
     }
+
   };
 
   // Represents the region of specific object. Uses small pointers to

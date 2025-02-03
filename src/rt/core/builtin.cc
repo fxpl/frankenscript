@@ -308,6 +308,32 @@ namespace rt::core
       result_obj->change_rc(1);
       return result_obj;
     });
+    add_builtin("merge_regions", [](auto frame, auto args) {
+      if (args != 2)
+      {
+        ui::error("merge_regions() expected 2 arguments");
+      }
+
+
+      auto sink = frame->stack_pop("Sink");
+      auto src = frame->stack_pop("Source");
+      rt::merge_regions(src, sink);
+
+      return std::nullopt;
+    });
+
+    add_builtin("dissolve_region", [](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("dissolve_region() expected 1 argument");
+      }
+
+      auto bridge = frame->stack_pop("region to dissolve");
+      rt::dissolve_region(bridge);
+      rt::remove_reference(frame->object(), bridge);
+
+      return std::nullopt;
+    });
   }
 
   void pragma_builtins()
