@@ -289,7 +289,7 @@ namespace rt
     return std::nullopt;
   }
 
-  void merge(objects::DynObject* src, objects::DynObject* sink)
+  void merge_regions(objects::DynObject* src, objects::DynObject* sink)
   {
 
     if(src && src->get_prototype() != objects::regionPrototypeObject())

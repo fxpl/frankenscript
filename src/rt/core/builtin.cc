@@ -308,15 +308,15 @@ namespace rt::core
       result_obj->change_rc(1);
       return result_obj;
     });
-    add_builtin("merge", [](auto frame, auto args) {
+    add_builtin("merge_regions", [](auto frame, auto args) {
       if (args != 2)
       {
-        ui::error("merge() expected 2 arguments");
+        ui::error("merge_regions() expected 2 arguments");
       }
 
       auto sink = frame->stack_pop("Sink");
       auto src = frame->stack_pop("Source");
-      rt::merge(src, sink);
+      rt::merge_regions(src, sink);
 
       return std::nullopt;
     });

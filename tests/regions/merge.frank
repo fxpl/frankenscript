@@ -5,7 +5,7 @@ r2 = Region()
 r2.a = {}
 r1.r2 = r2
 
-merge(r2, r1)
+merge_regions(r2, r1)
 
 r1.a = {}
 
