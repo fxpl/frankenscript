@@ -58,6 +58,10 @@ namespace rt::objects
     // Entry point object for the region.
     DynObject* bridge{nullptr};
 
+    // Bridge children of the region
+    std::set<DynObject*> direct_subregions{};
+    
+
     ~Region()
     {
       std::cout << "Destroying region: " << this << " with bridge "
@@ -144,6 +148,7 @@ namespace rt::objects
         ui::error("Cycle created in region hierarchy", r->bridge);
       }
 
+      p->direct_subregions.insert(r->bridge);
       // Set the parent and increment the parent reference count.
       r->parent = p;
 

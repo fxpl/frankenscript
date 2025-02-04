@@ -316,6 +316,8 @@ namespace rt::core
 
       auto sink = frame->stack_pop("Sink");
       auto src = frame->stack_pop("Source");
+      sink->change_rc(-1);
+      src->change_rc(-1);
       rt::merge_regions(src, sink);
 
       return std::nullopt;
