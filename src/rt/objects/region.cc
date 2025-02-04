@@ -476,7 +476,7 @@ namespace rt::objects
       "Sink is not a parent of source",
       src);
     }
-    // Move all objects in the region
+    // Move all objects in the region, note that this includes bridge object
     for (auto obj : src_region->objects)
     {
       auto r = get_region(obj);
@@ -494,14 +494,19 @@ namespace rt::objects
       src_region->direct_subregions.erase(obj);
     }
 
+    // Finalize dissasembly of region
     sink_region->direct_subregions.erase(src);
     auto old_proto = src->set_prototype(nullptr);
     remove_reference(src, old_proto);
-    src_region->bridge->region = {sink_region};
     src_region->bridge = nullptr;
     // Adjust sbrc
     sink_region->sub_region_reference_count--;
     sink_region->sub_region_reference_count += src_region->sub_region_reference_count;
+    // Adjust lrc, magic '2' since both sink and src lrc will already be incremented at this stage in execution 
+    if (src_region->local_reference_count > 1){
+      std::cout << src_region->local_reference_count << std::endl;
+      sink_region->local_reference_count += src_region->local_reference_count - 2;
+    }
     //src->set_prototype(nullptr);
 
 
