@@ -460,6 +460,9 @@ namespace rt::objects
     assert(sink != nullptr);
     assert(src->get_prototype() == objects::regionPrototypeObject());
     assert(sink->get_prototype() == objects::regionPrototypeObject());
+    
+    sink->change_rc(-1);
+    src->change_rc(-1);
 
     auto src_region = get_region(src);
     auto sink_region = get_region(sink);
