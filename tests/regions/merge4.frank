@@ -1,0 +1,11 @@
+
+# Generate a tree of depth 3
+r1 = Region()
+r2 = Region()
+r3 = Region()
+r1.r2 = r2
+r2.r3 = r3
+r3 = None
+r2.r3 = None
+# 
+merge_regions(r2, r1)
