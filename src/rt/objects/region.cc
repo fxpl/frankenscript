@@ -498,6 +498,7 @@ namespace rt::objects
       src_region->direct_subregions.erase(obj);
     }
 
+    sink_region->is_lrc_dirty = sink_region->is_lrc_dirty || src_region->is_lrc_dirty;
     // Finalize dissasembly of region
     sink_region->direct_subregions.erase(src);
     auto old_proto = src->set_prototype(nullptr);
