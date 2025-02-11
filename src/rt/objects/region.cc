@@ -483,10 +483,10 @@ namespace rt::objects
     for (auto obj : src_region->objects)
     {
       auto r = get_region(obj);
+      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink_region->bridge << std::endl;
       obj->region = {sink_region};
       sink_region->objects.insert(obj);
       src_region->objects.erase(obj);
-      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink_region->bridge << std::endl;
     }
     // Adjust direct subregions 
     for (auto obj: src_region->direct_subregions)
@@ -510,10 +510,57 @@ namespace rt::objects
       std::cout << src_region->local_reference_count << std::endl;
       sink_region->local_reference_count += src_region->local_reference_count - 2;
     }
-    //src->set_prototype(nullptr);
+  }
 
+  void move_objects(Region* src, Region* sink)
+  {
+    for (auto obj : src->objects)
+    {
+      auto r = get_region(obj);
+      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink->bridge << std::endl;
+      obj->region = {sink};
+      sink->objects.insert(obj);
+      src->objects.erase(obj);
+    }
+  }
+  
 
+  void dissolve_region(DynObject* bridge)
+  {
+    assert(bridge != nullptr);
+    assert(bridge->get_prototype() == objects::regionPrototypeObject());
+
+    auto r = get_region(bridge);
     
+    // TODO yield error?
+    if (r == get_local_region())
+    {
+      return;
+    }
+
+    if (r->parent != nullptr)
+    {
+      ui::error(
+      "Can't dissolve a region that is the child of another",
+      bridge);
+    }
+
+    for (auto obj: r->direct_subregions)
+    {
+      auto obj_r = get_region(obj);
+      obj_r->parent = nullptr;
+      r->direct_subregions.erase(obj);
+      // Assumption: Exactly one outgoing reference from 'r' to 'obj_r'
+      // Per: "References across regions must be externally unique references
+      // to bridge objects or borrowed references" 
+      obj_r->local_reference_count++;
+    }
+    
+    auto old_proto = bridge->set_prototype(nullptr);
+    remove_reference(bridge, old_proto);
+    // Move all objects in the region
+    move_objects(r, local_region);
+
 
   }
 }

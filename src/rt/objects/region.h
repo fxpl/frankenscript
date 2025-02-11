@@ -21,6 +21,7 @@ namespace rt::objects
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
   void merge_regions(DynObject* src, DynObject* sink);
+  void dissolve_region(DynObject* bridge);
 
   // Represents the region of objects
   struct Region

@@ -59,5 +59,6 @@ namespace rt
   std::optional<BuiltinFuncPtr> try_get_builtin_func(objects::DynObject* func);
 
   void merge_regions(objects::DynObject* src, objects::DynObject* sink);
+  void dissolve_region(objects::DynObject* bridge);
 
 } // namespace rt
