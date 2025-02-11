@@ -144,6 +144,7 @@ namespace rt::objects
       {
         Region::dec_sbrc(target);
         target->parent = nullptr;
+        src->direct_subregions.erase(target->bridge);
         return;
       }
       target->parent = nullptr;
