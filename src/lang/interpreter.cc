@@ -7,6 +7,8 @@
 #include <variant>
 #include <vector>
 
+#include <random>
+
 namespace verona::interpreter
 {
 
@@ -55,10 +57,16 @@ namespace verona::interpreter
     FrameObj* frame;
   };
 
+  const size_t max_threads = 2;
+
+
   class Interpreter
   {
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
+    // Original run() uses local var to track the frame, however with threads/behaviours
+    // the object must store this instead
+    InterpreterFrame* frame_tracker;
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
     {
@@ -71,6 +79,7 @@ namespace verona::interpreter
       auto frame =
         new InterpreterFrame{body->begin(), body, rt::make_frame(parent_obj)};
       frame_stack.push_back(frame);
+      frame_tracker = frame;
       return frame;
     }
 
@@ -95,6 +104,7 @@ namespace verona::interpreter
     {
       return frame_stack[frame_stack.size() - 2];
     }
+
 
     FrameObj* frame()
     {
@@ -434,11 +444,43 @@ namespace verona::interpreter
   public:
     Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
 
+
     void run(trieste::Node main)
     {
-      auto frame = push_stack_frame(main);
+      size_t num_current_threads{1};
+      // One intepreter per thread
+      std::vector<Interpreter*> interpreter_stack;
+      interpreter_stack.push_back(this);
+      // Initiate the first thread
+      push_stack_frame(main);
 
-      while (frame)
+      std::mt19937 gen(42);
+      std::uniform_int_distribution<int> dist(0, 100);
+      Interpreter* chosen_interpreter;
+      size_t chosen_index;
+      bool finished;
+
+      while (interpreter_stack.size() != 0)
+      {
+        chosen_index = dist(gen) % num_current_threads;
+        chosen_interpreter = interpreter_stack[chosen_index];
+        finished = chosen_interpreter->run_step();
+        if (finished)
+        {
+          interpreter_stack.erase(interpreter_stack.begin() + chosen_index);
+          //std::cout << "Finished thread" << std::endl;
+        }
+        
+      }
+      
+
+    }
+    // Returns: Has thread run to completion?
+    bool run_step()
+    {
+      auto frame = this->frame_tracker;
+
+      if (frame)
       {
         const auto action = run_stmt(*frame->ip);
 
@@ -498,8 +540,13 @@ namespace verona::interpreter
             }
           }
 
-          frame = pop_stack_frame();
+          this->frame_tracker = pop_stack_frame();
         }
+        return false;
+      }
+      else
+      {
+        return true;
       }
     }
   };
