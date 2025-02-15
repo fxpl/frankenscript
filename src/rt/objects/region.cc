@@ -441,7 +441,6 @@ namespace rt::objects
 
       if (r != get_local_region() && r != cown_region)
       {
-        //assert(r->bridge->get_rc() == 0);
         to_collect.insert(r);
         std::cout << "Collecting region: " << r << " with bridge: " << r->bridge << std::endl;
       }
@@ -533,12 +532,7 @@ namespace rt::objects
     assert(bridge->get_prototype() == objects::regionPrototypeObject());
 
     auto r = get_region(bridge);
-    
-    // TODO yield error?
-    if (r == get_local_region())
-    {
-      return;
-    }
+    assert(r != get_local_region());
 
     if (r->parent != nullptr)
     {
