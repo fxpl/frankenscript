@@ -283,6 +283,7 @@ namespace rt::core
       status = Status::Pending;
       auto region = objects::get_region(obj);
 
+
       if (!obj->is_immutable() && !obj->is_cown())
       {
         // TODO: Make sure we're parenting the region and add third state, like
