@@ -288,10 +288,12 @@ namespace rt::core
         // TODO: Make sure we're parenting the region and add third state, like
         // pending
         // Staring in an aquired state will allow the normal usage of `set`
-        
+
         // Potentiall error message
         std::stringstream ss;
-        ss << "Object is neither immutable nor a cown, attempted to threat it as a bridge but..." << std::endl;
+        ss << "Object is neither immutable nor a cown, attempted to threat it "
+              "as a bridge but..."
+           << std::endl;
         if (region->bridge != obj)
         {
           ss << obj << " is not the bridge object of the region";
@@ -302,7 +304,7 @@ namespace rt::core
         {
           ss << "A cown can only be created from a free region" << std::endl;
           ss << "| " << obj << " is currently a subregion of "
-            << region->parent->bridge;
+             << region->parent->bridge;
           ui::error(ss.str(), {this, "", obj});
         }
       }
