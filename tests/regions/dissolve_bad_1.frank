@@ -1,0 +1,4 @@
+r1 = Region()
+dissolve_region(r1)
+# Should fail
+dissolve_region(r1)
