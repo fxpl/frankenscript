@@ -140,11 +140,11 @@ namespace rt::objects
       assert(target->parent == src);
       std::cout << "Removing parent reference from region: " << src << " to "
                 << target << std::endl;
+      src->direct_subregions.erase(target->bridge);
       if (target->combined_lrc() != 0)
       {
         Region::dec_sbrc(target);
         target->parent = nullptr;
-        src->direct_subregions.erase(target->bridge);
         return;
       }
       target->parent = nullptr;
