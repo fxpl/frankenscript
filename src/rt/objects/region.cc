@@ -447,10 +447,25 @@ namespace rt::objects
     }
   }
 
-  void change_parent(Region* r, Region* p)
+  void change_parent(DynObject* obj, Region* p)
   {
+    auto r = get_region(obj);
     assert(!Region::is_ancestor(p, r));
     r->parent = p;
+    p->direct_subregions.insert(obj);
+    r->direct_subregions.erase(obj);
+  }
+
+  void move_objects(Region* src, Region* sink)
+  {
+    for (auto obj : src->objects)
+    {
+      auto r = get_region(obj);
+      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink->bridge << std::endl;
+      obj->region = {sink};
+      sink->objects.insert(obj);
+      src->objects.erase(obj);
+    }
   }
 
   void merge_regions(DynObject* src, DynObject* sink)
@@ -481,21 +496,11 @@ namespace rt::objects
       src);
     }
     // Move all objects in the region, note that this includes bridge object
-    for (auto obj : src_region->objects)
-    {
-      auto r = get_region(obj);
-      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink_region->bridge << std::endl;
-      obj->region = {sink_region};
-      sink_region->objects.insert(obj);
-      src_region->objects.erase(obj);
-    }
+    move_objects(src_region, sink_region);
     // Adjust direct subregions 
     for (auto obj: src_region->direct_subregions)
     {
-      auto r = get_region(obj);
-      change_parent(r, sink_region);
-      sink_region->direct_subregions.insert(obj);
-      src_region->direct_subregions.erase(obj);
+      change_parent(obj, sink_region);
     }
 
     sink_region->is_lrc_dirty = sink_region->is_lrc_dirty || src_region->is_lrc_dirty;
@@ -510,17 +515,7 @@ namespace rt::objects
     sink_region->local_reference_count += src_region->local_reference_count;
   }
 
-  void move_objects(Region* src, Region* sink)
-  {
-    for (auto obj : src->objects)
-    {
-      auto r = get_region(obj);
-      std::cout << "Moving object: " << obj << " with region bridge: " << r->bridge << " to region with bridge: " << sink->bridge << std::endl;
-      obj->region = {sink};
-      sink->objects.insert(obj);
-      src->objects.erase(obj);
-    }
-  }
+
   
 
   void dissolve_region(DynObject* bridge)
