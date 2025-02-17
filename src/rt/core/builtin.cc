@@ -317,8 +317,9 @@ namespace rt::core
 
       auto sink = frame->stack_pop("Sink");
       auto src = frame->stack_pop("Source");
+      rt::remove_reference(frame->object(), sink);
+      rt::remove_reference(frame->object(), src);
       rt::merge_regions(src, sink);
-
       return std::nullopt;
     });
 

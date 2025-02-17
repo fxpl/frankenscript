@@ -455,21 +455,22 @@ namespace rt::objects
 
   void merge_regions(DynObject* src, DynObject* sink)
   {
-    // TODO The 'sink' should have state *closed* in order to be merged
     assert(src != nullptr);
     assert(sink != nullptr);
     assert(src->get_prototype() == objects::regionPrototypeObject());
     assert(sink->get_prototype() == objects::regionPrototypeObject());
-    
-    sink->change_rc(-1);
-    src->change_rc(-1);
 
     auto src_region = get_region(src);
     auto sink_region = get_region(sink);
     
-    // TODO yield error?
     if (src_region == sink_region)
     {
+      std::stringstream ss;
+      ss << "Trying to merge the same region: " << src_region;
+      std::vector<DynObject*> region;
+      region.push_back(src);
+      ui::globalUI()->highlight(ss.str(), region);
+
       return;
     }
 
@@ -503,14 +504,10 @@ namespace rt::objects
     auto old_proto = src->set_prototype(nullptr);
     remove_reference(src, old_proto);
     src_region->bridge = nullptr;
-    // Adjust sbrc
+    // Adjust sbrc and lrc for `src_region` which was merged
     sink_region->sub_region_reference_count--;
     sink_region->sub_region_reference_count += src_region->sub_region_reference_count;
-    // Adjust lrc, magic '2' since both sink and src lrc will already be incremented at this stage in execution 
-    if (src_region->local_reference_count > 1){
-      std::cout << src_region->local_reference_count << std::endl;
-      sink_region->local_reference_count += src_region->local_reference_count - 2;
-    }
+    sink_region->local_reference_count += src_region->local_reference_count;
   }
 
   void move_objects(Region* src, Region* sink)
