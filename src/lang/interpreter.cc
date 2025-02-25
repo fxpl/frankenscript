@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <random>
+#include <iostream>
 
 namespace verona::interpreter
 {
@@ -47,6 +48,13 @@ namespace verona::interpreter
     std::optional<rt::objects::DynObject*> value;
   };
 
+  struct ExecConc
+  {
+    trieste::Node body;
+    size_t arg_ctn;
+  };
+  
+
   // ==============================================
   // Interpreter/state
   // ==============================================
@@ -68,20 +76,6 @@ namespace verona::interpreter
     // the object must store this instead
     InterpreterFrame* frame_tracker;
 
-    InterpreterFrame* push_stack_frame(trieste::Node body)
-    {
-      FrameObj* parent_obj = nullptr;
-      if (!frame_stack.empty())
-      {
-        parent_obj = frame_stack.back()->frame;
-      }
-
-      auto frame =
-        new InterpreterFrame{body->begin(), body, rt::make_frame(parent_obj)};
-      frame_stack.push_back(frame);
-      frame_tracker = frame;
-      return frame;
-    }
 
     InterpreterFrame* pop_stack_frame()
     {
@@ -116,7 +110,7 @@ namespace verona::interpreter
       return frame_stack.front()->frame;
     }
 
-    std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn>
+    std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecConc>
     run_stmt(trieste::Node& node)
     {
       // ==========================================
@@ -169,6 +163,17 @@ namespace verona::interpreter
           assert(
             payload->size() == 1 &&
             "CreateObject: A bytecode function requires a body node");
+          
+          if (node->location().view().starts_with("when("))
+          {
+            //auto arg_ctn = std::stoul(std::string(node->location().view()));
+            ulong arg_ctn = 1;
+            auto func = rt::make_func(new Bytecode{payload->at(0)});
+            auto bytecode = rt::try_get_bytecode(func);
+            //std::cout << arg_ctn << std::endl;
+            std::cout << node->location().view() << std::endl;
+            return ExecConc{bytecode.value()->body, arg_ctn};
+          }
           obj = rt::make_func(new Bytecode{payload->at(0)});
         }
         else
@@ -445,38 +450,11 @@ namespace verona::interpreter
     Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
 
 
-    void run(trieste::Node main)
-    {
-      size_t num_current_threads{1};
-      // One intepreter per thread
-      std::vector<Interpreter*> interpreter_stack;
-      interpreter_stack.push_back(this);
-      // Initiate the first thread
-      push_stack_frame(main);
+    //void run(trieste::Node main)
 
-      std::mt19937 gen(42);
-      std::uniform_int_distribution<int> dist(0, 100);
-      Interpreter* chosen_interpreter;
-      size_t chosen_index;
-      bool finished;
-
-      while (interpreter_stack.size() != 0)
-      {
-        chosen_index = dist(gen) % num_current_threads;
-        chosen_interpreter = interpreter_stack[chosen_index];
-        finished = chosen_interpreter->run_step();
-        if (finished)
-        {
-          interpreter_stack.erase(interpreter_stack.begin() + chosen_index);
-          //std::cout << "Finished thread" << std::endl;
-        }
-        
-      }
-      
-
-    }
     // Returns: Has thread run to completion?
-    bool run_step()
+    // TODO refactor clumsy passing of interpreter_stack later
+    bool run_step(std::vector<Interpreter*> interpreter_stack)
     {
       auto frame = this->frame_tracker;
 
@@ -520,6 +498,23 @@ namespace verona::interpreter
         {
           frame->ip = frame->body->end();
         }
+        else if (std::holds_alternative<ExecConc>(action))
+        {
+          frame->ip++;
+          auto func = std::get<ExecConc>(action);
+          Interpreter inter(ui);
+          interpreter_stack.push_back(&inter);
+          inter.push_stack_frame(func.body);
+          //schedule_when()
+          //inter.push_stack_frame(func.)
+          // make new interpreter
+          // push it
+          // add "when_x" to its defined funcs
+          // (ergo we need to track 'x'? No, each interpreter will only have one "when" )
+          // (Potential issue)
+          // add call "when_x" 
+        }
+        
         else
         {
           assert(false && "unhandled statement action");
@@ -549,7 +544,62 @@ namespace verona::interpreter
         return true;
       }
     }
+
+    InterpreterFrame* push_stack_frame(trieste::Node body)
+    {
+      FrameObj* parent_obj = nullptr;
+      if (!frame_stack.empty())
+      {
+        parent_obj = frame_stack.back()->frame;
+      }
+
+      auto frame =
+        new InterpreterFrame{body->begin(), body, rt::make_frame(parent_obj)};
+      frame_stack.push_back(frame);
+      frame_tracker = frame;
+      return frame;
+    }
   };
+
+  
+  // void BoC_concurrency(std::vector<Interpreter*> interpreter_stack)
+  // {
+  //   // One behaviour/interpreter queue for each cown? No actually concurrency needed so should work
+  //   // Once behaviour is in no cown queue move from pending to ready
+  //   // Note that for b1: when(c1.c2), given e.g. global order c1 < c2, c2_queue.add(b1)
+  //   // cant occur prior to c1_queue.remove(b1) (ergo b1 must aquire cowns one at a time with respect to global order)
+  //   //ready_queue;
+  //   //pending_queue;
+
+
+
+  //   std::mt19937 gen(42);
+  //   std::uniform_int_distribution<int> dist(0, 100);
+  //   Interpreter* chosen_interpreter;
+  //   size_t chosen_index;
+
+  //   size_t max_threads = 2; // TODO param
+  //   size_t num_current_threads{1};
+  //   bool finished = false;
+  //   cown_hashmap;
+
+
+  //   while (interpreter_stack.size() != 0)
+  //   {
+  //     //chosen_index = dist(gen) % num_current_threads;
+  //     chosen_index = num_current_threads - 1;
+  //     chosen_interpreter = interpreter_stack[chosen_index];
+  //     finished = chosen_interpreter->run_step(interpreter_stack);
+  //     std::cout << "Size: \n" << interpreter_stack.size() << std::endl;
+  //     if (finished)
+  //     {
+  //       interpreter_stack.erase(interpreter_stack.begin() + chosen_index);
+  //       std::cout << "Finished thread\n" << std::endl;
+  //     }
+      
+  //   }
+
+  // }
 
   void start(trieste::Node main_body, int step_counter)
   {
@@ -562,7 +612,40 @@ namespace verona::interpreter
     size_t initial = rt::pre_run(ui);
 
     Interpreter inter(ui);
-    inter.run(main_body);
+
+    // One intepreter per thread
+    std::vector<Interpreter*> interpreter_stack;
+    interpreter_stack.push_back(&inter);
+    // Initiate the first thread
+    inter.push_stack_frame(main_body);
+
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<int> dist(0, 100);
+    Interpreter* chosen_interpreter;
+    size_t chosen_index;
+
+    size_t num_current_threads{1};
+    bool finished = false;
+
+
+    while (interpreter_stack.size() != 0)
+    {
+      //chosen_index = dist(gen) % num_current_threads;
+      chosen_index = num_current_threads - 1;
+      chosen_interpreter = interpreter_stack[chosen_index];
+      finished = chosen_interpreter->run_step(interpreter_stack);
+      std::cout << "Size: \n" << interpreter_stack.size() << std::endl;
+      if (finished)
+      {
+        interpreter_stack.erase(interpreter_stack.begin() + chosen_index);
+        std::cout << "Finished thread\n" << std::endl;
+      }
+      
+    }
+    //BoC_concurrency(interpreter_stack);
+  
+
+    //inter.run(main_body);
 
     rt::post_run(initial, ui);
   }
