@@ -2,6 +2,14 @@
 
 inline const TokenDef Rest{"rest"};
 
+int g_when_counter = 0;
+
+std::string new_when_ident()
+{
+  g_when_counter += 1;
+  return "__when_" + std::to_string(g_when_counter);
+}
+
 PassDef grouping()
 {
   PassDef p{
@@ -57,6 +65,37 @@ PassDef grouping()
           return create_from(Method, _(Group)) << _(Lookup) << list;
         },
 
+      T(When)[When] << (T(Group)[Empty] * T(Group)[Block] * End) >>
+        [](auto& _) {
+          return create_from(When, _(When))
+            << _(Empty) << (Group << Parens) << _(Block);
+        },
+      T(When)[When]
+          << ((T(Group) << End) *
+              (T(Group)
+               << (T(Parens)[Parens] << ((~(T(List) << T(Ident)++[List]))))) *
+              (T(Group) << T(Block)[Block])) >>
+        [](auto& _) {
+          auto when_name = new_when_ident();
+
+          // =====================================
+          // Define `__when_X()` function
+          auto when_def = create_from(Func, _(When))
+            << (Ident ^ when_name)
+            << (create_from(Params, _(Parens)) << clone(_[List]))
+            << (Body << _(Block));
+
+          // =====================================
+          // Call `spawn_behavior()`
+          auto list = create_from(List, _(Parens))
+            << (Ident ^ when_name) << clone(_[List]);
+          auto call = create_from(Call, _(When))
+            << (Ident ^ "spawn_behavior") << list;
+
+          // Put it all together
+          return Seq << when_def << call;
+        },
+
       T(Assign)
           << ((T(Group) << LV[Lhs] * End) *
               ((T(Group) << (RV[Rhs] * End)) / (RV[Rhs] * End)) * End) >>
@@ -109,7 +148,7 @@ PassDef grouping()
           << ((T(Group) << End) *
               (T(Group)
                << ((T(Ident)[Ident]) *
-                   (T(Parens)[Parens] << (~(T(List) << T(Ident)++[List]))) *
+                   (T(Parens)[Parens] << ((~T(List) << T(Ident)++[List]))) *
                    End)) *
               (T(Group) << T(Block)[Block]) * End) >>
         [](auto& _) {
