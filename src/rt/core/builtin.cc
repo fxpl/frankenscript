@@ -390,11 +390,29 @@ namespace rt::core
       });
   }
 
+  void concurrency_builtins()
+  {
+    add_builtin("spawn_behavior", [](auto frame, auto args) {
+      std::cout << "Yay, what a day to live :D" << std::endl;
+      std::cout << "Arguments: " << args << std::endl;
+
+      for (int i = 0; i < args; i++)
+      {
+        auto value = frame->stack_pop("argument");
+        std::cout << " - " << value << std::endl;
+        rt::remove_reference(frame->object(), value);
+      }
+
+      return std::nullopt;
+    });
+  }
+
   void init_builtins(ui::UI* ui)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
     pragma_builtins();
+    concurrency_builtins();
   }
 }
