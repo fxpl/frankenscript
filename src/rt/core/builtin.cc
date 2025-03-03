@@ -346,7 +346,7 @@ namespace rt::core
       });
   }
 
-  void concurrency_builtins()
+  void concurrency_builtins(Sceduler* sceduler)
   {
     add_builtin("spawn_behavior", [](auto frame, auto args) {
       std::cout << "Yay, what a day to live :D" << std::endl;
@@ -382,16 +382,19 @@ namespace rt::core
       // 9. Release cowns
       // 10. `rt::remove_reference` the `behavior.func`
 
+      assert(sceduler->kind() == BOC);
+      static_cast<BoxSceduler>(scduler)->scedule(behavior);
+
       return std::nullopt;
     });
   }
 
-  void init_builtins(ui::UI* ui)
+  void init_builtins(ui::UI* ui, Sceduler* sceduler)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
     pragma_builtins();
-    concurrency_builtins();
+    concurrency_builtins(sceduler);
   }
 }

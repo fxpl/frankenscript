@@ -66,7 +66,6 @@ namespace verona::interpreter
     FrameObj* frame;
   };
 
-
   class Interpreter
   {
     rt::ui::UI* ui;
@@ -567,6 +566,57 @@ namespace verona::interpreter
     }
   };
 
+  class Sceduler {
+    void start(trieste::Node main_body);
+    ScedulerKind kind();
+  }
+
+  class ThreadScduler {
+    std::vector<Interpreter*>  active
+
+    void start(body) override {
+      while (!active.is_empty()) {
+        auto step = rand() & active.size();
+
+        auto res = active[step].run_step();
+        if (res == Done) {
+          active.remove(idx);
+        }
+      }
+    }
+
+    void spawn(thread: (Body, args)) {
+      auto i = new Interpreter(body);
+      i->frame->push(args...);
+      active.push(i);
+    }
+  }
+  
+  class BocSceduler: public Sceduler {
+    std::vector<Behavior*> behaviors;
+
+    void start() {
+      while (!behaviors.is_empty()) {
+        // 1. Check dependency graph
+        // 2. Get ready behaviors
+        ready_behaviors = magic();
+        
+        auto step = rand() & ready_behaviors.size();
+        
+        auto behavior = ready_behaviors[step];
+        auto i = new Interpreter(body);
+        i->frame->push(args...);
+        i->run_to_completion();
+
+        this->mark_as_done(behavior);
+        // Removes behavior from this->behaviors
+        // Updates dependency graph
+      }
+    }
+    void scedule(behavior: (func, cown)) {
+
+    }
+  }
   
   void BoC_concurrency(std::vector<Interpreter*> interpreter_stack)
   {
