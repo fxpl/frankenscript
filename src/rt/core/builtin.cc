@@ -350,14 +350,37 @@ namespace rt::core
   {
     add_builtin("spawn_behavior", [](auto frame, auto args) {
       std::cout << "Yay, what a day to live :D" << std::endl;
-      std::cout << "Arguments: " << args << std::endl;
-
-      for (int i = 0; i < args; i++)
+      
+      // cowns (Stored on the stack in reverse order)
+      // -1 since the first argument is the actual behavior
+      std::vector<objects::DynObject*> cowns = {};
+      for (int i = 0; i < args - 1; i++)
       {
-        auto value = frame->stack_pop("argument");
-        std::cout << " - " << value << std::endl;
-        rt::remove_reference(frame->object(), value);
+        auto value = frame->stack_pop("cown");
+        cowns.push_back(value);
       }
+      // when
+      auto behavior = frame->stack_pop("behavior");
+
+      // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
+      // 2. Inform Sceduler about `Behavior`
+      //
+      // In sceduler:
+      // 3. Sceduler waits until all cowns are available (dependency graph)
+      //     - The "draw the rest of the owl step"
+      // 4. Create a new interpreter from `bytecode.value()->body`
+      //     - `rt::move_reference(NULL, new_interpreter->frame(), body)`
+      // 5. Aquire the cowns (Set them to aquired with this interpreter id)
+      // 6. Push the cowns on to the interpreter frame
+      //     - `rt::move_reference(NULL, new_interpreter->frame(), cown);`
+      // 7. Start interpreter
+      //
+      // In interpreter (Already done by the lowering pass):
+      // 8. Cowns from the stack are assigned to the defined names on the frame
+      //
+      // After completion in sceduler
+      // 9. Release cowns
+      // 10. `rt::remove_reference` the `behavior.func`
 
       return std::nullopt;
     });
