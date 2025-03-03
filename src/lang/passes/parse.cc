@@ -96,7 +96,7 @@ trieste::Parse parser()
       "(?:#[^\\n\\r]*)" >> [](auto&) {},
 
       "def\\b" >> [](auto& m) { m.seq(Func); },
-      "when\\b" >> [](auto& m) {
+      "when " >> [](auto& m) {
          m.seq(Func);
          m.add(Ident);
           },
