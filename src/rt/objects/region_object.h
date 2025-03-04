@@ -31,7 +31,7 @@ namespace rt::objects
         stream << "sbrc=<frozen>";
       }
       // False if region was at some point merged with another
-      // Merged regions should not display 'lrc' nor 'sbrc' 
+      // Merged regions should not display 'lrc' nor 'sbrc'
       else if (this != region->bridge)
       {
         stream << this;
@@ -40,7 +40,7 @@ namespace rt::objects
       {
         stream << this << std::endl;
         stream << "lrc=" << region->local_reference_count
-                << (region->is_lrc_dirty ? " (dirty)" : "") << std::endl;
+               << (region->is_lrc_dirty ? " (dirty)" : "") << std::endl;
         stream << "sbrc=" << region->sub_region_reference_count;
       }
       return stream.str();

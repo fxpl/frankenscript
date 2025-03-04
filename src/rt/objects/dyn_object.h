@@ -49,7 +49,6 @@ namespace rt::objects
     friend void merge_regions(DynObject* src, DynObject* sink);
     friend void move_objects(Region* src, Region* sink);
 
-
     // TODO: Not concurrency safe
     inline static size_t count{0};
     // TODO: Not concurrency safe

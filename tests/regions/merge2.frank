@@ -6,7 +6,10 @@ r3 = Region()
 r1.r2 = r2
 r2.r3 = r3
 
-merge_regions(r2, r1)
-merge_regions(r3, r1)
+# Merge the tree into one region
+merge(r2, r1)
+merge(r3, r1)
 
-r1.a = {}
+# Check that we can now create to r3
+# this would break without the merge
+r1.r3 = r3

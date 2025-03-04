@@ -291,27 +291,24 @@ namespace rt
 
   void merge_regions(objects::DynObject* src, objects::DynObject* sink)
   {
-
-    if(!src || src->get_prototype() != objects::regionPrototypeObject())
+    if (!src || src->get_prototype() != objects::regionPrototypeObject())
     {
       ui::error("Source is not a region", src);
-    } 
-    if(!sink || sink->get_prototype() != objects::regionPrototypeObject())
+    }
+    if (!sink || sink->get_prototype() != objects::regionPrototypeObject())
     {
       ui::error("Sink is not a region", sink);
-    } 
+    }
     objects::merge_regions(src, sink);
-
   }
 
   void dissolve_region(objects::DynObject* bridge)
   {
-    if(!bridge || bridge->get_prototype() != objects::regionPrototypeObject())
+    if (!bridge || bridge->get_prototype() != objects::regionPrototypeObject())
     {
       ui::error("Argument is not a region", bridge);
     }
-    objects::dissolve_region(bridge); 
+    objects::dissolve_region(bridge);
   }
-
 
 } // namespace rt

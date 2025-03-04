@@ -61,7 +61,6 @@ namespace rt::objects
 
     // Bridge children of the region
     std::set<DynObject*> direct_subregions{};
-    
 
     ~Region()
     {
@@ -86,6 +85,7 @@ namespace rt::objects
       else
         action(r);
     }
+
     // Decrements sbrc for ancestors of 'r'
     static void dec_sbrc(Region* r)
     {
@@ -225,7 +225,6 @@ namespace rt::objects
       std::cout << "Finished collection" << std::endl;
       collecting = false;
     }
-
   };
 
   // Represents the region of specific object. Uses small pointers to

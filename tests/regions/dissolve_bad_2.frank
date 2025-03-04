@@ -2,4 +2,4 @@ r1 = Region()
 r2 = Region()
 r1.r2 = r2
 # Can't dissolve a child region
-dissolve_region(r2)
+dissolve(r2)

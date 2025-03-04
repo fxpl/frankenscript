@@ -1,3 +1,4 @@
+
 # Add a region to a region
 r1 = Region()
 r2 = Region()
@@ -6,5 +7,5 @@ r1.r2 = r2
 
 merge(r2, r1)
 
-# Fails as r2 is no longer a region
-merge(r2, r1)
+# Check that we can create multiple references from r1 to r2 now
+r1.a = r2.a

@@ -7,5 +7,6 @@ r1.r2 = r2
 r2.r3 = r3
 r3 = None
 r2.r3 = None
-# 
-merge_regions(r2, r1)
+
+# Check that r3 is now a child of r1
+merge(r2, r1)
