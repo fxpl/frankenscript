@@ -338,12 +338,12 @@ namespace rt::core
 
   void pragma_builtins()
   {
-    add_builtin("pragma_disable_implicit_freezing", [](auto, auto args) {
+    add_builtin("pragma_enable_implicit_freezing", [](auto, auto args) {
       if (args != 0)
       {
-        ui::error("pragma_disable_implicit_freezing() expected 0 arguments");
+        ui::error("pragma_enable_implicit_freezing() expected 0 arguments");
       }
-      objects::Region::pragma_implicit_freezing = false;
+      objects::Region::pragma_implicit_freezing = true;
       return std::nullopt;
     });
 

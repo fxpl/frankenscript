@@ -61,9 +61,9 @@ Dissolves the given region into the local region. The bridge object will lose th
 
 ## Pragmas
 
-#### `pragma_disable_implicit_freezing()`
+#### `pragma_enable_implicit_freezing()`
 
-Disables implicit freezing for the rest of the program.
+Enables implicit freezing for the rest of the program.
 
 #### `pragma_mermaid_draw_regions_nested(bool)`
 

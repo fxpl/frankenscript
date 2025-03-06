@@ -1,14 +1,8 @@
-# Create two regions
-r1 = Region()
-r2 = Region()
-
-# Create unfrozen data to share
+# Create a value to share
 share = {}
-share.text = "Shared Info"
-r1.info = share
 
-# Trigger implicit freeze by referencing it from r2
-r2.info = share
+# Freeze the value to make sure it can be put in a cown
+freeze(share)
 
 # Should succeed, as 'share' is now immutable
-c = Cown(move share)
+c = Cown(share)

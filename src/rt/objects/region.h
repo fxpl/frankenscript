@@ -32,7 +32,7 @@ namespace rt::objects
     static inline thread_local std::set<Region*> dirty_regions{};
 
     /// Indicates if implicit freezing is enabled
-    static inline bool pragma_implicit_freezing = true;
+    static inline bool pragma_implicit_freezing = false;
 
     // The local reference count is the number of references to objects in the
     // region from local region. Using non-zero LRC for subregions ensures we
