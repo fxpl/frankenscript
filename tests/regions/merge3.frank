@@ -1,0 +1,15 @@
+
+# Generate a tree of depth 3
+r1 = Region()
+r2 = Region()
+r3 = Region()
+r1.r2 = r2
+r2.r3 = r3
+
+# Reverse order of merge2.frank
+merge(r3, r2)
+merge(r2, r1)
+
+# Check that we can now create to r3
+# this would break without the merge
+r1.r3 = r3

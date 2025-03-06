@@ -1,0 +1,11 @@
+r1 = Region()
+r2 = Region()
+r1.r2 = r2
+
+# Dissolving r1 should remove the parent from r2
+dissolve(r1)
+
+# Check that r3 can be the parent of r2, this proving that
+# dissolve unparented r2
+r3 = Region()
+r3.r2 = r2

@@ -1,0 +1,12 @@
+
+# Generate a tree of depth 3
+r1 = Region()
+r2 = Region()
+r3 = Region()
+r1.r2 = r2
+r2.r3 = r3
+r3 = None
+r2.r3 = None
+
+# Check that r3 is now a child of r1
+merge(r2, r1)

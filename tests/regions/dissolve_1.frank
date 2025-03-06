@@ -1,0 +1,10 @@
+r1 = Region()
+r1.a = {}
+r2 = Region()
+
+r1.r2 = r2
+dissolve(r1)
+
+# Assigning to a object from r1 is only valid if r1 is now
+# in the local region
+r2.a = r1.a

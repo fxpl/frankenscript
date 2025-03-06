@@ -1,0 +1,10 @@
+# Add a region to a region
+r1 = Region()
+r2 = Region()
+r2.a = {}
+r1.r2 = r2
+
+merge(r2, r1)
+
+# Fails as r2 is no longer a region
+merge(r2, r1)

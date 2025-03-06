@@ -140,6 +140,7 @@ namespace rt::objects
       assert(target->parent == src);
       std::cout << "Removing parent reference from region: " << src << " to "
                 << target << std::endl;
+      src->direct_subregions.erase(target->bridge);
       if (target->combined_lrc() != 0)
       {
         Region::dec_sbrc(target);
@@ -441,8 +442,122 @@ namespace rt::objects
       if (r != get_local_region() && r != cown_region)
       {
         to_collect.insert(r);
-        std::cout << "Collecting region: " << r << std::endl;
+        std::cout << "Collecting region: " << r << " with bridge: " << r->bridge
+                  << std::endl;
       }
     }
+  }
+
+  void change_parent(DynObject* obj, Region* p)
+  {
+    auto r = get_region(obj);
+    assert(!Region::is_ancestor(p, r));
+    r->parent = p;
+    p->direct_subregions.insert(obj);
+    r->direct_subregions.erase(obj);
+  }
+
+  // Note that this func. does solely just that, moves objects from A to B.
+  // other steps are necessary to ensure proper region state
+  void move_objects(Region* src, Region* sink)
+  {
+    for (auto obj : src->objects)
+    {
+      auto r = get_region(obj);
+      std::cout << "Moving object: " << obj
+                << " with region bridge: " << r->bridge
+                << " to region with bridge: " << sink->bridge << std::endl;
+      obj->region = {sink};
+      sink->objects.insert(obj);
+      src->objects.erase(obj);
+    }
+  }
+
+  void merge_regions(DynObject* src, DynObject* sink)
+  {
+    assert(src != nullptr);
+    assert(sink != nullptr);
+    assert(src->get_prototype() == objects::regionPrototypeObject());
+    assert(sink->get_prototype() == objects::regionPrototypeObject());
+
+    auto src_region = get_region(src);
+    auto sink_region = get_region(sink);
+
+    if (src_region == sink_region)
+    {
+      std::stringstream ss;
+      ss << "Trying to merge the same region: " << src_region;
+      std::vector<DynObject*> region;
+      region.push_back(src);
+      ui::globalUI()->highlight(ss.str(), region);
+
+      return;
+    }
+    // Design decision: Merging requires that the source region is a child of
+    // the sink region.
+    //
+    // Background: Region cleaning in CPython currently requires all nodes in a
+    // region to be reachable from the bridge object. All non-reachable nodes
+    // are ejected to the local region. (At one point, we should discuss how
+    // unreachable nodes in a region should be handled.) Requiring that the sink
+    // is the parent of the source region should ensure that the nodes from the
+    // src region are reachable from the sink region.
+    if (src_region->parent != sink_region)
+    {
+      ui::error("Sink is not a parent of source", src);
+    }
+    // Move all objects in the region, note that this includes bridge object
+    move_objects(src_region, sink_region);
+    // Adjust direct subregions
+    for (auto obj : src_region->direct_subregions)
+    {
+      change_parent(obj, sink_region);
+    }
+
+    sink_region->is_lrc_dirty =
+      sink_region->is_lrc_dirty || src_region->is_lrc_dirty;
+    // Finalize dissasembly of region
+    sink_region->direct_subregions.erase(src);
+    auto old_proto = src->set_prototype(nullptr);
+    remove_reference(src, old_proto);
+    src_region->bridge = nullptr;
+    // Adjust sbrc and lrc for `src_region` which was merged
+    if (src_region->local_reference_count != 0)
+    {
+      sink_region->sub_region_reference_count--;
+    }
+    sink_region->sub_region_reference_count +=
+      src_region->sub_region_reference_count;
+    sink_region->local_reference_count += src_region->local_reference_count;
+  }
+
+  void dissolve_region(DynObject* bridge)
+  {
+    assert(bridge != nullptr);
+    assert(bridge->get_prototype() == objects::regionPrototypeObject());
+
+    auto r = get_region(bridge);
+    assert(r != get_local_region());
+
+    if (r->parent != nullptr)
+    {
+      ui::error("Can't dissolve a region that is the child of another", bridge);
+    }
+
+    for (auto obj : r->direct_subregions)
+    {
+      auto obj_r = get_region(obj);
+      obj_r->parent = nullptr;
+      r->direct_subregions.erase(obj);
+      // Assumption: Exactly one outgoing reference from 'r' to 'obj_r'
+      // Per: "References across regions must be externally unique references
+      // to bridge objects or borrowed references"
+      obj_r->local_reference_count++;
+    }
+
+    auto old_proto = bridge->set_prototype(nullptr);
+    remove_reference(bridge, old_proto);
+    // Move all objects in the region
+    move_objects(r, local_region);
   }
 }

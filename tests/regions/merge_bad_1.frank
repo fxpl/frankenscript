@@ -1,0 +1,6 @@
+# Two separate regions
+r1 = Region()
+r2 = Region()
+
+# Fails as r2 is not child of r1
+merge(r2, r1)

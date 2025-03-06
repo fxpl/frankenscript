@@ -22,7 +22,7 @@ Creates a new region object.
 
 #### `Cown(move region)`
 
-Creates a new `cown` object.
+Creates a new `Cown` object.
 
 The region must have a local reference count of one. The `move` keyword is used to replace the local value with `None`.
 
@@ -49,6 +49,15 @@ This function will also correct all dirty LRCs.
 Checks if the given region can be closed. If the LRC is dirty or subreagions are open, it will correct all dirty LRCs.
 
 Returns `True`, if the region is closed in the end, `False` otherwise.
+
+#### `merge(source, sink)`
+
+This merges the `source` region into the `sink` region. The bridge object of `source` looses its prototype
+since it's no longer the bridge object of the region.
+
+#### `dissolve(region)`
+
+Dissolves the given region into the local region. The bridge object will lose the `RegionObject` prototype.
 
 ## Pragmas
 

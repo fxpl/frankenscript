@@ -46,6 +46,8 @@ namespace rt::objects
     friend void visit(Edge, Pre, Post);
     friend Region* get_region(DynObject* obj);
     friend void add_to_region(Region* r, DynObject* target, DynObject* source);
+    friend void merge_regions(DynObject* src, DynObject* sink);
+    friend void move_objects(Region* src, Region* sink);
 
     // TODO: Not concurrency safe
     inline static size_t count{0};
