@@ -101,7 +101,7 @@ namespace rt::ui
       return steps == 0;
     }
 
-    bool is_mermaid()
+    bool is_mermaid() override
     {
       return true;
     }
