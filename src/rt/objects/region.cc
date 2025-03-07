@@ -117,7 +117,6 @@ namespace rt::objects
   {
     if (src == target)
     {
-      std::cout << "Same region, no need to do anything" << std::endl;
       return;
     }
 
@@ -255,12 +254,22 @@ namespace rt::objects
       return;
     }
 
-    auto target_region = get_region(target);
+    auto old_target_region = get_region(target);
+    auto old_target_bridge = old_target_region->bridge;
 
     add_region_reference(dst_region, target, src);
-    // Note that target_region and get_region(target) are not necessarily the
-    // same.
-    remove_region_reference(src_region, target_region);
+
+    // If the bridge was implicitly frozen we don't need to remove
+    // the region reference. In fact, we shouldn't since the region
+    // object has been deallocated.
+    if (old_target_bridge && old_target_bridge->is_immutable())
+    {
+      return;
+    }
+
+    // Note that the region of the target might have changed after the
+    // `add_region_refernce` call
+    remove_region_reference(src_region, old_target_region);
   }
 
   void Region::clean_lrcs_and_close(Region* to_close_reg)

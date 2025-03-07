@@ -1,0 +1,13 @@
+# pragma_disable_implicit_freezing()
+x = {}
+x.f = Region()
+x.f.f = {}
+
+# Create cylce
+x.f.f.f = x.f
+
+# Create a second region
+y = Region()
+
+# Create shared referencem, thus triggering an implicit freeze
+y.f = x.f.f
