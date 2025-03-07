@@ -504,9 +504,10 @@ namespace verona::interpreter
     }
   };
 
-  void start(trieste::Node main_body, int step_counter)
+  void start(trieste::Node main_body, int step_counter, std::string output)
   {
     auto ui = rt::ui::globalUI();
+    ui->set_output_file(output);
     if (ui->is_mermaid())
     {
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
