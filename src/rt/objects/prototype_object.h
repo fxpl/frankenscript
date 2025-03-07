@@ -12,7 +12,7 @@ namespace rt::objects
     PrototypeObject(
       std::string name_,
       objects::DynObject* prototype = nullptr,
-      objects::Region* region = objects::get_local_region())
+      objects::Region* region = objects::immutable_region)
     : objects::DynObject(prototype, region), name(name_)
     {}
 

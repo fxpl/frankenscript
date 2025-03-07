@@ -1,11 +1,14 @@
 # Construct regions
 r1 = Region()
 
-# Create a local string to share the `String` prototype
-local_string = "Hello Local"
+# Create a prototype
+local_ty = {}
 
-# This also moves the `String` prototype
-r1.something = "Important string"
+# Create a local object to share the `local_ty` prototype
+local_value = create(local_ty)
+
+# Create a value in the region, this also moves the `local_ty` prototype
+r1.region_value = create(local_ty)
 
 # This should fail, since implicit freezing is disabled
 close(r1)
