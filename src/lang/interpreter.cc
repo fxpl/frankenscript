@@ -567,35 +567,58 @@ namespace verona::interpreter
   };
 
   class Sceduler {
-    void start(trieste::Node main_body);
-    ScedulerKind kind();
-  }
+    virtual void start(trieste::Node main_body) 
+    {
 
-  class ThreadScduler {
-    std::vector<Interpreter*>  active
+    };
+    //ScedulerKind kind();
+  };
 
-    void start(body) override {
-      while (!active.is_empty()) {
-        auto step = rand() & active.size();
+  // class ThreadSceduler: public Sceduler {
+  //   std::vector<Interpreter*>  active;
 
-        auto res = active[step].run_step();
-        if (res == Done) {
-          active.remove(idx);
-        }
-      }
-    }
+  //   void start(trieste::Node main_body) override {
+  //     while (!active.is_empty()) {
+  //       auto step = rand() & active.size();
 
-    void spawn(thread: (Body, args)) {
-      auto i = new Interpreter(body);
-      i->frame->push(args...);
-      active.push(i);
-    }
-  }
+  //       auto res = active[step].run_step();
+  //       if (res == Done) {
+  //         active.remove(idx);
+  //       }
+  //     }
+  //   }
+
+  //   void spawn(thread: (Body, args)) {
+  //     auto i = new Interpreter(body);
+  //     i->frame->push(args...);
+  //     active.push(i);
+  //   }
+  // };
   
-  class BocSceduler: public Sceduler {
-    std::vector<Behavior*> behaviors;
+  class Behaviour
+  {
+  private:
+      trieste::Node thunk;
+      size_t aquired_cowns{0};
+      std::vector<rt::objects::DynObject*> cowns;
+  public:
+      Behaviour(trieste::Node thunk_) : thunk(thunk_) {}
+      Behaviour(trieste::Node t, std::vector<rt::objects::DynObject*> c)
+      {
+        
+      }
+  };
+  
 
-    void start() {
+  class BocSceduler: public Sceduler {
+    std::vector<Behaviour*> behaviors;
+
+    void start(trieste::Node main_body) {
+      // Init main execution
+      auto i = new Interpreter(rt::ui::globalUI());
+      i
+
+
       while (!behaviors.is_empty()) {
         // 1. Check dependency graph
         // 2. Get ready behaviors
