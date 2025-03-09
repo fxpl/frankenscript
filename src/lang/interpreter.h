@@ -2,6 +2,7 @@
 
 #include <cstddef>
 
+
 namespace rt::objects
 {
   class DynObject;
@@ -32,5 +33,14 @@ namespace verona::interpreter
     {
       return this->get_stack_size() == 0;
     }
+  };
+
+  class Scheduler
+  {
+    public:
+    // Technically only schedule() needs to be visible in builtin.cc
+    virtual void start(Bytecode main_body) = 0;
+    virtual void schedule() = 0;
+
   };
 }

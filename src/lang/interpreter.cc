@@ -7,6 +7,7 @@
 #include <variant>
 #include <vector>
 
+
 namespace verona::interpreter
 {
 
@@ -59,6 +60,7 @@ namespace verona::interpreter
   {
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
+    bool is_init{false};
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
     {
@@ -433,11 +435,17 @@ namespace verona::interpreter
 
   public:
     Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
+    Interpreter(trieste::Node node, rt::ui::UI* ui_) : ui(ui_)
+    {
+      this->push_stack_frame(node);
+      this->is_init = true;
+    }
+    friend class BocScheduler;
 
     void run(trieste::Node main)
     {
       auto frame = push_stack_frame(main);
-
+      
       while (frame)
       {
         const auto action = run_stmt(*frame->ip);
@@ -504,13 +512,12 @@ namespace verona::interpreter
     }
   };
 
-  class Scheduler {
-    virtual void start(trieste::Node main_body) 
-    {
-
-    };
-    //SchedulerKind kind();
-  };
+  // class Scheduler{
+  //   public:
+  //   virtual void start(trieste::Node main_body) = 0;
+  //   virtual void schedule() = 0;
+  //   //SchedulerKind kind();
+  // };
 
   // class ThreadScheduler: public Scheduler {
   //   std::vector<Interpreter*>  active;
@@ -535,47 +542,69 @@ namespace verona::interpreter
   
   class Behaviour
   {
+  // TODO make public attributes private
   private:
-      trieste::Node thunk;
-      size_t aquired_cowns{0};
-      std::vector<rt::objects::DynObject*> cowns;
   public:
-      Behaviour(trieste::Node thunk_) : thunk(thunk_) {}
-      Behaviour(trieste::Node t, std::vector<rt::objects::DynObject*> c)
+    trieste::Node thunk;
+    size_t count;
+    std::vector<rt::objects::DynObject*> cowns;
+    Behaviour(trieste::Node thunk_) : thunk(thunk_) {}
+    Behaviour(trieste::Node t, std::vector<rt::objects::DynObject*> c)
       {
-        
+        this->thunk = t;
+        this->count = c.size();
+        this->cowns = c;
       }
+
   };
   
 
   class BocScheduler: public Scheduler {
-    std::vector<Behaviour*> behaviors;
+    std::vector<Behaviour*> behaviours;
+    std::vector<Behaviour*> ready_behaviours;
+
+    void update_ready_behaviours()
+    {
+      return;
+    }
+    void mark_as_done(size_t step)
+    {
+      this->ready_behaviours.erase(ready_behaviours.begin() + step);
+    }
     public:
-      void start(trieste::Node main_body) {
-        // Init main execution
-        auto i = new Interpreter(rt::ui::globalUI());
-        i->run(main_body);
+    void start(Bytecode main_body) override{
+      auto ui = rt::ui::globalUI();
+      // Run main execution
+        Interpreter* main_inter = new Interpreter(main_body.body, ui);
+        main_inter->run(main_body.body);
 
-
-        while (!behaviors.is_empty()) {
+        // Handle any resulting behaviours 
+        while (behaviours.size() != 0) {
           // 1. Check dependency graph
-          // 2. Get ready behaviors
-          ready_behaviors = magic();
+          // 2. Get ready behaviours
+          this->update_ready_behaviours();
           
-          auto step = rand() & ready_behaviors.size();
+          auto step = rand() & ready_behaviours.size();
           
-          auto behavior = ready_behaviors[step];
-          auto i = new Interpreter(body);
-          i->frame->push(args...);
-          i->run_to_completion();
+          auto behaviour = ready_behaviours[step];
+          // TODO need new constructor
+          auto inter = new Interpreter(behaviour->thunk, ui);
+          //rt::move_reference(NULL, inter->frame()->object(), behaviour);
+          for (size_t i = 0; i < behaviour->cowns.size(); i++)
+          {
+            // TODO RC add should be false?
+            inter->frame()->stack_push(behaviour->cowns[i], "cown object", false);
+          }
+          inter->run(NULL);
 
-          this->mark_as_done(behavior);
-          // Removes behavior from this->behaviors
+          this->mark_as_done(step);
+          // Removes behaviour from this->behaviours
           // Updates dependency graph
         }
       }
-      void scedule(behavior: (func, cown)) {
-
+      void schedule() override
+      {
+        return;
       }
   };
 
@@ -587,13 +616,14 @@ namespace verona::interpreter
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
     }
 
-    size_t initial = rt::pre_run(ui);
+    verona::interpreter::Scheduler* scheduler = new BocScheduler();
+    size_t initial = rt::pre_run(ui, scheduler);
 
-    BocScheduler* scheduler = new BocScheduler();
-    scheduler->start(main_body);
-
-    Interpreter inter(ui);
-    inter.run(main_body);
+    // temp conversion to Bytecode until fix
+    Bytecode main_b = {main_body};
+    scheduler->start(main_b);
+    // Interpreter inter(ui);
+    // inter.run(main_body);
 
     rt::post_run(initial, ui);
   }

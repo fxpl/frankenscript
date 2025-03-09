@@ -373,5 +373,5 @@ namespace rt::core
   ///
   /// @param ui The UI to allow builtin functions to create output, when they're
   /// called.
-  void init_builtins(ui::UI* ui);
+  void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
 } // namespace rt::core
