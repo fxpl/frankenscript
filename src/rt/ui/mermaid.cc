@@ -509,9 +509,9 @@ namespace rt::ui
       out.open(path);
     }
 
-    out << "```" << std::endl;
+    out << "<pre><code>" << std::endl;
     out << message << std::endl;
-    out << "```" << std::endl;
+    out << "</code></pre>" << std::endl;
 
     MermaidDiagram diag(this);
     diag.draw(roots);
