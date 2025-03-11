@@ -80,7 +80,7 @@ namespace rt
     return objects::create_region();
   }
 
-  objects::DynObject* get(objects::DynObject* obj, std::string key)
+  std::optional<objects::DynObject*> get(objects::DynObject* obj, std::string key)
   {
     if (obj->is_opaque())
     {
@@ -108,7 +108,7 @@ namespace rt
     return str_key->as_key();
   }
 
-  objects::DynObject* get(objects::DynObject* obj, objects::DynObject* key)
+  std::optional<objects::DynObject*> get(objects::DynObject* obj, objects::DynObject* key)
   {
     return get(obj, get_key(key));
   }

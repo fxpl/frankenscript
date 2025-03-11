@@ -203,7 +203,7 @@ namespace rt::objects
       return region.get_ptr() == immutable_region;
     }
 
-    [[nodiscard]] DynObject* get(std::string name)
+    [[nodiscard]] std::optional<DynObject*> get(std::string name)
     {
       auto result = fields.find(name);
       if (result != fields.end())
@@ -218,7 +218,7 @@ namespace rt::objects
         return prototype->get(name);
 
       // No field or prototype chain found.
-      return nullptr;
+      return std::nullopt;
     }
 
     /// A destructive read of the value.
@@ -338,7 +338,7 @@ namespace rt::objects
         continue;
       }
 
-      DynObject* next = obj_ptr->get(key);
+      DynObject* next = obj_ptr->get(key).value();
       if (pre({obj_ptr, key, next}))
       {
         visit_object(next);

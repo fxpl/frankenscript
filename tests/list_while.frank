@@ -2,16 +2,17 @@
 def new_list():
     def insert(self, item):
         node = self.head
-        while node.next != null:
+        while node.next != None:
             node = node.next
 
         node.next = {}
         node.next.data = item
         node.next.prev = node
+        node.next.next = None
 
     def contains(self, item):
         node = self.head
-        while node.next != null:
+        while node.next != None:
             if node.data == item:
                 return True
             node = node.next
@@ -19,10 +20,10 @@ def new_list():
 
     def remove(self, item):
         node = self.head
-        while node.next != null:
+        while node.next != None:
             if node.data == item:
                 node.prev.next = node.next
-                if node.next != null:
+                if node.next != None:
                     node.next.prev = node.prev
                 return True
             node = node.next
@@ -30,19 +31,12 @@ def new_list():
 
     list = {}
     list.head = {}
+    list.head.next = None
+    list.head.data = None
     list.insert = move insert
     list.contains = move contains
     list.remove = move remove
     return list
-
-# Dyrona doesn't freeze shared objects automatically (yet)
-def freeze_and_hide_proto(value):
-    proto = value["__proto__"]
-    freeze(proto)
-    mermaid_hide(proto)
-freeze_and_hide_proto(freeze_and_hide_proto)
-freeze_and_hide_proto("string")
-drop freeze_and_hide_proto
 
 list = new_list()
 

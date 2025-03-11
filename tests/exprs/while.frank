@@ -2,9 +2,10 @@ lst = {}
 lst.next = {}
 lst.next.next = {}
 lst.next.next.next = {}
+lst.next.next.next.next = None
 
 obj = lst
-while obj != null:
+while obj != None:
     obj = obj.next
 
 # Check identifiers in the condition

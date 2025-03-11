@@ -193,7 +193,15 @@ namespace verona::interpreter
           }
         }
 
-        frame()->stack_push(v, "load from frame");
+        if (!v)
+        {
+          std::stringstream ss;
+          ss << "The name " << field << " is undefined in the current frame";
+          rt::ui::error(ss.str(), frame()->object());
+          std::abort();
+        }
+
+        frame()->stack_push(v.value(), "load from frame");
         return ExecNext{};
       }
 
@@ -213,10 +221,24 @@ namespace verona::interpreter
         // Builtin globals
         if (!v)
         {
-          v = rt::get_builtin(field);
+          auto builtin = rt::get_builtin(field);
+          // Convert ptr -> optional
+          if (builtin)
+          {
+            v = builtin;
+          }
         }
 
-        frame()->stack_push(v, "load from global");
+        if (!v)
+        {
+          std::stringstream ss;
+          ss << "The name `" << field
+             << "` is undefined in the current and global frame";
+          rt::ui::error(ss.str(), frame()->object());
+          std::abort();
+        }
+
+        frame()->stack_push(v.value(), "load from global");
         return ExecNext{};
       }
 
@@ -251,13 +273,23 @@ namespace verona::interpreter
 
         if (!v)
         {
-          std::cerr << std::endl;
-          std::cerr << "Error: Tried to access a field on `None`" << std::endl;
+          std::stringstream ss;
+          ss << "Tried to access the field `" << rt::get_key(k)
+             << "` on `None`";
+          rt::ui::error(ss.str(), nullptr);
           std::abort();
         }
 
         auto v2 = rt::get(v, k);
-        frame()->stack_push(v2, "loaded field");
+        if (!v2)
+        {
+          std::stringstream ss;
+          ss << "the field `" << rt::get_key(k) << "` is not defined on " << v;
+          rt::ui::error(ss.str(), v);
+          std::abort();
+        }
+
+        frame()->stack_push(v2.value(), "loaded field");
         rt::remove_reference(frame()->object(), k);
         rt::remove_reference(frame()->object(), v);
         return ExecNext{};
