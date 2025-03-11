@@ -2,6 +2,7 @@
 #include "../objects/dyn_object.h"
 #include "../ui.h"
 
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <map>
@@ -10,6 +11,8 @@
 
 namespace rt::ui
 {
+  namespace fs = std::filesystem;
+
   const char* TAINT_NODE_COLOR = "#afa8db";
   const char* TAINT_EDGE_COLOR = "#9589dc";
 
@@ -506,12 +509,18 @@ namespace rt::ui
     // Open the file if it's not open
     if (!out.is_open())
     {
+      // Check if the directory exists, and create it if not
+      fs::path dir = fs::path(path).parent_path();
+      if (!dir.empty() && !fs::exists(dir))
+      {
+        fs::create_directories(dir);
+      }
+
+      // Open the actual file
       out.open(path);
     }
 
-    out << "<pre><code>" << std::endl;
-    out << message << std::endl;
-    out << "</code></pre>" << std::endl;
+    out << "<pre><code>" << message << "</code></pre>" << std::endl;
 
     MermaidDiagram diag(this);
     diag.draw(roots);
