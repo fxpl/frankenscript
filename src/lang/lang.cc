@@ -67,6 +67,8 @@ int load_trieste(int argc, char** argv)
 
   options.validate();
 
+  std::cout << "Output file: " << options.out << std::endl;
+
   if (build_res == 0 && result->has_value())
   {
     verona::interpreter::start(
