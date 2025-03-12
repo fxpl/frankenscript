@@ -334,6 +334,24 @@ namespace rt::core
 
       return std::nullopt;
     });
+
+    add_builtin("is_released", [](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("is_released() expected 1 argument");
+      }
+
+      auto cown = frame->stack_pop("cown to check");
+      auto result = rt::is_cown_released(cown);
+      rt::remove_reference(frame->object(), cown);
+
+      auto result_obj = rt::get_bool(result);
+      // The return will be linked to the frame by the interpreter, but the RC
+      // has to be increased here.
+      result_obj->change_rc(1);
+
+      return result_obj;
+    });
   }
 
   void pragma_builtins()

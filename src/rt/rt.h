@@ -64,4 +64,8 @@ namespace rt
   void merge_regions(objects::DynObject* src, objects::DynObject* sink);
   void dissolve_region(objects::DynObject* bridge);
 
+  /// This notifies the given cown that something has changed and the state might
+  /// need to be updated. This can cause a cown in the pending state to be released.
+  void cown_update_state(objects::DynObject* cown);
+  bool is_cown_released(objects::DynObject* cown);
 } // namespace rt

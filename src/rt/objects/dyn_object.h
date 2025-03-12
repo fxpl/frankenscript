@@ -268,7 +268,7 @@ namespace rt::objects
       }
     }
 
-    [[nodiscard]] DynObject* set(std::string name, DynObject* value)
+    [[nodiscard]] virtual DynObject* set(std::string name, DynObject* value)
     {
       assert_modifiable();
       DynObject* old = fields[name];

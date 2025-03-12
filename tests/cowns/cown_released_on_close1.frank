@@ -1,0 +1,20 @@
+# Creating an open region
+r1 = Region()
+
+# Creating a cown in the pending state
+c1 = Cown(r1)
+
+# Make sure the cown is still pending
+if is_released(c1) == False:
+    pass()
+else:
+    unreachable()
+
+# Force close r1
+close(r1)
+
+# The cown should now be released
+if is_released(c1) == True:
+    pass()
+else:
+    unreachable()

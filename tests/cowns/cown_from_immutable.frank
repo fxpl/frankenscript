@@ -6,3 +6,8 @@ freeze(share)
 
 # Should succeed, as 'share' is now immutable
 c = Cown(share)
+
+if is_released(c):
+    pass()
+else:
+    unreachable()

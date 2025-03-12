@@ -1,0 +1,5 @@
+c1 = Cown(None)
+r1 = Region()
+c2 = Cown(c1)
+
+
