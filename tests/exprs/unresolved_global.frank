@@ -1,0 +1,2 @@
+# x is undefined and should give an error message
+y = x()

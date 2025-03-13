@@ -1,0 +1,2 @@
+# y is undefined and should result in an error
+x = y

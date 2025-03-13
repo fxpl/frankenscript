@@ -27,8 +27,11 @@ namespace rt
   void freeze(objects::DynObject* obj);
   objects::DynObject* create_region();
 
-  objects::DynObject* get(objects::DynObject* src, std::string key);
-  objects::DynObject* get(objects::DynObject* src, objects::DynObject* key);
+  std::optional<objects::DynObject*>
+  get(objects::DynObject* src, std::string key);
+  std::optional<objects::DynObject*>
+  get(objects::DynObject* src, objects::DynObject* key);
+  std::string get_key(objects::DynObject* key);
   objects::DynObject*
   set(objects::DynObject* dst, std::string key, objects::DynObject* value);
   objects::DynObject* set(

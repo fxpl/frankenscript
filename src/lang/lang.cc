@@ -22,12 +22,13 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass()
 
 namespace verona::interpreter
 {
-  void start(trieste::Node main_body, int step_counter);
+  void start(trieste::Node main_body, int step_counter, std::string output);
 }
 
 struct CLIOptions : trieste::Options
 {
   int step_counter = std::numeric_limits<int>::max();
+  std::string out = "mermaid.md";
 
   void configure(CLI::App& app)
   {
@@ -39,6 +40,17 @@ struct CLIOptions : trieste::Options
       "-s,--step",
       step_counter,
       "Step n instructions before entering interactive mode");
+    app.add_option("--out", out, "The output file for frankenscript");
+  }
+
+  void validate()
+  {
+    if (!out.ends_with(".md"))
+    {
+      std::cerr << "The output file has to be a markdown file (.md)"
+                << std::endl;
+      exit(-1);
+    }
   }
 };
 
@@ -47,15 +59,20 @@ int load_trieste(int argc, char** argv)
   CLIOptions options;
   auto [extract_bytecode, result] = extract_bytecode_pass();
   trieste::Reader reader{
-    "verona_dyn",
+    "frankenscript",
     {grouping(), call_stmts(), flatten(), bytecode(), extract_bytecode},
     parser()};
   trieste::Driver driver{reader, &options};
   auto build_res = driver.run(argc, argv);
 
+  options.validate();
+
+  std::cout << "Output file: " << options.out << std::endl;
+
   if (build_res == 0 && result->has_value())
   {
-    verona::interpreter::start(result->value(), options.step_counter);
+    verona::interpreter::start(
+      result->value(), options.step_counter, options.out);
   }
   return build_res;
 }

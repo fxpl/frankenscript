@@ -88,7 +88,7 @@ namespace rt::core
 
     rt::objects::DynObject* stack_get(size_t index)
     {
-      return get(stack_name(index));
+      return get(stack_name(index)).value();
     }
   };
 

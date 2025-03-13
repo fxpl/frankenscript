@@ -2,6 +2,7 @@
 
 #include "objects/visit.h"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -13,6 +14,8 @@ namespace rt::ui
   class UI
   {
   public:
+    virtual void set_output_file(std::string path_) = 0;
+
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
 
     virtual void highlight(std::string, std::vector<objects::DynObject*>&) {}
@@ -77,6 +80,12 @@ namespace rt::ui
   public:
     MermaidUI();
 
+    void set_output_file(std::string path_) override
+    {
+      assert(path_.ends_with(".md"));
+      this->path = path_;
+    }
+
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
 
@@ -101,7 +110,7 @@ namespace rt::ui
       return steps == 0;
     }
 
-    bool is_mermaid()
+    bool is_mermaid() override
     {
       return true;
     }

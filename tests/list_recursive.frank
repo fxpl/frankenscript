@@ -4,6 +4,7 @@ def insert(node, item):
         node.next = {}
         node.next.data = item
         node.next.prev = node
+        node.next.next = None
     else:
         insert(node.next, item)
 
@@ -26,7 +27,7 @@ def remove(node, item):
 
 def new_list():
     list = {}
-    list.head = {}
+    list.next = None
     return list
 
 list = new_list()
@@ -37,16 +38,11 @@ r.list = list
 
 value = "x"
 
-# Dyrona doesn't freeze shared objects automatically (yet)
-proto = value["__proto__"]
-freeze(proto)
-drop proto
-
-insert(list.head, {})
-insert(list.head, {})
-insert(list.head, value)
-insert(list.head, {})
-remove(list.head, value)
+insert(list, {})
+insert(list, {})
+insert(list, value)
+insert(list, {})
+remove(list.next, value)
 
 drop value
 drop list

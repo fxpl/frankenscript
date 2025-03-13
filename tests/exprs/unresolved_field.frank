@@ -1,0 +1,3 @@
+x = {}
+# Reading an unresolved field should already error
+y = x.y
