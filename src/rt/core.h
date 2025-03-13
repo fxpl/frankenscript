@@ -281,14 +281,17 @@ namespace rt::core
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
       status = Status::Pending;
-      auto region = objects::get_region(obj);
+      auto old = set("value", obj);
+      assert(!old);
+    }
 
-      if (!obj->is_immutable() && !obj->is_cown())
+    [[nodiscard]] DynObject* set(std::string name, DynObject* obj) override
+    {
+      assert_modifiable();
+
+      if (obj && !obj->is_immutable() && !obj->is_cown())
       {
-        // TODO: Make sure we're parenting the region and add third state, like
-        // pending
-        // Staring in an aquired state will allow the normal usage of `set`
-
+        auto region = objects::get_region(obj);
         // Potentiall error message
         std::stringstream ss;
         ss << "Object is neither immutable nor a cown, attempted to threat it "
@@ -307,16 +310,23 @@ namespace rt::core
              << region->parent->bridge;
           ui::error(ss.str(), {this, "", obj});
         }
+
+        region->cown = this;
       }
 
-      auto old = set("value", obj);
-      assert(!old);
+      DynObject* old = fields[name];
+      fields[name] = obj;
 
-      // 1x LRC from the stack
-      if (region->local_reference_count == 1)
+      if (old && !old->is_immutable() && !old->is_cown())
       {
-        status = Status::Released;
+        auto old_reg = objects::get_region(old);
+        assert(old_reg->cown == this);
+        old_reg->cown = nullptr;
       }
+
+      update_status();
+
+      return old;
     }
 
     std::string get_name() override
@@ -344,6 +354,34 @@ namespace rt::core
         case Status::Released:
         default:
           return true;
+      }
+    }
+
+    bool is_released()
+    {
+      return this->status == Status::Released;
+    }
+
+    /// This function updates the status of the cown. It mainly checks if a
+    /// cown in the pending state can be released.
+    void update_status()
+    {
+      if (status != Status::Pending)
+      {
+        return;
+      }
+
+      auto value = this->get("value").value();
+      if (!value || value->is_immutable() || value->is_cown())
+      {
+        status = Status::Released;
+        return;
+      }
+
+      auto region = objects::get_region(value);
+      if (region->combined_lrc() == 0)
+      {
+        status = Status::Released;
       }
     }
   };

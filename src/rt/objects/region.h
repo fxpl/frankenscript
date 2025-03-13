@@ -6,6 +6,11 @@
 #include <cassert>
 #include <set>
 
+namespace rt
+{
+  void cown_update_state(objects::DynObject* obj);
+}
+
 namespace rt::objects
 {
   class DynObject;
@@ -49,6 +54,11 @@ namespace rt::objects
     // This guarantees that the regions for trees.
     Region* parent{nullptr};
 
+    // This points to the cown that owns this region. The parent will be
+    // filled with the cown_region if this is owned by a cown. This ensures
+    // that the region can't be reparented.
+    DynObject* cown{nullptr};
+
     // The number of direct subregions, whose LRC is non-zero
     size_t sub_region_reference_count{0};
 
@@ -81,9 +91,17 @@ namespace rt::objects
       r->local_reference_count--;
       // Edge triggered LRC for parent.
       if (r->combined_lrc() == 0)
+      {
         dec_sbrc(r);
+        if (r->cown)
+        {
+          cown_update_state(r->cown);
+        }
+      }
       else
+      {
         action(r);
+      }
     }
 
     // Decrements sbrc for ancestors of 'r'
@@ -96,6 +114,12 @@ namespace rt::objects
         if (r->combined_lrc() != 0)
           break;
       }
+
+      if (r->cown)
+      {
+        cown_update_state(r->cown);
+      }
+
       action(r);
     }
 
@@ -149,7 +173,10 @@ namespace rt::objects
         ui::error("Cycle created in region hierarchy", r->bridge);
       }
 
-      p->direct_subregions.insert(r->bridge);
+      if (p)
+      {
+        p->direct_subregions.insert(r->bridge);
+      }
       // Set the parent and increment the parent reference count.
       r->parent = p;
 

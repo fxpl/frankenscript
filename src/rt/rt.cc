@@ -313,4 +313,23 @@ namespace rt
     objects::dissolve_region(bridge);
   }
 
+  bool is_cown_released(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    return reinterpret_cast<core::CownObject*>(cown)->is_released();
+  }
+
+  void cown_update_state(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    reinterpret_cast<core::CownObject*>(cown)->update_status();
+  }
 } // namespace rt
