@@ -13,6 +13,31 @@ a.field2 = {}    # 2
 b = a.field1
 c = a["field1"]
 
+# FrankenScipt uses reference counting. Values are deallocated when the reference
+# count hits 0. This can be used to remove unused elements from the diagram.
+a = None
+b = None
+c = None
+
 # FrankenScript also provides stings, created by double quotes:
 d = "This is a string"
 
+# All objects in FrankenScript are dictionaries. The language uses prototypes
+# to share functionality across objects and to identify the type of object.
+# The diagram currently shows the prototype for frame objects (called `[Frame]),
+# and the prototype for strings (called `[String]`).
+#
+# Prototypes can be accessed via the `__proto__` field.
+e = d.__proto__
+
+# The prototype can also be written to. This creates an object `g` with the
+# prototype `f`
+f = {}
+f.field = {}
+g = {}
+g.__proto__ = f
+
+# If a field is not found on an object the prototype will be checked for the
+# field. In this example, a reference to `f.field` is returned since `g` doesn't
+# have a field called `field` but the prototype has one.
+h = g.field
