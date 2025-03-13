@@ -1,0 +1,49 @@
+# Lungfish uses concurrent owners, called Cowns, to coordinate
+# concurrent access at runtime.
+#
+# Cowns can store immutable objects, regions and other cowns.
+# The following will create a cown pointing to the frozen value
+# `None`.
+c1 = Cown(None)
+
+# The cown has the status "Release" which means that a concurrent
+# unit can aquire it and access its data. Attempting to access
+# the data in this state will result in an error.
+# ref = c1.value # Error
+
+# Regions are used to track ownership of mutable data. This can be
+# combined with cowns to safely share data. This created an open region:
+r1 = Region()
+r1.data = {}
+data = r1.data
+
+# A cown created from an open region has the status "Pending". This
+# status allows access to the contained value. However, it will switch
+# to the "Released" status one the region is closed
+c2 = Cown(r1)
+close(c2.value)
+
+# Cowns can be safely shared across threads since they enfore ownership
+# and concurrent coordination at runtime. They are therefore allowed to
+# be referenced by frozen objects. The freeze will not effect the cown
+# or the contained values.
+x = {}
+x.cown = c2
+freeze(x)
+
+# Cowns can also be referenced from one or multiple regions like this:
+r2 = Region()
+r2.cown = c2
+r3 = Region()
+r3.cown = c2
+
+# Regions referencing a cown can still be closed and sent. This example
+# uses the `move` keyword to perform a destructive read and close the
+# region as part of the cown creation. The cown is therefore created in
+# the "Released" status
+c3 = Cown(move r2)
+
+# Cowns can also point to other cowns. The second cown is also
+# in the *Released* state since the given cown is allowed to
+# have local references.
+c4 = Cown(c2)

@@ -1,0 +1,18 @@
+# This file shows how different objects can be created and used in FrankenScript
+#
+# The following line creates a dictionary and assigns it to the variable `a`.
+# The variable name is on the arrow from the frame to the object. The object
+# displays the memory address and the reference count of the object.
+a = {}
+
+# Fields of dictionaries can be assigned in two ways:
+a["field1"] = {} # 1
+a.field2 = {}    # 2
+
+# Fields can be accessed the same way
+b = a.field1
+c = a["field1"]
+
+# FrankenScript also provides stings, created by double quotes:
+d = "This is a string"
+
