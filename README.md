@@ -7,6 +7,10 @@ model inspired by [behaviour-oriented concurrency](https://doi.org/10.1145/36228
 To this end, FrankenScript programs generate a file called `mermaid.md` with a Mermaid diagram per line in the source program showing the object and region
 graph of the program at that program point. 
 
+This is a legend for the diagrams that FrankenScript generates:
+
+![](./docs/frankenscript-legend.png)
+
 ## Pre-requisites
 
 This project is C++20 based and uses CMake as the build system.  We also recommend installing Ninja to speed up the build process.
@@ -49,3 +53,4 @@ You can run in interactive mode by running:
 ```
 
 Which will keep overwritting the `mermaid.md` file with the new heap state after each step.
+
