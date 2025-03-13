@@ -198,7 +198,6 @@ namespace verona::interpreter
           std::stringstream ss;
           ss << "The name " << field << " is undefined in the current frame";
           rt::ui::error(ss.str(), frame()->object());
-          std::abort();
         }
 
         frame()->stack_push(v.value(), "load from frame");
@@ -235,7 +234,6 @@ namespace verona::interpreter
           ss << "The name `" << field
              << "` is undefined in the current and global frame";
           rt::ui::error(ss.str(), frame()->object());
-          std::abort();
         }
 
         frame()->stack_push(v.value(), "load from global");
@@ -277,7 +275,6 @@ namespace verona::interpreter
           ss << "Tried to access the field `" << rt::get_key(k)
              << "` on `None`";
           rt::ui::error(ss.str(), nullptr);
-          std::abort();
         }
 
         auto v2 = rt::get(v, k);
@@ -286,7 +283,6 @@ namespace verona::interpreter
           std::stringstream ss;
           ss << "the field `" << rt::get_key(k) << "` is not defined on " << v;
           rt::ui::error(ss.str(), v);
-          std::abort();
         }
 
         frame()->stack_push(v2.value(), "loaded field");

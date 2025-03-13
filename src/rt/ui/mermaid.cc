@@ -519,7 +519,8 @@ namespace rt::ui
       // Open the actual file
       out.open(path);
 
-      if (!out.is_open()) {
+      if (!out.is_open())
+      {
         std::cout << "Unable to open output file: " << path << std::endl;
         std::abort();
       }
