@@ -9,8 +9,8 @@ freeze(x)
 # Assigning to a field of `x` afterward will throw an error
 # x.field = {} # ERROR
 
-# Mutability only applies to the value variables pointing to
-# immutable data can be reassigned.
+# Calling `freeze(x)` freezes the object `x` points to but not the variable
+# itself, so x can be reassigned
 x = {}
 x.f = {} # Mutation of x
 
@@ -20,9 +20,9 @@ x.f = {} # Mutation of x
 freeze(x)
 
 # The immutable status in Lungfish refers to the observable state.
-# This means that the reference can remain mutable as long as it is
-# not observable in the program. Notice how this new reference
-# increases the reference count.
+# This means that the reference count can remain mutable as long as
+# it is not observable in the program. Notice how this new reference
+# increases the reference count. See §5.3.5 for more details.
 xx = x
 
 # Setting all references to an immutable object to `None`

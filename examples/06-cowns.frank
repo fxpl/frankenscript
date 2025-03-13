@@ -1,12 +1,16 @@
+# This is the sixth example and assumes the knowledge of the
+# previous examples.
+#
 # Lungfish uses concurrent owners, called Cowns, to coordinate
-# concurrent access at runtime.
+# concurrent access at runtime. Cowns and their states are
+# introduced in §2.3.1 of the paper.
 #
 # Cowns can store immutable objects, regions and other cowns.
-# The following will create a cown pointing to the frozen value
-# `None`.
+# The following will create a cown pointing to the built-in
+# frozen value `None`.
 c1 = Cown(None)
 
-# The cown has the status "Release" which means that a concurrent
+# The cown has the status "Released" which means that a concurrent
 # unit can aquire it and access its data. Attempting to access
 # the data in this state will result in an error.
 # ref = c1.value # Error
@@ -17,15 +21,15 @@ r1 = Region()
 r1.data = {}
 data = r1.data
 
-# A cown created from an open region has the status "Pending". This
-# status allows access to the contained value. However, it will switch
-# to the "Released" status one the region is closed
+# A cown created from an open region has the status "Pending Release".
+# This status allows access to the contained value. However, it will
+# switch to the "Released" status when the region is closed
 c2 = Cown(r1)
 close(c2.value)
 
-# Cowns can be safely shared across threads since they enfore ownership
-# and concurrent coordination at runtime. They are therefore allowed to
-# be referenced by frozen objects. The freeze will not effect the cown
+# Cowns can be safely shared across threads since they dynamically enforce
+# ownership and concurrent coordination at runtime. They are therefore allowed
+# to be referenced by frozen objects. The freeze will not effect the cown
 # or the contained values.
 x = {}
 x.cown = c2
@@ -44,6 +48,6 @@ r3.cown = c2
 c3 = Cown(move r2)
 
 # Cowns can also point to other cowns. The second cown is also
-# in the *Released* state since the given cown is allowed to
+# in the "Released" state since the given cown is allowed to
 # have local references.
 c4 = Cown(c2)

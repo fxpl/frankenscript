@@ -1,3 +1,4 @@
+# 04-regions2.frank covered how ownership is enfored with regions.
 # This example covers some built-in functions for regions.
 
 r1 = Region()
@@ -28,6 +29,9 @@ merge(r2.child, r2)
 
 # Regions can also be dissolved, thereby moving all contained
 # objects back into the local region.
+#
+# This function differs syntactically from the paper which
+# uses `merge(r2)`.
 dissolve(r2)
 
 # This can be used to reconstruct regions. This example uses
