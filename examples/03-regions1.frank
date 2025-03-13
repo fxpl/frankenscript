@@ -1,0 +1,47 @@
+# Lungfish uses regions to track and enforce ownership dynamically.
+# The previous examples only worked in the local region drawn in light
+# green. This example shows how new regions can be created and used.
+#
+# The `Region()` constructor creates a new region and returns the bridge
+# object. The new region is drawn in yellow. Any object in the yellow
+# rectangle belongs to the region. The trapezoid shape identifies the
+# bridge object. It displays the following information about the region:
+# - LRC:  The number of incomming references from the local region.
+# - SBRC: The number of open subregion.
+# - RC:   The reference count of the bridge object.
+r = Region()
+
+# Any objects assigned to the bridge object or an object in the region
+# will automatically be part of the region. Notice how the new dictionaries
+# are members of the region, indicated by them being in the same yellow box.
+r.field = {}
+r.field.data = {}
+
+# Objects inside a region have no topological restrictions. As such we can create
+# cycles, like this:
+r.field.bridge = r
+r.field.data.parent = r.field
+
+# All objects are by default created in the local region.
+x = {}
+x.data = {}
+
+# When a region references an object in the local region, it takes ownership of the
+# object. All referenced objects are also moved into the region. Figure 7 in the paper
+# shows the individual steps of this process.
+r.x = x
+
+# Moving the value of `x` into the region increased the LRC since the variable x
+# is a reference from the local frame into the region. Setting x to `None` will
+# decrement the LRC again.
+x = None
+
+# References from within a region are allowed to reference frozen objects. This
+# is safe since frozen objects don't have an owner and can be safely shared across
+# threads.
+r.x.data = None
+
+# When a region has no incoming references it and all contained objects can
+# be deallocated as a unit. This even allows the collection of topologies
+# with cycles.
+r = None

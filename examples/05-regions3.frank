@@ -1,0 +1,38 @@
+# This example covers some built-in functions for regions.
+
+r1 = Region()
+r1.data1 = {}
+r1.data2 = {}
+
+# The `is_closed()` function can be used to check if a region
+# is open. Region 1 is currently considered open since it has
+# an incoming reference from the local region.
+res = is_closed(r1)
+
+# Region 2 is created to be the new owner of Region 1.
+r2 = Region()
+r2.child = r1
+
+# The `close()` function can be used to set all incoming local
+# references to None.
+close(r1)
+
+# We can also check the status with `is_closed`.
+res = is_closed(r2.child)
+
+# A subregion can be merged into its parent region, with the
+# `merge()` function. The bridge object of the subregion loses
+# the `[RegionObject]` prototype, since it is no longer the bridge
+# object of a region.
+merge(r2.child, r2)
+
+# Regions can also be dissolved, thereby moving all contained
+# objects back into the local region.
+dissolve(r2)
+
+# This can be used to reconstruct regions. This example uses
+# a for loop:
+r1 = Region()
+for key, value in r2.child:
+    r1[key] = value
+r2.child = r1
