@@ -29,7 +29,7 @@ close(c2.value)
 
 # Cowns can be safely shared across threads since they dynamically enforce
 # ownership and concurrent coordination at runtime. They are therefore allowed
-# to be referenced by frozen objects. The freeze will not effect the cown
+# to be referenced by frozen objects. The freeze will not affect the cown
 # or the contained values.
 x = {}
 x.cown = c2
