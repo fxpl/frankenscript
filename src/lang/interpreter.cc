@@ -242,7 +242,10 @@ namespace verona::interpreter
 
       if (node == StoreFrame)
       {
-        assert(frame()->get_stack_size() >= 1 && "the stack is too small");
+        if (frame()->get_stack_size() < 1)
+        {
+          rt::ui::error("Interpreter: The stack is too small");
+        }
         auto v = frame()->stack_pop("value to store");
         std::string field{node->location().view()};
         auto v2 = rt::set(frame()->object(), field, v);
@@ -252,7 +255,10 @@ namespace verona::interpreter
 
       if (node == SwapFrame)
       {
-        assert(frame()->get_stack_size() >= 1 && "the stack is too small");
+        if (frame()->get_stack_size() < 1)
+        {
+          rt::ui::error("Interpreter: The stack is too small");
+        }
         auto new_var = frame()->stack_pop("swap value");
         std::string field{node->location().view()};
 
@@ -265,7 +271,10 @@ namespace verona::interpreter
 
       if (node == LoadField)
       {
-        assert(frame()->get_stack_size() >= 2 && "the stack is too small");
+        if (frame()->get_stack_size() < 2)
+        {
+          rt::ui::error("Interpreter: The stack is too small");
+        }
         auto k = frame()->stack_pop("lookup-key");
         auto v = frame()->stack_pop("lookup-value");
 
@@ -293,7 +302,10 @@ namespace verona::interpreter
 
       if (node == StoreField)
       {
-        assert(frame()->get_stack_size() >= 3 && "the stack is too small");
+        if (frame()->get_stack_size() < 3)
+        {
+          rt::ui::error("Interpreter: The stack is too small");
+        }
         auto v = frame()->stack_pop("value to store");
         auto k = frame()->stack_pop("lookup-key");
         auto v2 = frame()->stack_pop("lookup-value");
@@ -307,7 +319,10 @@ namespace verona::interpreter
 
       if (node == SwapField)
       {
-        assert(frame()->get_stack_size() >= 3 && "the stack is too small");
+        if (frame()->get_stack_size() < 3)
+        {
+          rt::ui::error("Interpreter: The stack is too small");
+        }
         auto new_var = frame()->stack_pop("swap value");
         auto key = frame()->stack_pop("lookup-key");
         auto obj = frame()->stack_pop("lookup-value");
@@ -432,9 +447,11 @@ namespace verona::interpreter
         // solution would require more effort and would be messier
         auto dup_idx = std::stoul(std::string(node->location().view()));
         auto stack_size = frame()->get_stack_size();
-        assert(
-          dup_idx < stack_size &&
-          "the stack is too small for this duplication");
+        if (dup_idx > stack_size)
+        {
+          rt::ui::error(
+            "Interpreter: the stack is too small for this duplication");
+        }
 
         auto var = frame()->stack_get(stack_size - dup_idx - 1);
         frame()->stack_push(var, "duplicated value");
