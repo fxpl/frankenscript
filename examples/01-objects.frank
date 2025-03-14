@@ -19,7 +19,7 @@ a = None
 b = None
 c = None
 
-# FrankenScript also provides stings, created by double quotes:
+# FrankenScript also provides strings, created by double quotes:
 d = "This is a string"
 
 # All objects in FrankenScript are dictionaries. The language uses prototypes
