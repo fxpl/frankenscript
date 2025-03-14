@@ -1,0 +1,8 @@
+def new(proto):
+    fresh_obj = {}
+    fresh_obj.__proto__ = proto
+
+Obj = {} # Modelling the class as a prototype object
+
+x = new(Obj)
+y = new(Obj)

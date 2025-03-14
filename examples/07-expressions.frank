@@ -1,0 +1,63 @@
+# The previous examples introduced objects, freezing, regions and cowns.
+# This example is a showcase of most expressions that FrankenScript
+# supports. It can be used as a reference for writing your own scripts.
+#
+# A list of built-in function can be found in the `docs` folder. Here is
+# a link to the rendered version on GitHub:
+# <https://github.com/fxpl/frankenscript/blob/main/docs/builtin.md>
+
+# This is how you construct the objects discussed in example 01
+a = {}
+x = "a new string"
+x = Region()
+x = Cown(None)
+
+# FrankenScript has a few built-in and frozen objects:
+x = True # The boolean value `true`
+x = False # The boolean value `false`
+x = None # The null value, similar to Python's None
+
+# FrankenScript supports functions with arguments and return values.
+def id(x):
+    return x
+
+# A function can be called like this. Each function call adds a new frame
+# to the diagram. The frame holds all variables known to the current scope.
+# The frame is deleted when the function returns.
+id(a)
+
+# Function objects are hidden from the mermaid to make it cleaner. But they're
+# still normal objects that can be used in assignments like this:
+a.id = id
+
+# This can be used to simulate method calls. Calling a function on stored in a
+# field will pass the object in as the first argument.
+a = a.id() # a is passed in as the first argument
+
+# The move keyword can be used for destructive reads. The previous location
+# is reassigned to None.
+b = move a
+
+# FrankenScript has two comparison operators. These check for object identity:
+res = b == None
+res = b != None
+
+# Boolean values can be used in if statements:
+if res:
+    pass() # A built-in function for empty blocks
+else:
+    unreachable() # A built-in function for unreachable branches
+
+# The else block is optional:
+if res:
+    pass()
+
+# Boolean expressions can also be used in while loops:
+while res == True:
+    res = False
+
+# For loops can be used to iterate over all fields of an object.
+a = {}
+a.field = "value"
+for key, value in b:
+    pass()

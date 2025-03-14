@@ -271,6 +271,12 @@ namespace rt::objects
     [[nodiscard]] virtual DynObject* set(std::string name, DynObject* value)
     {
       assert_modifiable();
+
+      if (name == PrototypeField)
+      {
+        return set_prototype(value);
+      }
+
       DynObject* old = fields[name];
       fields[name] = value;
       return old;

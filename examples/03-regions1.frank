@@ -1,0 +1,50 @@
+# Lungfish uses regions to track and enforce ownership dynamically.
+# The previous examples only worked in the local region drawn in light
+# green. This example shows how new regions can be created and used.
+#
+# The `Region()` constructor creates a new region and returns its bridge
+# object. The new region is drawn in yellow. Any object in the yellow
+# rectangle belongs to the region. The trapezoid shape denotes the
+# bridge object. It displays the following information about the region:
+# - LRC:  The number of incoming references from the local region. This
+#         counter tracks references to all objects in the region not
+#         just the bridge object. See §3.1 for more details.
+# - SBRC: The number of open subregions.
+# - RC:   The reference count of the bridge object.
+r = Region()
+
+# Any objects reachable from the bridge or an object in the region
+# will automatically be part of the region. Notice how the new dictionaries
+# are members of the region, indicated by them being in the same yellow box.
+r.field = {}
+r.field.data = {}
+
+# Objects inside a region have no topological restrictions. As such we can create
+# cycles, like this:
+r.field.bridge = r
+r.field.data.parent = r.field
+
+# All objects are by created in the local region.
+x = {}
+x.data = {}
+
+# An object in the local region is moved into a region, when an object in the
+# region references it. All reachable objects from the moved object are also
+# moved into the region. Figure 7 in the paper shows the individual steps of
+# this process.
+r.x = x
+
+# Moving the value of `x` into the region increased the LRC since the variable `x`
+# is a reference from the local frame into the region. Reassigning `x` to another
+# value will decrement the LRC again. This is done by a write barrier, discussed in
+# §3.2 of the paper.
+x = None
+
+# References to frozen objects are unrestricted. Table 1 in the paper provides a
+# good overview of what references are allowed.
+r.x.data = None
+
+# When a region has no incoming references it and all contained objects can
+# be deallocated as a unit. This even allows the collection of topologies
+# with cycles.
+r = None

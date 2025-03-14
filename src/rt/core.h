@@ -166,8 +166,10 @@ namespace rt::core
     std::string value;
 
   public:
-    StringObject(std::string value_)
-    : objects::DynObject(stringPrototypeObject()), value(value_)
+    StringObject(
+      std::string value_,
+      objects::Region* region = rt::objects::get_local_region())
+    : objects::DynObject(stringPrototypeObject(), region), value(value_)
     {}
 
     std::string get_name() override
@@ -190,13 +192,15 @@ namespace rt::core
 
   inline StringObject* trueObject()
   {
-    static StringObject* val = new StringObject("True");
+    static StringObject* val =
+      new StringObject("True", objects::immutable_region);
     return val;
   }
 
   inline StringObject* falseObject()
   {
-    static StringObject* val = new StringObject("False");
+    static StringObject* val =
+      new StringObject("False", objects::immutable_region);
     return val;
   }
 

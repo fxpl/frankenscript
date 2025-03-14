@@ -1,0 +1,52 @@
+# 03-regions1.frank covered how new regions can be created. This
+# example covers how ownership is enforced with regions.
+r1 = Region()
+r1.data = {}
+r2 = Region()
+
+# Region 1 owns an object with the name `data`. All objects can at most have
+# one owner. Creating a reference from one region to an object in another region
+# will result in an error
+# r2.data = r1.data # Error
+
+# However, creating a single reference to a bridge object of another region
+# is allowed. This reference is called the owning reference, indicated by
+# the solid orange arrow. The region of the referenced bridge object is now
+# a subregion of the first region.
+r1.data.r2 = r2
+
+# Attempts to add additional owning references will result in an error:
+# r1.new = r2 # Error
+
+# Regions are arranged in a forest. It is not allowed to create a cycle
+# between regions. Attempting to make `r1` a subregion of `r2` which is
+# currently a subregion of `r1` will result in an error:
+# r2.r1 = r1 # Error
+
+# Region 2 is currently considered open as it has an incoming reference from
+# the local region. This is indicated by the LRC not being zero. The parent
+# region `r1` has a SBRC of 1 indicating that a subregion of it is open.
+#
+# Removing the local reference into `r2` will close the region and also decrement
+# the SBRC of the parent region.
+r2 = None
+
+# Creating a reference into the subregion will open it again.
+r2 = r1.data.r2
+
+# Subregions can be unparented again by overwriting the owning reference.
+# This is possible since there can only be one owing reference at a time.
+r1.data.r2 = None
+
+# Region 2 can now take ownership of `r1`.
+r2.r1 = r1
+
+# Regions can also be frozen to allow multiple regions to reference them.
+# The bridge object of the frozen region will remain, but it will lose the
+# `[RegionObject]` prototype.
+freeze(r1)
+
+# The previous bridge object referenced by `r1` can now be referenced by other
+# regions.
+r3 = Region()
+r3.r1 = r1
