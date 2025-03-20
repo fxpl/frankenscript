@@ -352,22 +352,25 @@ namespace rt::core
       std::cout << "Yay, what a day to live :D" << std::endl;
       
       // assert(sceduler->kind() == BOC);
-      // static_cast<BoxSceduler>(scduler)->scedule(behavior);
       
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behavior
-      // std::vector<objects::DynObject*> cowns = {};
-      // for (int i = 0; i < args - 1; i++)
-      // {
-      //   auto value = frame->stack_pop("cown");
-      //   cowns.push_back(value);
-      // }
-      // // when
-      // auto behavior = frame->stack_pop("behavior");
-
+      std::vector<objects::DynObject*> cowns = {};
+      for (int i = 0; i < args - 1; i++)
+      {
+        auto value = frame->stack_pop("cown");
+        cowns.push_back(value);
+      }
+      // when
+      auto behaviour_obj = frame->stack_pop("behavior");
+      auto behaviour_bytecode = rt::try_get_bytecode(behaviour_obj);
+      // TODO redundant? 
+      assert(behaviour_bytecode != std::nullopt);
       // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
+      auto behaviour = verona::interpreter::Behaviour(behaviour_bytecode.value()->body, cowns);
       // 2. Inform Scheduler about `Behavior`
-      //
+      static_cast<verona::interpreter::BocScheduler>(scheduler)->scedule(behaviour);
+
       // In sceduler:
       // 3. Scheduler waits until all cowns are available (dependency graph)
       //     - The "draw the rest of the owl step"

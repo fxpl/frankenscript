@@ -442,8 +442,9 @@ namespace verona::interpreter
     }
     friend class BocScheduler;
 
-    void run(trieste::Node main)
+    void run(Bytecode main_bytecode)
     {
+      auto main = main_bytecode.body;
       auto frame = push_stack_frame(main);
       
       while (frame)
@@ -540,73 +541,9 @@ namespace verona::interpreter
   //   }
   // };
   
-  class Behaviour
-  {
-  // TODO make public attributes private
-  private:
-  public:
-    trieste::Node thunk;
-    size_t count;
-    std::vector<rt::objects::DynObject*> cowns;
-    Behaviour(trieste::Node thunk_) : thunk(thunk_) {}
-    Behaviour(trieste::Node t, std::vector<rt::objects::DynObject*> c)
-      {
-        this->thunk = t;
-        this->count = c.size();
-        this->cowns = c;
-      }
-
-  };
   
 
-  class BocScheduler: public Scheduler {
-    std::vector<Behaviour*> behaviours;
-    std::vector<Behaviour*> ready_behaviours;
 
-    void update_ready_behaviours()
-    {
-      return;
-    }
-    void mark_as_done(size_t step)
-    {
-      this->ready_behaviours.erase(ready_behaviours.begin() + step);
-    }
-    public:
-    void start(Bytecode main_body) override{
-      auto ui = rt::ui::globalUI();
-      // Run main execution
-        Interpreter* main_inter = new Interpreter(main_body.body, ui);
-        main_inter->run(main_body.body);
-
-        // Handle any resulting behaviours 
-        while (behaviours.size() != 0) {
-          // 1. Check dependency graph
-          // 2. Get ready behaviours
-          this->update_ready_behaviours();
-          
-          auto step = rand() & ready_behaviours.size();
-          
-          auto behaviour = ready_behaviours[step];
-          // TODO need new constructor
-          auto inter = new Interpreter(behaviour->thunk, ui);
-          //rt::move_reference(NULL, inter->frame()->object(), behaviour);
-          for (size_t i = 0; i < behaviour->cowns.size(); i++)
-          {
-            // TODO RC add should be false?
-            inter->frame()->stack_push(behaviour->cowns[i], "cown object", false);
-          }
-          inter->run(NULL);
-
-          this->mark_as_done(step);
-          // Removes behaviour from this->behaviours
-          // Updates dependency graph
-        }
-      }
-      void schedule() override
-      {
-        return;
-      }
-  };
 
   void start(trieste::Node main_body, int step_counter)
   {
@@ -620,7 +557,7 @@ namespace verona::interpreter
     size_t initial = rt::pre_run(ui, scheduler);
 
     // temp conversion to Bytecode until fix
-    Bytecode main_b = {main_body};
+    Bytecode* main_b = new Bytecode{main_body};
     scheduler->start(main_b);
     // Interpreter inter(ui);
     // inter.run(main_body);
