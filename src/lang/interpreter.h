@@ -49,6 +49,8 @@ namespace verona::interpreter
     std::vector<rt::objects::DynObject*> cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     rt::objects::DynObject* code;
+    // The number of behaviors that this behavior is waiting on
+    int pred_ctn = 0;
     std::shared_ptr<Behavior> succ = nullptr;
     bool is_complete = false;
 

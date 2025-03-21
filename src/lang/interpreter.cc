@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <variant>
 #include <vector>
 
@@ -481,9 +482,15 @@ namespace verona::interpreter
   public:
     Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
 
-    void run(trieste::Node main)
+    void
+    run(trieste::Node main, std::vector<rt::objects::DynObject*> start_stack)
     {
       auto frame = push_stack_frame(main);
+
+      for (auto elem : std::views::reverse(start_stack))
+      {
+        frame->frame->stack_push(elem, "staring stack");
+      }
 
       while (frame)
       {
@@ -606,11 +613,9 @@ namespace verona::interpreter
 
   void Scheduler::add(std::shared_ptr<Behavior> behavior)
   {
-    bool is_ready = true;
-
+    // TODO add a testing mode that selects based on a seed
     for (auto cown : behavior->cowns)
     {
-      std::cout << "Fuck c++ " << cown << std::endl;
       // Get the last behavior that is waiting on the cown
       auto cown_info = cowns.find((uintptr_t)cown);
       if (cown_info != cowns.end())
@@ -619,15 +624,22 @@ namespace verona::interpreter
         // If a behavior is pending, set the successor
         if (!pending->is_complete)
         {
-          is_ready = false;
-          pending->succ = behavior;
+          if (pending->succ == nullptr)
+          {
+            behavior->pred_ctn += 1;
+            pending->succ = behavior;
+          }
+          else
+          {
+            assert(pending->succ == behavior);
+          }
         }
       }
       // Update pointer to the last pending behavior
       this->cowns.insert({(uintptr_t)cown, behavior});
     }
 
-    if (is_ready)
+    if (behavior->pred_ctn == 0)
     {
       this->ready.push_back(behavior);
       std::cout << "New behavior `" << behavior->name() << "` is ready"
@@ -656,9 +668,20 @@ namespace verona::interpreter
       auto block = behavior->spawn();
 
       Interpreter inter(rt::ui::globalUI());
-      inter.run(block->body);
+      inter.run(block->body, behavior->cowns);
 
+      // This is ugly and should be in a method
       behavior->complete();
+      if (behavior->succ)
+      {
+        behavior->succ->pred_ctn -= 1;
+        if (behavior->succ->pred_ctn == 0)
+        {
+          this->ready.push_back(behavior->succ);
+        }
+
+        behavior->succ = nullptr;
+      }
 
       behavior = this->get_next();
     }
