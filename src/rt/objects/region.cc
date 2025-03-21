@@ -226,11 +226,11 @@ namespace rt::objects
         if (e.target == nullptr)
           return false;
 
-        std::cout << "Remove reference from: " << e.src->get_name() << " to "
-                  << e.target->get_name() << std::endl;
         bool result = e.target->change_rc(-1) == 0;
-
-        remove_region_reference(get_region(e.src), get_region(e.target));
+        if (e.src)
+        {
+          remove_region_reference(get_region(e.src), get_region(e.target));
+        }
         return result;
       },
       [&](DynObject* obj) { delete obj; });

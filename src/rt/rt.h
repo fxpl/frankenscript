@@ -69,4 +69,11 @@ namespace rt
   /// released.
   void cown_update_state(objects::DynObject* cown);
   bool is_cown_released(objects::DynObject* cown);
+
+  void aquire_cown(objects::DynObject* cown);
+  void release_cown(objects::DynObject* cown);
+
+  // This increases the rc without asking questions. Very much a
+  // hack but I don't care anymore.
+  void hack_inc_rc(objects::DynObject* obj);
 } // namespace rt

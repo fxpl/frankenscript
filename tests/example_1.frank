@@ -1,3 +1,17 @@
-x = {}
-y = {}
-x.y = {}
+# For debugging:
+# mermaid_show_functions()
+
+c1 = Cown(Region())
+c2 = Cown(Region())
+
+when (c1):
+    r = c1
+
+when (c1, c2):
+    r = c1
+
+when ():
+    r = c1
+
+when:
+    r = None

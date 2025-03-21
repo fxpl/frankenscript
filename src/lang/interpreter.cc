@@ -1,3 +1,5 @@
+#include "interpreter.h"
+
 #include "../rt/rt.h"
 #include "bytecode.h"
 #include "trieste/trieste.h"
@@ -560,10 +562,148 @@ namespace verona::interpreter
 
     size_t initial = rt::pre_run(ui);
 
-    Interpreter inter(ui);
-    inter.run(main_body);
+    // Interpreter inter(ui);
+    // inter.run(main_body);
+    Scheduler s;
+    s.start(new Bytecode{main_body});
 
     rt::post_run(initial, ui);
+  }
+
+  int Behavior::s_behavior_counter = 0;
+
+  std::string Behavior::name()
+  {
+    std::stringstream ss;
+    ss << "Behavior_" << this->id;
+    return ss.str();
+  }
+
+  Bytecode* Behavior::spawn()
+  {
+    assert(!this->is_complete);
+
+    for (auto c : this->cowns)
+    {
+      rt::aquire_cown(c);
+    }
+
+    return rt::try_get_bytecode(this->code).value();
+  }
+
+  void Behavior::complete()
+  {
+    this->is_complete = true;
+    rt::remove_reference(nullptr, this->code);
+    this->code = nullptr;
+
+    for (auto c : this->cowns)
+    {
+      rt::release_cown(c);
+      rt::remove_reference(nullptr, c);
+    }
+    this->cowns.clear();
+  }
+
+  void Scheduler::add(std::shared_ptr<Behavior> behavior)
+  {
+    bool is_ready = true;
+
+    for (auto cown : behavior->cowns)
+    {
+      // Get the last behavior that is waiting on the cown
+      auto pending = cowns[cown];
+      // If a behavior is pending, set the successor
+      if (pending && !pending->is_complete)
+      {
+        is_ready = false;
+        pending->succ = behavior;
+      }
+      // Update pointer to the last pending behavior
+      cowns[cown] = behavior;
+    }
+
+    if (is_ready)
+    {
+      this->ready.push_back(behavior);
+      std::cout << "New behavior `" << behavior->name() << "` is ready"
+                << std::endl;
+    }
+    else
+    {
+      std::cout << "New behavior `" << behavior->name() << "` is pending"
+                << std::endl;
+    }
+  }
+
+  void Scheduler::start(Bytecode* main_block)
+  {
+    auto main_function = rt::make_func(main_block);
+    // Hack: Needed to keep the main function alive. Otherwise, it'll be freed thereby
+    // also deleting the trieste nodes.
+    rt::hack_inc_rc(main_function);
+    // :notes: I imagine a world without ugly c++ :notes:
+    auto behavior = std::make_shared<Behavior>(
+      main_function, std::vector<rt::objects::DynObject*>{});
+    // Seriously, why do we use this language? The memory problems I currently
+    // have could easly be avoided.
+    while (behavior)
+    {
+      auto block = behavior->spawn();
+
+      Interpreter inter(rt::ui::globalUI());
+      inter.run(block->body);
+
+      behavior->complete();
+
+      behavior = this->get_next();
+    }
+
+    rt::remove_reference(nullptr, main_function);
+  }
+
+  std::shared_ptr<Behavior> Scheduler::get_next()
+  {
+    if (this->ready.empty())
+    {
+      return nullptr;
+    }
+
+    // I hate c and c++ `unsigned` soo much... At least I'm getting paid to deal
+    // with this s... *suboptimal* language
+    unsigned int selected = 0;
+    while (true)
+    {
+      // Promt the user:
+      std::cout << "Available behaviors:" << std::endl;
+      for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
+      {
+        std::cout << "- " << idx << ": " << this->ready[idx]->name()
+                  << std::endl;
+      }
+
+      // Get user input
+      std::cout << "> ";
+      std::string line;
+      std::getline(std::cin, line);
+      std::istringstream iss(line);
+
+      int n = 0;
+      if (iss >> n)
+      {
+        selected = n;
+
+        // Sanity checks and preventing undefined behavior.
+        if (selected < this->ready.size())
+        {
+          break;
+        }
+      }
+    }
+
+    auto removed = this->ready[selected];
+    this->ready.erase(this->ready.begin() + selected);
+    return removed;
   }
 
 } // namespace verona::interpreter

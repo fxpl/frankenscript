@@ -148,7 +148,7 @@ PassDef grouping()
           << ((T(Group) << End) *
               (T(Group)
                << ((T(Ident)[Ident]) *
-                   (T(Parens)[Parens] << ((~T(List) << T(Ident)++[List]))) *
+                   (T(Parens)[Parens] << (~(T(List) << T(Ident)++[List]))) *
                    End)) *
               (T(Group) << T(Block)[Block]) * End) >>
         [](auto& _) {

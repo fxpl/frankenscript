@@ -388,6 +388,20 @@ namespace rt::core
         status = Status::Released;
       }
     }
+
+    void aquire() {
+      // Who needs other safety checks than this?
+      // This is so gonna bite me...
+      assert(this->status == Status::Released);
+
+      this->status = Status::Acquired;
+    }
+
+    void release() {
+      assert(this->status == Status::Acquired);
+
+      this->status = Status::Released;
+    }
   };
 
   inline std::set<objects::DynObject*>* globals()

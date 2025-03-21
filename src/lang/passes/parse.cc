@@ -6,8 +6,8 @@ namespace verona::wf
 
   inline const auto parse_tokens =
     Ident | Lookup | Empty | Drop | Move | Null | String | Parens;
-  inline const auto parse_groups =
-    Group | Assign | If | Else | Block | For | Func | List | Return | While | When;
+  inline const auto parse_groups = Group | Assign | If | Else | Block | For |
+    Func | List | Return | While | When;
 
   inline const auto parser = (Top <<= File) | (File <<= parse_groups++) |
     (Assign <<= Group * (Lhs >>= (Group | cond))) |
@@ -96,9 +96,7 @@ trieste::Parse parser()
       "(?:#[^\\n\\r]*)" >> [](auto&) {},
 
       "def\\b" >> [](auto& m) { m.seq(Func); },
-      "when\\b" >> [](auto& m) {
-        m.seq(When);
-      },
+      "when\\b" >> [](auto& m) { m.seq(When); },
       "\\(" >> [](auto& m) { m.push(Parens); },
       "\\)" >>
         [](auto& m) {

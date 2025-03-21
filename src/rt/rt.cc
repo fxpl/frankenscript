@@ -313,6 +313,16 @@ namespace rt
     objects::dissolve_region(bridge);
   }
 
+  void cown_update_state(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    reinterpret_cast<core::CownObject*>(cown)->update_status();
+  }
+
   bool is_cown_released(objects::DynObject* cown)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
@@ -323,13 +333,28 @@ namespace rt
     return reinterpret_cast<core::CownObject*>(cown)->is_released();
   }
 
-  void cown_update_state(objects::DynObject* cown)
+  void aquire_cown(objects::DynObject* cown)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->update_status();
+    reinterpret_cast<core::CownObject*>(cown)->aquire();
   }
+
+  void release_cown(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    reinterpret_cast<core::CownObject*>(cown)->release();
+  }
+
+  void hack_inc_rc(objects::DynObject* obj) {
+    obj->change_rc(+1);
+  }
+
 } // namespace rt

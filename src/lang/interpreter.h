@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace rt::objects
 {
@@ -32,5 +35,58 @@ namespace verona::interpreter
     {
       return this->get_stack_size() == 0;
     }
+  };
+
+  class Behavior
+  {
+    // Static member for naming
+    static int s_behavior_counter;
+
+    int id;
+
+  public:
+    // Instance members to describe the behavior
+    std::vector<rt::objects::DynObject*> cowns;
+    // This uses a function object opposed to a Bytecode* to not leak memory
+    rt::objects::DynObject* code;
+    std::shared_ptr<Behavior> succ = nullptr;
+    bool is_complete = false;
+
+    Behavior(
+      rt::objects::DynObject* code_,
+      std::vector<rt::objects::DynObject*> cowns_)
+    : cowns(cowns_), code(code_)
+    {
+      id = s_behavior_counter;
+      s_behavior_counter += 1;
+    }
+
+    std::string name();
+
+    Bytecode* spawn();
+    // This completes the behavior by releasing all cowns
+    // decreffing all held objects and informing its successor.
+    void complete();
+  };
+
+  class Scheduler
+  {
+    // All behaviors that are ready to run
+    std::vector<std::shared_ptr<Behavior>> ready;
+    // A map from cowns to the last behavior that is waiting on them.
+    //
+    // The cowns in the key are weak pointers, they should never be
+    // dereferenced.
+    std::unordered_map<rt::objects::DynObject*, std::shared_ptr<Behavior>>
+      cowns;
+
+  public:
+    void add(std::shared_ptr<Behavior> behavior);
+
+    void start(Bytecode* main);
+
+  private:
+    std::shared_ptr<Behavior> get_next();
+
   };
 }
