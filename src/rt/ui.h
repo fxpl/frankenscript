@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../lang/interpreter.h"
 #include "objects/visit.h"
 
 #include <cassert>
@@ -38,6 +39,7 @@ namespace rt::core
 namespace rt::ui
 {
   class MermaidDiagram;
+  class ObjectGraphDiagram;
 
   class MermaidUI : public UI
   {
@@ -46,6 +48,8 @@ namespace rt::ui
     static inline bool highlight_unreachable = false;
 
   private:
+    friend class ObjectGraphDiagram;
+    friend class ScheduleDiagram;
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 
@@ -86,8 +90,14 @@ namespace rt::ui
       this->path = path_;
     }
 
+    void prep_output();
+
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
+
+    void draw_schedule(
+      std::vector<std::shared_ptr<verona::interpreter::Behavior>> behaviors,
+      std::string message);
 
     void highlight(
       std::string message,

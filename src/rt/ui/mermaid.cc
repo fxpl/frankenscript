@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+typedef std::shared_ptr<verona::interpreter::Behavior> behavior_ptr;
+
 namespace rt::ui
 {
   namespace fs = std::filesystem;
@@ -91,31 +93,14 @@ namespace rt::ui
 
   class MermaidDiagram
   {
+  protected:
     MermaidUI* info;
     std::ofstream& out;
-
-    size_t id_counter = 1;
     size_t edge_counter = 0;
 
-    // Give a nice id to each object.
-    std::map<objects::DynObject*, NodeInfo> nodes;
-    std::map<objects::Region*, RegionInfo> regions;
+    MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out) {}
 
-  public:
-    MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out)
-    {
-      // Add nullptr
-      nodes[nullptr] = {0};
-      regions[objects::immutable_region].nodes.push_back(0);
-    }
-
-    void color_edge(size_t edge_id, const char* color, int width = EDGE_WIDTH)
-    {
-      out << "  linkStyle " << edge_id << " stroke:" << color
-          << ",stroke-width:" << width << "px" << std::endl;
-    }
-
-    void draw(std::vector<objects::DynObject*>& roots)
+    void draw_header()
     {
       // Header
       out << "<div style='background: #fff'>" << std::endl;
@@ -124,6 +109,59 @@ namespace rt::ui
       out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
           << FONT_SIZE << "' }}}%%" << std::endl;
       out << "graph TD" << std::endl;
+    }
+
+    void draw_footer()
+    {
+      // Footer (end of mermaid graph)
+      out << "```" << std::endl;
+      out << "</div>" << std::endl;
+      out << "<div style='break-after:page'></div>" << std::endl;
+      out << std::endl;
+    }
+
+    void color_edge(size_t edge_id, const char* color, int width = EDGE_WIDTH)
+    {
+      out << "  linkStyle " << edge_id << " stroke:" << color
+          << ",stroke-width:" << width << "px" << std::endl;
+    }
+  };
+
+  class ScheduleDiagram : protected MermaidDiagram
+  {
+  public:
+    ScheduleDiagram(MermaidUI* info_) : MermaidDiagram(info_) {}
+
+    void draw(std::vector<behavior_ptr>& roots)
+    {
+      // Header
+      this->draw_header();
+      out << "  id0(Scheduler):::immutable" << std::endl;
+      // Footer
+      this->draw_footer();
+    }
+  };
+
+  class ObjectGraphDiagram : protected MermaidDiagram
+  {
+    size_t id_counter = 1;
+
+    // Give a nice id to each object.
+    std::map<objects::DynObject*, NodeInfo> nodes;
+    std::map<objects::Region*, RegionInfo> regions;
+
+  public:
+    ObjectGraphDiagram(MermaidUI* info_) : MermaidDiagram(info_)
+    {
+      // Add nullptr
+      nodes[nullptr] = {0};
+      regions[objects::immutable_region].nodes.push_back(0);
+    }
+
+    void draw(std::vector<objects::DynObject*>& roots)
+    {
+      // header
+      this->draw_header();
       out << "  id0(None):::immutable" << std::endl;
 
       draw_nodes(roots);
@@ -132,6 +170,7 @@ namespace rt::ui
       draw_highlight();
       draw_error();
 
+      // Classes
       out << "classDef unreachable stroke-width:2px,stroke:"
           << UNREACHABLE_NODE_COLOR << std::endl;
       out << "classDef highlight stroke-width:4px,stroke:"
@@ -142,11 +181,9 @@ namespace rt::ui
       out << "classDef tainted_immutable stroke-width:4px,stroke:"
           << TAINT_NODE_COLOR << std::endl;
       out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
-      // Footer (end of mermaid graph)
-      out << "```" << std::endl;
-      out << "</div>" << std::endl;
-      out << "<div style='break-after:page'></div>" << std::endl;
-      out << std::endl;
+
+      // Footer
+      this->draw_footer();
     }
 
   private:
@@ -497,8 +534,7 @@ namespace rt::ui
     hide_cown_region();
   }
 
-  void MermaidUI::output(
-    std::vector<rt::objects::DynObject*>& roots, std::string message)
+  void MermaidUI::prep_output()
   {
     // Reset the file if this is a breakpoint
     if (should_break() && out.is_open())
@@ -525,10 +561,16 @@ namespace rt::ui
         std::abort();
       }
     }
+  }
+
+  void MermaidUI::output(
+    std::vector<rt::objects::DynObject*>& roots, std::string message)
+  {
+    this->prep_output();
 
     out << "<pre><code>" << message << "</code></pre>" << std::endl;
 
-    MermaidDiagram diag(this);
+    ObjectGraphDiagram diag(this);
     diag.draw(roots);
 
     if (should_break())
@@ -540,6 +582,20 @@ namespace rt::ui
     {
       steps -= 1;
     }
+  }
+
+  void MermaidUI::draw_schedule(
+    std::vector<behavior_ptr> behaviors, std::string message)
+  {
+    this->prep_output();
+
+    out << "### " << message << std::endl;
+
+    ScheduleDiagram diag(this);
+    diag.draw(behaviors);
+
+    // Make sure the output is available.
+    out.flush();
   }
 
   void MermaidUI::highlight(

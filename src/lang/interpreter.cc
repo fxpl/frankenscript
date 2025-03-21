@@ -639,17 +639,18 @@ namespace verona::interpreter
       this->cowns.insert({(uintptr_t)cown, behavior});
     }
 
+    std::stringstream ss;
     if (behavior->pred_ctn == 0)
     {
       this->ready.push_back(behavior);
-      std::cout << "New behavior `" << behavior->name() << "` is ready"
-                << std::endl;
+      ss << "New behavior `" << behavior->name() << "` is ready";
     }
     else
     {
-      std::cout << "New behavior `" << behavior->name() << "` is pending"
-                << std::endl;
+      ss << "New behavior `" << behavior->name() << "` is pending";
     }
+
+    this->draw_scedule(ss.str());
   }
 
   void Scheduler::start(Bytecode* main_block)
@@ -670,23 +671,35 @@ namespace verona::interpreter
       Interpreter inter(rt::ui::globalUI());
       inter.run(block->body, behavior->cowns);
 
-      // This is ugly and should be in a method
-      behavior->complete();
-      if (behavior->succ)
-      {
-        behavior->succ->pred_ctn -= 1;
-        if (behavior->succ->pred_ctn == 0)
-        {
-          this->ready.push_back(behavior->succ);
-        }
-
-        behavior->succ = nullptr;
-      }
+      this->complete(behavior);
 
       behavior = this->get_next();
     }
 
     rt::remove_reference(nullptr, main_function);
+  }
+
+  void Scheduler::complete(std::shared_ptr<Behavior> behavior)
+  {
+    behavior->complete();
+    if (behavior->succ)
+    {
+      behavior->succ->pred_ctn -= 1;
+      if (behavior->succ->pred_ctn == 0)
+      {
+        this->ready.push_back(behavior->succ);
+      }
+
+      behavior->succ = nullptr;
+    }
+  }
+
+  void Scheduler::draw_scedule(std::string message)
+  {
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
+    mermaid->draw_schedule(this->ready, message);
   }
 
   std::shared_ptr<Behavior> Scheduler::get_next()
@@ -695,6 +708,8 @@ namespace verona::interpreter
     {
       return nullptr;
     }
+
+    this->draw_scedule("Current Schedule:");
 
     // I hate c and c++ `unsigned` soo much... At least I'm getting paid to deal
     // with this s... *suboptimal* language

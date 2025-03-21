@@ -38,7 +38,7 @@ namespace rt::objects
     friend class Reference;
     friend objects::DynObject* rt::make_iter(objects::DynObject* obj);
     friend class ui::MermaidUI;
-    friend class ui::MermaidDiagram;
+    friend class ui::ObjectGraphDiagram;
     friend class core::CownObject;
     friend void destruct(DynObject* obj);
     friend void dealloc(DynObject* obj);

@@ -86,7 +86,10 @@ namespace verona::interpreter
 
     void start(Bytecode* main);
 
+  
   private:
+    void complete(std::shared_ptr<Behavior> behavior);
+    void draw_scedule(std::string message);
     std::shared_ptr<Behavior> get_next();
   };
 }
