@@ -63,8 +63,6 @@ namespace rt::objects
   public:
     size_t change_rc(signed delta)
     {
-      std::cout << "Change RC: " << get_name() << " " << rc << " + " << delta
-                << std::endl;
       if (!(is_immutable() || is_cown()))
       {
         assert(delta == 0 || rc != 0);

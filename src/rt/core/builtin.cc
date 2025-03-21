@@ -390,9 +390,9 @@ namespace rt::core
       });
   }
 
-  void concurrency_builtins()
+  void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
-    add_builtin("spawn_behavior", [](auto frame, auto args) {
+    add_builtin("spawn_behavior", [=](auto frame, auto args) {
       std::cout << "Yay, what a day to live :D" << std::endl;
 
       // cowns (Stored on the stack in reverse order)
@@ -405,6 +405,8 @@ namespace rt::core
       }
       // when
       auto behavior = frame->stack_pop("behavior");
+      scheduler->add(
+        std::make_shared<verona::interpreter::Behavior>(behavior, cowns));
 
       // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
       // 2. Inform Scheduler about `Behavior`
@@ -430,12 +432,12 @@ namespace rt::core
     });
   }
 
-  void init_builtins(ui::UI* ui)
+  void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
     pragma_builtins();
-    concurrency_builtins();
+    concurrency_builtins(scheduler);
   }
 }

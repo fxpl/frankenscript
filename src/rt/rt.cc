@@ -190,11 +190,11 @@ namespace rt
     objects::move_reference(src, dst, target);
   }
 
-  size_t pre_run(ui::UI* ui)
+  size_t pre_run(ui::UI* ui, verona::interpreter::Scheduler *scheduler)
   {
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
-    core::init_builtins(ui);
+    core::init_builtins(ui, scheduler);
 
     if (ui->is_mermaid())
     {

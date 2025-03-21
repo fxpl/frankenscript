@@ -560,11 +560,10 @@ namespace verona::interpreter
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
     }
 
-    size_t initial = rt::pre_run(ui);
-
-    // Interpreter inter(ui);
-    // inter.run(main_body);
     Scheduler s;
+
+    size_t initial = rt::pre_run(ui, &s);
+
     s.start(new Bytecode{main_body});
 
     rt::post_run(initial, ui);
@@ -611,16 +610,21 @@ namespace verona::interpreter
 
     for (auto cown : behavior->cowns)
     {
+      std::cout << "Fuck c++ " << cown << std::endl;
       // Get the last behavior that is waiting on the cown
-      auto pending = cowns[cown];
-      // If a behavior is pending, set the successor
-      if (pending && !pending->is_complete)
+      auto cown_info = cowns.find((uintptr_t)cown);
+      if (cown_info != cowns.end())
       {
-        is_ready = false;
-        pending->succ = behavior;
+        auto pending = cown_info->second;
+        // If a behavior is pending, set the successor
+        if (!pending->is_complete)
+        {
+          is_ready = false;
+          pending->succ = behavior;
+        }
       }
       // Update pointer to the last pending behavior
-      cowns[cown] = behavior;
+      this->cowns.insert({(uintptr_t)cown, behavior});
     }
 
     if (is_ready)
@@ -639,8 +643,8 @@ namespace verona::interpreter
   void Scheduler::start(Bytecode* main_block)
   {
     auto main_function = rt::make_func(main_block);
-    // Hack: Needed to keep the main function alive. Otherwise, it'll be freed thereby
-    // also deleting the trieste nodes.
+    // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
+    // thereby also deleting the trieste nodes.
     rt::hack_inc_rc(main_function);
     // :notes: I imagine a world without ugly c++ :notes:
     auto behavior = std::make_shared<Behavior>(

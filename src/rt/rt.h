@@ -53,7 +53,7 @@ namespace rt
     objects::DynObject* dst,
     objects::DynObject* target);
 
-  size_t pre_run(rt::ui::UI* ui);
+  size_t pre_run(rt::ui::UI* ui, verona::interpreter::Scheduler* scheduler);
   void post_run(size_t count, rt::ui::UI* ui);
 
   objects::DynObject* iter_next(objects::DynObject* iter);

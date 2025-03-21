@@ -233,7 +233,6 @@ namespace rt::objects
 
       collecting = true;
 
-      std::cout << "Starting collection" << std::endl;
       while (!to_collect.empty())
       {
         auto r = *to_collect.begin();
@@ -249,7 +248,6 @@ namespace rt::objects
 
         delete r;
       }
-      std::cout << "Finished collection" << std::endl;
       collecting = false;
     }
   };

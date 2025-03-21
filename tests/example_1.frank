@@ -11,7 +11,7 @@ when (c1, c2):
     r = c1
 
 when ():
-    r = c1
+    r = None
 
 when:
     r = None

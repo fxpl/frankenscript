@@ -72,13 +72,12 @@ namespace verona::interpreter
   class Scheduler
   {
     // All behaviors that are ready to run
-    std::vector<std::shared_ptr<Behavior>> ready;
+    std::vector<std::shared_ptr<Behavior>> ready = {};
     // A map from cowns to the last behavior that is waiting on them.
     //
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
-    std::unordered_map<rt::objects::DynObject*, std::shared_ptr<Behavior>>
-      cowns;
+    std::unordered_map<uintptr_t, std::shared_ptr<Behavior>> cowns = {};
 
   public:
     void add(std::shared_ptr<Behavior> behavior);
@@ -87,6 +86,5 @@ namespace verona::interpreter
 
   private:
     std::shared_ptr<Behavior> get_next();
-
   };
 }

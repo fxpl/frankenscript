@@ -389,7 +389,8 @@ namespace rt::core
       }
     }
 
-    void aquire() {
+    void aquire()
+    {
       // Who needs other safety checks than this?
       // This is so gonna bite me...
       assert(this->status == Status::Released);
@@ -397,7 +398,8 @@ namespace rt::core
       this->status = Status::Acquired;
     }
 
-    void release() {
+    void release()
+    {
       assert(this->status == Status::Acquired);
 
       this->status = Status::Released;
@@ -436,5 +438,5 @@ namespace rt::core
   ///
   /// @param ui The UI to allow builtin functions to create output, when they're
   /// called.
-  void init_builtins(ui::UI* ui);
+  void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
 } // namespace rt::core
