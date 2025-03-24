@@ -57,6 +57,7 @@ namespace rt::objects
     size_t rc{1};
     RegionPointer region{nullptr};
     DynObject* prototype{nullptr};
+    std::string name;
 
     std::map<std::string, DynObject*> fields{};
 
@@ -92,10 +93,12 @@ namespace rt::objects
 
       if (prototype != nullptr)
       {
-        // prototype->change_rc(1);
         objects::add_reference(this, prototype);
       }
-      std::cout << "Allocate: " << this << std::endl;
+
+      std::stringstream stream;
+      stream << this;
+      name = stream.str();
     }
 
     // TODO This should use prototype lookup for the destructor.
@@ -132,9 +135,7 @@ namespace rt::objects
     /// TODO remove virtual once we have primitive functions.
     virtual std::string get_name()
     {
-      std::stringstream stream;
-      stream << this;
-      return stream.str();
+      return name;
     }
 
     /// TODO remove virtual once we have primitive functions.

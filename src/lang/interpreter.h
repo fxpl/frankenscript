@@ -2,13 +2,20 @@
 
 #include <cstddef>
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <vector>
+#include <map>
 
 namespace rt::objects
 {
   class DynObject;
 } // namespace rt::objects
+
+namespace rt::ui
+{
+  class ScheduleDiagram;
+}
 
 namespace verona::interpreter
 {
@@ -39,35 +46,44 @@ namespace verona::interpreter
 
   class Behavior
   {
+    friend class rt::ui::ScheduleDiagram;
+
     // Static member for naming
     static int s_behavior_counter;
 
+    // A unique ID, this is used for drawing and naming, it isn't needed for
+    // scheduling.
     int id;
 
+    // The IDs of the cowns this behavior is waiting on. This is used to create
+    // a better mermaid diagram, it isn't needed for scheduling.
+    std::map<int, rt::objects::DynObject*> ordered_cown;
+
   public:
-    // Instance members to describe the behavior
+    // The cowns as they were passed in to the cown. These have to be provided
+    // to the new Interpreter to populate the frame
     std::vector<rt::objects::DynObject*> cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     rt::objects::DynObject* code;
     // The number of behaviors that this behavior is waiting on
     int pred_ctn = 0;
-    std::shared_ptr<Behavior> succ = nullptr;
+    // Behaviors which are waiting on this behavior. These will be notified once
+    // this behavior completes
+    std::set<std::shared_ptr<Behavior>> succ;
+
+    // TODO: Make enum
     bool is_complete = false;
 
     Behavior(
       rt::objects::DynObject* code_,
-      std::vector<rt::objects::DynObject*> cowns_)
-    : cowns(cowns_), code(code_)
-    {
-      id = s_behavior_counter;
-      s_behavior_counter += 1;
-    }
+      std::vector<rt::objects::DynObject*> cowns_);
 
     std::string name();
+    std::string id_str();
 
     Bytecode* spawn();
     // This completes the behavior by releasing all cowns
-    // decreffing all held objects and informing its successor.
+    // decreffing all held objects and informing its successors.
     void complete();
   };
 
@@ -79,14 +95,14 @@ namespace verona::interpreter
     //
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
-    std::unordered_map<uintptr_t, std::shared_ptr<Behavior>> cowns = {};
+    std::unordered_map<rt::objects::DynObject*, std::shared_ptr<Behavior>>
+      cowns = {};
 
   public:
     void add(std::shared_ptr<Behavior> behavior);
 
     void start(Bytecode* main);
 
-  
   private:
     void complete(std::shared_ptr<Behavior> behavior);
     void draw_scedule(std::string message);

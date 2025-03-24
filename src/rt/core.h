@@ -256,6 +256,8 @@ namespace rt::core
   class CownObject : public objects::DynObject
   {
   private:
+    static int s_id_counter;
+
     enum class Status
     {
       Pending,
@@ -279,6 +281,7 @@ namespace rt::core
     }
 
     Status status;
+    int id;
 
   public:
     CownObject(objects::DynObject* obj)
@@ -287,6 +290,8 @@ namespace rt::core
       status = Status::Pending;
       auto old = set("value", obj);
       assert(!old);
+
+      id = s_id_counter++;
     }
 
     [[nodiscard]] DynObject* set(std::string name, DynObject* obj) override
@@ -333,10 +338,16 @@ namespace rt::core
       return old;
     }
 
+    // A unique cown ID
+    int get_id()
+    {
+      return this->id;
+    }
+
     std::string get_name() override
     {
       std::stringstream ss;
-      ss << "<cown>" << std::endl;
+      ss << "<cown " << this->id << ">" << std::endl;
       ss << "status=" << to_string(status);
       return ss.str();
     }

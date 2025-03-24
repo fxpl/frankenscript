@@ -39,6 +39,7 @@ namespace rt::core
 namespace rt::ui
 {
   class MermaidDiagram;
+  class ScheduleDiagram;
   class ObjectGraphDiagram;
 
   class MermaidUI : public UI

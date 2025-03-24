@@ -125,6 +125,27 @@ namespace rt::ui
       out << "  linkStyle " << edge_id << " stroke:" << color
           << ",stroke-width:" << width << "px" << std::endl;
     }
+
+    std::pair<const char*, const char*> get_node_style(objects::DynObject* obj)
+    {
+      if (obj->get_prototype() == core::cownPrototypeObject())
+      {
+        return {"[[", "]]"};
+      }
+
+      if (obj->get_prototype() == objects::regionPrototypeObject())
+      {
+        return {"[\\", "/]"};
+      }
+
+      if (obj->is_immutable())
+      {
+        // Make sure to also update the None node, when editing these
+        return {"(", ")"};
+      }
+
+      return {"[", "]"};
+    }
   };
 
   class ScheduleDiagram : protected MermaidDiagram
@@ -132,11 +153,117 @@ namespace rt::ui
   public:
     ScheduleDiagram(MermaidUI* info_) : MermaidDiagram(info_) {}
 
-    void draw(std::vector<behavior_ptr>& roots)
+  private:
+    std::string cown_node_id(rt::objects::DynObject* cown, int behavior_id)
     {
+      std::stringstream ss;
+      ss << cown << "_" << behavior_id;
+      return ss.str();
+    }
+
+    void draw_cown(rt::objects::DynObject* cown_obj, behavior_ptr behavior)
+    {
+      assert(cown_obj->get_prototype() == core::cownPrototypeObject());
+      core::CownObject* cown = reinterpret_cast<core::CownObject*>(cown_obj);
+      auto cown_id = cown->get_id();
+
+      auto markers = get_node_style(cown);
+
+      // Header
+      out << "  ";
+      out << cown_node_id(cown, behavior->id);
+      out << markers.first;
+
+      // Content
+      out << "cown " << cown_id;
+
+      // Footer
+      out << markers.second;
+      out << std::endl;
+    }
+
+    void draw_behavior(behavior_ptr behavior)
+    {
+      out << "subgraph " << behavior->id_str() << "[\"" << behavior->name()
+          << "\"]" << std::endl;
+
+      for (auto [_, c] : behavior->ordered_cown)
+      {
+        this->draw_cown(c, behavior);
+      }
+      out << "end" << std::endl;
+    }
+
+    void draw_dependencies(behavior_ptr behavior)
+    {
+      for (auto [_, cown_obj] : behavior->ordered_cown)
+      {
+        assert(cown_obj->get_prototype() == core::cownPrototypeObject());
+        core::CownObject* cown = reinterpret_cast<core::CownObject*>(cown_obj);
+        auto cown_id = cown->get_id();
+
+        // Draw dependencies
+        for (auto succ : behavior->succ)
+        {
+          if (succ->ordered_cown.contains(cown_id))
+          {
+            out << "    ";
+            out << cown_node_id(cown, succ->id);
+            out << " --> ";
+            out << cown_node_id(cown, behavior->id);
+            out << std::endl;
+            edge_counter += 1;
+          }
+        }
+      }
+    }
+
+    std::map<int, behavior_ptr>
+    aggregate_behaviors(std::vector<behavior_ptr> pending)
+    {
+      std::map<int, behavior_ptr> behaviors;
+
+      while (!pending.empty())
+      {
+        auto b = pending.back();
+        pending.pop_back();
+
+        auto [_, inserted] = behaviors.insert({b->id, b});
+        if (inserted)
+        {
+          for (auto succ : b->succ)
+          {
+            pending.push_back(succ);
+          }
+        }
+      }
+
+      return behaviors;
+    }
+
+  public:
+    void draw(std::vector<behavior_ptr> pending)
+    {
+      auto behaviors = aggregate_behaviors(pending);
+
       // Header
       this->draw_header();
-      out << "  id0(Scheduler):::immutable" << std::endl;
+
+      for (auto& [bid, behavior] : behaviors)
+      {
+        this->draw_behavior(behavior);
+      }
+
+      for (auto& [bid, behavior] : behaviors)
+      {
+        this->draw_dependencies(behavior);
+      }
+
+      // TODO:
+      // -> Show running behavior?
+      // -> Cown colors
+      // -> Mark ready behaviors
+
       // Footer
       this->draw_footer();
     }
@@ -187,27 +314,6 @@ namespace rt::ui
     }
 
   private:
-    std::pair<const char*, const char*> get_node_style(objects::DynObject* obj)
-    {
-      if (obj->get_prototype() == core::cownPrototypeObject())
-      {
-        return {"[[", "]]"};
-      }
-
-      if (obj->get_prototype() == objects::regionPrototypeObject())
-      {
-        return {"[\\", "/]"};
-      }
-
-      if (obj->is_immutable())
-      {
-        // Make sure to also update the None node, when editing these
-        return {"(", ")"};
-      }
-
-      return {"[", "]"};
-    }
-
     bool is_borrow_edge(objects::Edge e)
     {
       return e.src != nullptr && e.target != nullptr &&

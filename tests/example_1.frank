@@ -3,15 +3,24 @@
 
 c1 = Cown(Region())
 c2 = Cown(Region())
+c3 = Cown(Region())
+c4 = Cown(Region())
+c5 = Cown(Region())
+c6 = Cown(Region())
+c7 = Cown(Region())
 
-when (c1):
+when (c1, c2, c3):
     r = c1
 
 when (c1, c2):
     r = c1
 
-when ():
+when(c6, c7):
     r = None
 
-when:
+when(c5, c6):
     r = None
+
+when (c2, c3, c4, c5):
+    r = None
+

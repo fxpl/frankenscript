@@ -578,10 +578,27 @@ namespace verona::interpreter
 
   int Behavior::s_behavior_counter = 0;
 
+  Behavior::Behavior(
+    rt::objects::DynObject* code_, std::vector<rt::objects::DynObject*> cowns_)
+  : id(s_behavior_counter++), cowns(cowns_), code(code_)
+  {
+    for (auto c : cowns)
+    {
+      this->ordered_cown[rt::get_cown_id(c)] = c;
+    }
+  }
+
   std::string Behavior::name()
   {
     std::stringstream ss;
     ss << "Behavior_" << this->id;
+    return ss.str();
+  }
+
+  std::string Behavior::id_str()
+  {
+    std::stringstream ss;
+    ss << "B" << this->id;
     return ss.str();
   }
 
@@ -617,26 +634,21 @@ namespace verona::interpreter
     for (auto cown : behavior->cowns)
     {
       // Get the last behavior that is waiting on the cown
-      auto cown_info = cowns.find((uintptr_t)cown);
+      auto cown_info = cowns.find(cown);
       if (cown_info != cowns.end())
       {
         auto pending = cown_info->second;
         // If a behavior is pending, set the successor
         if (!pending->is_complete)
         {
-          if (pending->succ == nullptr)
+          if (pending->succ.insert(behavior).second)
           {
             behavior->pred_ctn += 1;
-            pending->succ = behavior;
-          }
-          else
-          {
-            assert(pending->succ == behavior);
           }
         }
       }
       // Update pointer to the last pending behavior
-      this->cowns.insert({(uintptr_t)cown, behavior});
+      this->cowns[cown] = behavior;
     }
 
     std::stringstream ss;
@@ -682,16 +694,15 @@ namespace verona::interpreter
   void Scheduler::complete(std::shared_ptr<Behavior> behavior)
   {
     behavior->complete();
-    if (behavior->succ)
+    for (auto succ : behavior->succ)
     {
-      behavior->succ->pred_ctn -= 1;
-      if (behavior->succ->pred_ctn == 0)
+      succ->pred_ctn -= 1;
+      if (succ->pred_ctn == 0)
       {
-        this->ready.push_back(behavior->succ);
+        this->ready.push_back(succ);
       }
-
-      behavior->succ = nullptr;
     }
+    behavior->succ.clear();
   }
 
   void Scheduler::draw_scedule(std::string message)

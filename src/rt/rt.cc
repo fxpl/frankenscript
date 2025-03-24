@@ -190,7 +190,7 @@ namespace rt
     objects::move_reference(src, dst, target);
   }
 
-  size_t pre_run(ui::UI* ui, verona::interpreter::Scheduler *scheduler)
+  size_t pre_run(ui::UI* ui, verona::interpreter::Scheduler* scheduler)
   {
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
@@ -353,7 +353,18 @@ namespace rt
     reinterpret_cast<core::CownObject*>(cown)->release();
   }
 
-  void hack_inc_rc(objects::DynObject* obj) {
+  int get_cown_id(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    return reinterpret_cast<core::CownObject*>(cown)->get_id();
+  }
+
+  void hack_inc_rc(objects::DynObject* obj)
+  {
     obj->change_rc(+1);
   }
 

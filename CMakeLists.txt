@@ -32,6 +32,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_library(
   rt OBJECT
   src/rt/rt.cc
+  src/rt/core.cc
   src/rt/objects/region.cc
   src/rt/ui/mermaid.cc
   src/rt/core/builtin.cc
