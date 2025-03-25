@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <vector>
 
 
 
@@ -21,6 +22,46 @@ namespace verona::interpreter
   void delete_bytecode(Bytecode* bytecode);
 
   class Interpreter;
+
+  class Behaviour
+  {
+  // TODO make public attributes private
+  private:
+  public:
+    Bytecode* thunk;
+    size_t count;
+    std::vector<rt::objects::DynObject*> cowns;
+    //Behaviour(Bytecode thunk_) : thunk(thunk_) {}
+    Behaviour(Bytecode* t, std::vector<rt::objects::DynObject*> c)
+    {
+      this->thunk = t;
+      this->count = c.size();
+      this->cowns = c;
+    };
+  };
+
+  class Scheduler
+  {
+    public:
+    // Technically only schedule() needs to be visible in builtin.cc
+    virtual void start(Bytecode* main_body, rt::ui::UI* ui) = 0;
+    // TODO arg should permit either Behaviour or thread
+    virtual void schedule(Behaviour* b) = 0;
+
+  };
+  class BocScheduler : public Scheduler {
+    private:
+        std::vector<Behaviour*> behaviours;
+        std::vector<Behaviour*> ready_behaviours;
+    
+        void update_ready_behaviours();
+        void mark_as_done(size_t step);
+    
+    public:
+        void start(Bytecode* main_body, rt::ui::UI* ui) override;
+        void schedule(Behaviour* b) override;
+    };
+
 
   class FrameObj
   {
@@ -43,81 +84,11 @@ namespace verona::interpreter
     }
   };
 
-  class Scheduler
-  {
-    public:
-    // Technically only schedule() needs to be visible in builtin.cc
-    virtual void start(Bytecode* main_body, rt::ui::UI* ui) = 0;
-    virtual void schedule() = 0;
 
-  };
 
-  class Behaviour
-  {
-  // TODO make public attributes private
-  private:
-  public:
-    trieste::Node thunk;
-    size_t count;
-    std::vector<rt::objects::DynObject*> cowns;
-    Behaviour(trieste::Node thunk_) : thunk(thunk_) {}
-    Behaviour(trieste::Node t, std::vector<rt::objects::DynObject*> c)
-      {
-        this->thunk = t;
-        this->count = c.size();
-        this->cowns = c;
-      }
 
-  };
 
-  class BocScheduler: public Scheduler {
-    std::vector<Behaviour*> behaviours;
-    std::vector<Behaviour*> ready_behaviours;
 
-    void update_ready_behaviours()
-    {
-      return;
-    }
-    void mark_as_done(size_t step)
-    {
-      this->ready_behaviours.erase(ready_behaviours.begin() + step);
-    }
-    public:
-    void start(Bytecode* main_body, rt::ui::UI* ui) override{
-      //auto ui = rt::ui::globalUI();
-      // Run main execution
-        verona::interpreter::Interpreter* main_inter = new Interpreter(ui);
-        main_inter->run(main_body*);
-
-        // Handle any resulting behaviours 
-        while (behaviours.size() != 0) {
-          // 1. Check dependency graph
-          // 2. Get ready behaviours
-          this->update_ready_behaviours();
-          
-          auto step = rand() & ready_behaviours.size();
-          
-          auto behaviour = ready_behaviours[step];
-          // TODO need new constructor
-          auto inter = new Interpreter(behaviour->thunk, ui);
-          //rt::move_reference(NULL, inter->frame()->object(), behaviour);
-          for (size_t i = 0; i < behaviour->cowns.size(); i++)
-          {
-            // TODO RC add should be false?
-            inter->frame()->stack_push(behaviour->cowns[i], "cown object", false);
-          }
-          inter->run(NULL);
-
-          this->mark_as_done(step);
-          // Removes behaviour from this->behaviours
-          // Updates dependency graph
-        }
-      }
-      void schedule() override
-      {
-        return;
-      }
-  };
 
 
 

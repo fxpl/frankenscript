@@ -1,6 +1,7 @@
 #include "../rt/rt.h"
 #include "bytecode.h"
 #include "trieste/trieste.h"
+//#include "interpreter.h"
 
 #include <iostream>
 #include <optional>
@@ -435,17 +436,23 @@ namespace verona::interpreter
 
   public:
     Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
-    Interpreter(trieste::Node node, rt::ui::UI* ui_) : ui(ui_)
+    Interpreter(Bytecode b, rt::ui::UI* ui_) : ui(ui_)
     {
-      this->push_stack_frame(node);
-      this->is_init = true;
+      init(b);
     }
     friend class BocScheduler;
 
-    void run(Bytecode main_bytecode)
+    // TODO assert not init
+    void init(Bytecode main_bytecode)
     {
       auto main = main_bytecode.body;
-      auto frame = push_stack_frame(main);
+      push_stack_frame(main);
+    }
+
+    void run()
+    {
+      auto frame = this->frame_stack.back();
+      
       
       while (frame)
       {
@@ -513,12 +520,47 @@ namespace verona::interpreter
     }
   };
 
-  // class Scheduler{
-  //   public:
-  //   virtual void start(trieste::Node main_body) = 0;
-  //   virtual void schedule() = 0;
-  //   //SchedulerKind kind();
-  // };
+
+
+
+    void BocScheduler::update_ready_behaviours() {
+      return;
+  }
+  
+  void BocScheduler::mark_as_done(size_t step) {
+      assert(step < ready_behaviours.size());
+      ready_behaviours.erase(ready_behaviours.begin() + step);
+  }
+  
+  void BocScheduler::start(Bytecode* main_body, rt::ui::UI* ui) {
+      verona::interpreter::Interpreter* main_inter = new Interpreter(*main_body, ui);
+      main_inter->run();
+  
+      while (!behaviours.empty()) {
+          this->update_ready_behaviours();
+  
+          if (ready_behaviours.empty()) {
+              break; // Prevent accessing an empty vector
+          }
+  
+          size_t step = rand() % ready_behaviours.size();
+          auto behaviour = ready_behaviours[step];
+  
+          auto inter = new Interpreter(*(behaviour->thunk), ui);
+  
+          for (size_t i = 0; i < behaviour->cowns.size(); i++) {
+              inter->frame()->stack_push(behaviour->cowns[i], "cown object", false);
+          }
+  
+          inter->run();
+          this->mark_as_done(step);
+      }
+  }
+  
+  void BocScheduler::schedule(Behaviour* b) {
+    b->count++;  // placeholder
+    return;
+  }
 
   // class ThreadScheduler: public Scheduler {
   //   std::vector<Interpreter*>  active;
@@ -556,9 +598,10 @@ namespace verona::interpreter
     verona::interpreter::Scheduler* scheduler = new BocScheduler();
     size_t initial = rt::pre_run(ui, scheduler);
 
+    
     // temp conversion to Bytecode until fix
     Bytecode* main_b = new Bytecode{main_body};
-    scheduler->start(main_b);
+    static_cast<verona::interpreter::BocScheduler*>(scheduler)->start(main_b, ui);
     // Interpreter inter(ui);
     // inter.run(main_body);
 

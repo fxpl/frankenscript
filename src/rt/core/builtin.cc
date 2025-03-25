@@ -367,9 +367,11 @@ namespace rt::core
       // TODO redundant? 
       assert(behaviour_bytecode != std::nullopt);
       // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
-      auto behaviour = verona::interpreter::Behaviour(behaviour_bytecode.value()->body, cowns);
+      auto behaviour = new verona::interpreter::Behaviour(behaviour_bytecode.value(), cowns);
       // 2. Inform Scheduler about `Behavior`
-      static_cast<verona::interpreter::BocScheduler>(scheduler)->scedule(behaviour);
+      // TODO should allow static cast
+      //static_cast<verona::interpreter::BocScheduler>(scheduler)->scedule(behaviour);
+      scheduler->schedule(behaviour);
 
       // In sceduler:
       // 3. Scheduler waits until all cowns are available (dependency graph)
