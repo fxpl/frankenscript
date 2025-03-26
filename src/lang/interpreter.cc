@@ -61,8 +61,14 @@ namespace verona::interpreter
 
   class Interpreter
   {
+    bool paused = false;
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
+
+    InterpreterFrame* top_frame()
+    {
+      return frame_stack.back();
+    }
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
     {
@@ -480,19 +486,27 @@ namespace verona::interpreter
     }
 
   public:
-    Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
-
-    void
-    run(trieste::Node main, std::vector<rt::objects::DynObject*> start_stack)
+    Interpreter(
+      rt::ui::UI* ui_,
+      trieste::Node block,
+      std::vector<rt::objects::DynObject*> start_stack)
+    : ui(ui_)
     {
-      auto frame = push_stack_frame(main);
+      auto frame = push_stack_frame(block);
 
       for (auto elem : start_stack)
       {
         frame->frame->stack_push(elem, "staring stack");
       }
+    }
 
-      while (frame)
+    // Returns true if this interpreter is done, otherwise false.
+    bool resume()
+    {
+      this->paused = false;
+      auto frame = top_frame();
+
+      while (!this->paused && frame)
       {
         const auto action = run_stmt(*frame->ip);
 
@@ -555,6 +569,15 @@ namespace verona::interpreter
           frame = pop_stack_frame();
         }
       }
+
+      return !this->paused;
+    }
+
+    // This will pause the interpreter once it's done processing the current
+    // statement.
+    void pause()
+    {
+      this->paused = true;
     }
   };
 
@@ -614,7 +637,11 @@ namespace verona::interpreter
       ss << "New behavior `" << behavior->get_name() << "` is pending";
     }
 
-    this->draw_scedule(ss.str());
+    this->next_schedule_msg = ss.str();
+    if (this->current_int)
+    {
+      this->current_int->pause();
+    }
   }
 
   void Scheduler::start(Bytecode* main_block)
@@ -625,18 +652,39 @@ namespace verona::interpreter
     rt::hack_inc_rc(main_function);
     // :notes: I imagine a world without ugly c++ :notes:
     auto behavior = std::make_shared<rt::core::Behavior>(
-      main_function, std::vector<rt::objects::DynObject*>{});
+      main_function, std::vector<rt::objects::DynObject*>{}, "Main function");
     behavior->status = rt::core::Behavior::Status::Ready;
+    this->ready.push_back(behavior);
     // Seriously, why do we use this language? The memory problems I currently
     // have could easly be avoided.
     while (behavior)
     {
-      auto block = behavior->spawn();
+      Interpreter* inter;
+      if (behavior->status == rt::core::Behavior::Status::Ready)
+      {
+        auto block = behavior->spawn();
 
-      Interpreter inter(rt::ui::globalUI());
-      inter.run(block->body, behavior->cowns);
+        inter =
+          new Interpreter(rt::ui::globalUI(), block->body, behavior->cowns);
+        this->running[behavior] = inter;
+      }
+      else if (behavior->status == rt::core::Behavior::Status::Running)
+      {
+        inter = this->running[behavior];
+        assert(inter);
+      }
+      else
+      {
+        assert(false && "HOW DID IT BREAK THIS BADLY?");
+      }
 
-      this->complete(behavior);
+      this->current_int = inter;
+      // TODO:
+      // I believe, this would be the right place to only run one step at a time
+      if (inter->resume())
+      {
+        this->complete(behavior);
+      }
 
       behavior = this->get_next();
     }
@@ -647,6 +695,8 @@ namespace verona::interpreter
   void Scheduler::complete(rt::core::behavior_ptr behavior)
   {
     behavior->complete();
+    std::erase(this->ready, behavior);
+
     for (auto succ : behavior->succ)
     {
       succ->pred_ctn -= 1;
@@ -661,6 +711,12 @@ namespace verona::interpreter
 
   void Scheduler::draw_scedule(std::string message)
   {
+    if (this->next_schedule_msg)
+    {
+      message = this->next_schedule_msg.value();
+      this->next_schedule_msg.reset();
+    }
+
     auto ui = rt::ui::globalUI();
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
@@ -686,8 +742,14 @@ namespace verona::interpreter
       std::cout << "Available behaviors:" << std::endl;
       for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
       {
-        std::cout << "- " << idx << ": " << this->ready[idx]->get_name()
-                  << std::endl;
+        auto b = this->ready[idx];
+        std::cout << "- " << idx << ": " << b->get_name();
+
+        if (b->status == rt::core::Behavior::Status::Running)
+        {
+          std::cout << " (continue)";
+        }
+        std::cout << std::endl;
       }
 
       // Get user input
@@ -717,9 +779,8 @@ namespace verona::interpreter
       }
     }
 
-    auto removed = this->ready[selected];
-    this->ready.erase(this->ready.begin() + selected);
-    return removed;
+    auto behavior = this->ready[selected];
+    return behavior;
   }
 
 } // namespace verona::interpreter

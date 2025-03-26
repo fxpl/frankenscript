@@ -17,18 +17,18 @@ namespace rt::core
   {
     for (auto c : cowns)
     {
-      this->ordered_cown[rt::get_cown_id(c)] = c;
+      ordered_cown[rt::get_cown_id(c)] = c;
     }
 
     if (name_)
     {
-      this->name = name_.value();
+      name = name_.value();
     }
     else
     {
       std::stringstream ss;
-      ss << "Behavior_" << this->id;
-      this->name = ss.str();
+      ss << "Behavior_" << id;
+      name = ss.str();
     }
   }
 

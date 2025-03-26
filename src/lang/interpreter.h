@@ -47,6 +47,7 @@ namespace verona::interpreter
     }
   };
 
+  // FIXME: The implementation of this should probably be in a different file...
   class Scheduler
   {
     // All behaviors that are ready to run
@@ -56,10 +57,23 @@ namespace verona::interpreter
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
     std::unordered_map<rt::objects::DynObject*, rt::core::behavior_ptr> cowns =
-    {};
+      {};
     // This feels hacky but also like the best solution? I can't even blame this
     // on C++
     std::unordered_map<rt::core::behavior_ptr, Interpreter*> running = {};
+
+    // FIXME: To not pause twice for a new behavior (schedule::Add) and
+    // inter->pause() we'll store a message here for the next
+    // draw scedule.
+    // TO be clear, this is super duper hacky and shouldn't be done
+    // like this.
+    std::optional<std::string> next_schedule_msg;
+
+    // FIXME:
+    // This should likely be gotten by requesting the current
+    // behavior in the runtime and then looking up the interpreter
+    // from the behavior. But no, this is faster;
+    Interpreter* current_int;
 
   public:
     void add(rt::core::behavior_ptr behavior);
