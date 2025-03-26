@@ -123,7 +123,6 @@ namespace rt::objects
       if (!is_immutable() && r != nullptr)
         r->objects.erase(this);
 
-      std::cout << "Deallocate: " << get_name() << std::endl;
     }
 
     size_t get_rc()

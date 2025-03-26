@@ -119,7 +119,7 @@ namespace verona::interpreter
       if (node == Print)
       {
         // Console output
-        std::cout << node->location().view() << std::endl << std::endl;
+        std::cout << ">>> " << node->location().view() << std::endl;
 
         // Mermaid output
         std::vector<rt::objects::DynObject*> roots{frame()->object()};
@@ -136,7 +136,6 @@ namespace verona::interpreter
       // ==========================================
       // Operators that should be printed
       // ==========================================
-      std::cout << "Op: " << node->type().str() << std::endl;
       if (node == CreateObject)
       {
         rt::objects::DynObject* obj = nullptr;
@@ -683,6 +682,7 @@ namespace verona::interpreter
     while (true)
     {
       // Promt the user:
+      std::cout << std::endl;
       std::cout << "Available behaviors:" << std::endl;
       for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
       {
@@ -711,6 +711,7 @@ namespace verona::interpreter
         // Sanity checks and preventing undefined behavior.
         if (selected < this->ready.size())
         {
+          std::cout << std::endl;
           break;
         }
       }

@@ -66,7 +66,6 @@ namespace rt::core
       assert(old == nullptr && "the stack already had a value");
       stack_size += 1;
 
-      std::cout << "pushed " << value << " (" << info << ")" << std::endl;
       if (rc_add)
       {
         rt::add_reference(this, value);
@@ -77,7 +76,6 @@ namespace rt::core
     {
       stack_size -= 1;
       auto value = erase(stack_name(stack_size));
-      std::cout << "poped " << value << " (" << value << ")" << std::endl;
       return value;
     }
 

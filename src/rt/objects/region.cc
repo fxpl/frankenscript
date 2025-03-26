@@ -59,8 +59,6 @@ namespace rt::objects
 
       if (obj->region.get_ptr() == get_local_region())
       {
-        std::cout << "Adding object to region: " << obj->get_name()
-                  << " rc = " << obj->get_rc() << std::endl;
         rc_of_added_objects += obj->get_rc();
         internal_references++;
         obj->region = {r};
@@ -72,8 +70,6 @@ namespace rt::objects
       auto obj_region = get_region(obj);
       if (obj_region == r)
       {
-        std::cout << "Adding internal reference to object: " << obj->get_name()
-                  << std::endl;
         internal_references++;
         return false;
       }
@@ -105,12 +101,6 @@ namespace rt::objects
     });
 
     r->local_reference_count += rc_of_added_objects - internal_references;
-
-    std::cout << "Added " << rc_of_added_objects - internal_references
-              << " to LRC of region" << std::endl;
-    std::cout << "Region LRC: " << r->local_reference_count << std::endl;
-    std::cout << "Internal references found: " << internal_references
-              << std::endl;
   }
 
   void remove_region_reference(Region* src, Region* target)
@@ -137,8 +127,6 @@ namespace rt::objects
     if (src)
     {
       assert(target->parent == src);
-      std::cout << "Removing parent reference from region: " << src << " to "
-                << target << std::endl;
       src->direct_subregions.erase(target->bridge);
       if (target->combined_lrc() != 0)
       {
@@ -281,15 +269,6 @@ namespace rt::objects
       return;
     }
 
-    if (to_close_reg)
-    {
-      std::cout << "Cleaning LRCs and closing " << to_close_reg << std::endl;
-    }
-    else
-    {
-      std::cout << "Cleaning LRCs" << std::endl;
-    }
-
     for (auto r : dirty_regions)
     {
       r->local_reference_count = 0;
@@ -342,8 +321,6 @@ namespace rt::objects
 
     for (auto r : dirty_regions)
     {
-      std::cout << "Corrected LRC of " << r << " to "
-                << r->local_reference_count << std::endl;
       r->is_lrc_dirty = false;
       if (r->combined_lrc() == 0)
       {
@@ -436,7 +413,6 @@ namespace rt::objects
     RegionObject* obj = new RegionObject(r);
     r->bridge = obj;
     r->local_reference_count++;
-    std::cout << "Created region " << r << " with bridge " << obj << std::endl;
     return obj;
   }
 
@@ -451,8 +427,6 @@ namespace rt::objects
       if (r != get_local_region() && r != cown_region)
       {
         to_collect.insert(r);
-        std::cout << "Collecting region: " << r << " with bridge: " << r->bridge
-                  << std::endl;
       }
     }
   }
@@ -473,9 +447,6 @@ namespace rt::objects
     for (auto obj : src->objects)
     {
       auto r = get_region(obj);
-      std::cout << "Moving object: " << obj
-                << " with region bridge: " << r->bridge
-                << " to region with bridge: " << sink->bridge << std::endl;
       obj->region = {sink};
       sink->objects.insert(obj);
       src->objects.erase(obj);

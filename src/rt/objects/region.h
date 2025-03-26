@@ -74,8 +74,6 @@ namespace rt::objects
 
     ~Region()
     {
-      std::cout << "Destroying region: " << this << " with bridge "
-                << this->bridge << std::endl;
     }
 
     size_t combined_lrc()
