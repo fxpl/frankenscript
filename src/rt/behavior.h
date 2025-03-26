@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -64,6 +65,7 @@ namespace rt::core
     // A unique ID, this is used for drawing and naming, it isn't needed for
     // scheduling.
     int id;
+    std::string name;
 
     // The IDs of the cowns this behavior is waiting on. This is used to create
     // a better mermaid diagram, it isn't needed for scheduling.
@@ -82,9 +84,11 @@ namespace rt::core
     std::set<std::shared_ptr<Behavior>> succ;
 
     Behavior(
-      objects::DynObject* code_, std::vector<objects::DynObject*> cowns_);
+      objects::DynObject* code_,
+      std::vector<objects::DynObject*> cowns_,
+      std::optional<std::string> name_ = std::nullopt);
 
-    std::string name();
+    std::string get_name();
     std::string id_str();
 
     verona::interpreter::Bytecode* spawn();

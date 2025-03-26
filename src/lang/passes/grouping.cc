@@ -70,11 +70,12 @@ PassDef grouping()
           return create_from(When, _(When))
             << _(Empty) << (Group << Parens) << _(Block);
         },
-      T(When)[When]
-          << ((T(Group) << End) *
-              (T(Group)
-               << (T(Parens)[Parens] << ((~(T(List) << T(Ident)++[List]))))) *
-              (T(Group) << T(Block)[Block])) >>
+      ~(T(Group) << T(Name)[Name]) *
+          (T(When)[When]
+           << ((T(Group)) *
+               (T(Group)
+                << (T(Parens)[Parens] << ((~(T(List) << T(Ident)++[List]))))) *
+               (T(Group) << T(Block)[Block]))) >>
         [](auto& _) {
           auto when_name = new_when_ident();
 
@@ -87,10 +88,14 @@ PassDef grouping()
 
           // =====================================
           // Call `spawn_behavior()`
-          auto list = create_from(List, _(Parens))
-            << (Ident ^ when_name) << clone(_[List]);
+          auto args = create_from(List, _(Parens)) << (Ident ^ when_name);
+          if (_(Name))
+          {
+            args = args << create_from(String, _(Name));
+          }
+          args = args << clone(_[List]);
           auto call = create_from(Call, _(When))
-            << (Ident ^ "spawn_behavior") << list;
+            << (Ident ^ "spawn_behavior") << args;
 
           // Put it all together
           return Seq << when_def << call;

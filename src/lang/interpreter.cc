@@ -607,12 +607,12 @@ namespace verona::interpreter
     {
       this->ready.push_back(behavior);
       behavior->status = rt::core::Behavior::Status::Ready;
-      ss << "New behavior `" << behavior->name() << "` is ready";
+      ss << "New behavior `" << behavior->get_name() << "` is ready";
     }
     else
     {
       behavior->status = rt::core::Behavior::Status::Pending;
-      ss << "New behavior `" << behavior->name() << "` is pending";
+      ss << "New behavior `" << behavior->get_name() << "` is pending";
     }
 
     this->draw_scedule(ss.str());
@@ -677,8 +677,8 @@ namespace verona::interpreter
 
     this->draw_scedule("Current Schedule:");
 
-    // I hate c and c++ `unsigned` soo much... At least I'm getting paid to deal
-    // with this s... *suboptimal* language
+    // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
+    // language
     unsigned int selected = 0;
     while (true)
     {
@@ -686,7 +686,7 @@ namespace verona::interpreter
       std::cout << "Available behaviors:" << std::endl;
       for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
       {
-        std::cout << "- " << idx << ": " << this->ready[idx]->name()
+        std::cout << "- " << idx << ": " << this->ready[idx]->get_name()
                   << std::endl;
       }
 

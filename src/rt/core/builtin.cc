@@ -401,8 +401,6 @@ namespace rt::core
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
     add_builtin("spawn_behavior", [=](auto frame, auto args) {
-      std::cout << "Yay, what a day to live :D" << std::endl;
-
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behavior
       std::vector<objects::DynObject*> cowns = {};
@@ -411,9 +409,20 @@ namespace rt::core
         auto value = frame->stack_pop("cown");
         cowns.push_back(value);
       }
+
+      std::optional<std::string> name;
+      // The last argument might be a name for the behavior
+      if (cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
+      {
+        auto name_obj = cowns.back();
+        name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();
+        rt::remove_reference(frame->object(), name_obj);
+        cowns.pop_back();
+      }
       // when
       auto behavior = frame->stack_pop("behavior");
-      scheduler->add(std::make_shared<rt::core::Behavior>(behavior, cowns));
+      scheduler->add(
+        std::make_shared<rt::core::Behavior>(behavior, cowns, name));
 
       // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
       // 2. Inform Scheduler about `Behavior`

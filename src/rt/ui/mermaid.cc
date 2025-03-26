@@ -188,7 +188,7 @@ namespace rt::ui
     void draw_behavior(core::behavior_ptr behavior)
     {
       out << "subgraph " << behavior->id_str() << "[\" \"]" << std::endl;
-      out << "  info_" << behavior->id_str() << "([\"" << behavior->name()
+      out << "  info_" << behavior->id_str() << "([\"" << behavior->get_name()
           << "<br>Status: "
           << core::Behavior::status_to_string(behavior->status) << "\"])"
           << std::endl;

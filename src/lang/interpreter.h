@@ -21,6 +21,7 @@ namespace rt::ui
 
 namespace verona::interpreter
 {
+  class Interpreter;
   struct Bytecode;
 
   void delete_bytecode(Bytecode* bytecode);
@@ -55,7 +56,10 @@ namespace verona::interpreter
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
     std::unordered_map<rt::objects::DynObject*, rt::core::behavior_ptr> cowns =
-      {};
+    {};
+    // This feels hacky but also like the best solution? I can't even blame this
+    // on C++
+    std::unordered_map<rt::core::behavior_ptr, Interpreter*> running = {};
 
   public:
     void add(rt::core::behavior_ptr behavior);

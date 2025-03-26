@@ -284,20 +284,24 @@ namespace rt::core
     int id;
 
   public:
-    CownObject(objects::DynObject* obj, std::optional<std::string> name_ = std::nullopt)
+    CownObject(
+      objects::DynObject* obj, std::optional<std::string> name_ = std::nullopt)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
       id = s_id_counter++;
-      
+
       status = Status::Pending;
       auto old = set("value", obj);
       assert(!old);
 
-      if (name_) {
+      if (name_)
+      {
         name = name_.value();
-      } else {
+      }
+      else
+      {
         std::stringstream ss;
-        ss << "<cown " << this->id << ">" << std::endl;
+        ss << "<cown " << this->id << ">";
         name = ss.str();
       }
     }

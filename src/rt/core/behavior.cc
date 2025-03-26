@@ -10,20 +10,31 @@ namespace rt::core
   int Behavior::s_behavior_counter = 0;
 
   Behavior::Behavior(
-    rt::objects::DynObject* code_, std::vector<rt::objects::DynObject*> cowns_)
+    rt::objects::DynObject* code_,
+    std::vector<rt::objects::DynObject*> cowns_,
+    std::optional<std::string> name_)
   : id(s_behavior_counter++), cowns(cowns_), code(code_)
   {
     for (auto c : cowns)
     {
       this->ordered_cown[rt::get_cown_id(c)] = c;
     }
+
+    if (name_)
+    {
+      this->name = name_.value();
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << "Behavior_" << this->id;
+      this->name = ss.str();
+    }
   }
 
-  std::string Behavior::name()
+  std::string Behavior::get_name()
   {
-    std::stringstream ss;
-    ss << "Behavior_" << this->id;
-    return ss.str();
+    return this->name;
   }
 
   std::string Behavior::id_str()
