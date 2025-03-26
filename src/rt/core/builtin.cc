@@ -181,14 +181,21 @@ namespace rt::core
   void ctor_builtins()
   {
     add_builtin("Cown", [](auto frame, auto args) {
-      if (args != 1)
+      if (args < 1 && args > 2)
       {
-        ui::error("Cown() expected 1 argument");
+        ui::error("Cown() expected 1 or 2 arguments");
+      }
+
+      objects::DynObject* name = nullptr;
+      if (args == 2)
+      {
+        name = frame->stack_pop("name");
       }
 
       auto region = frame->stack_pop("region for cown creation");
-      auto cown = make_cown(region);
+      auto cown = make_cown(region, name);
       rt::move_reference(frame->object(), cown, region);
+      rt::remove_reference(frame->object(), name);
 
       return cown;
     });

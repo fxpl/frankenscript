@@ -30,6 +30,18 @@ namespace rt
     return nullptr;
   }
 
+  std::string get_key(objects::DynObject* key)
+  {
+    // TODO Add some checking.  This is need to lookup the correct function in
+    // the prototype chain.
+    if (key && key->get_prototype() != core::stringPrototypeObject())
+    {
+      ui::error("Object must be a string.", key);
+    }
+    core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
+    return str_key->as_key();
+  }
+
   objects::DynObject* make_func(verona::interpreter::Bytecode* body)
   {
     return new core::BytecodeFuncObject(body);
@@ -63,9 +75,15 @@ namespace rt
     }
   }
 
-  objects::DynObject* make_cown(objects::DynObject* region)
+  objects::DynObject*
+  make_cown(objects::DynObject* value, objects::DynObject* name_obj)
   {
-    return new core::CownObject(region);
+    std::optional<std::string> name;
+    if (name_obj)
+    {
+      name = get_key(name_obj);
+    }
+    return new core::CownObject(value, name);
   }
 
   void freeze(objects::DynObject* obj)
@@ -95,18 +113,6 @@ namespace rt
       }
     }
     return obj->get(key);
-  }
-
-  std::string get_key(objects::DynObject* key)
-  {
-    // TODO Add some checking.  This is need to lookup the correct function in
-    // the prototype chain.
-    if (key && key->get_prototype() != core::stringPrototypeObject())
-    {
-      ui::error("Key must be a string.", key);
-    }
-    core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
-    return str_key->as_key();
   }
 
   std::optional<objects::DynObject*>

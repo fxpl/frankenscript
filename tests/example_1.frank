@@ -1,19 +1,19 @@
 # For debugging:
 # mermaid_show_functions()
 
-c1 = Cown(Region())
-c2 = Cown(Region())
-c3 = Cown(Region())
-c4 = Cown(Region())
+c1 = Cown(Region(), "c1")
+c2 = Cown(Region(), "c2")
+c3 = Cown(Region(), "c3")
+c4 = Cown(Region(), "c4")
 c5 = Cown(Region())
 c6 = Cown(Region())
 c7 = Cown(Region())
 
 when (c1, c2, c3):
-    r = c1
+    c3.value.c2 = c2
 
 when (c1, c2):
-    r = c1
+    c1.value = c2
 
 when(c6, c7):
     r = None

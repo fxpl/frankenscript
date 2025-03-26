@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <set>
 #include <unordered_map>
 #include <vector>
-#include <map>
 
 namespace rt::objects
 {
@@ -48,6 +48,38 @@ namespace verona::interpreter
   {
     friend class rt::ui::ScheduleDiagram;
 
+  public:
+    enum class Status
+    {
+      New,
+      Pending,
+      Ready,
+      Running,
+      Done,
+    };
+
+    static std::string status_to_string(Status status)
+    {
+      switch (status)
+      {
+        case Status::New:
+          return "New";
+        case Status::Pending:
+          return "Pending";
+        case Status::Ready:
+          return "Ready";
+        case Status::Running:
+          return "Running";
+        case Status::Done:
+          return "Done";
+        default:
+          return "Unknown";
+      }
+    }
+
+    Status status;
+
+  private:
     // Static member for naming
     static int s_behavior_counter;
 
@@ -70,9 +102,6 @@ namespace verona::interpreter
     // Behaviors which are waiting on this behavior. These will be notified once
     // this behavior completes
     std::set<std::shared_ptr<Behavior>> succ;
-
-    // TODO: Make enum
-    bool is_complete = false;
 
     Behavior(
       rt::objects::DynObject* code_,

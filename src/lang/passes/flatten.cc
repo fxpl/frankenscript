@@ -171,14 +171,16 @@ PassDef flatten()
           }
           body << create_print(_(Func), func_head + " (Exit)");
 
+          auto result = Seq << (CreateObject << (Func << (Compile << body)))
+                            << (StoreFrame ^ _(Ident));
           auto def_text = func_head;
-          if (_(Ident)->location().view().starts_with("__when_")) {
-            def_text = std::string("Creating behavior from: ") + func_head;
+          if (!_(Ident)->location().view().starts_with("__when_"))
+          {
+            result << create_print(_(Func), def_text);
+            // def_text = std::string("Creating behavior from: ") + func_head;
           }
           // Function cleanup
-          return Seq << (CreateObject << (Func << (Compile << body)))
-                     << (StoreFrame ^ _(Ident))
-                     << create_print(_(Func), def_text);
+          return result;
         },
     }};
 }

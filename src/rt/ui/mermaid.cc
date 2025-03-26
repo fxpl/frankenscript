@@ -6,6 +6,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -42,6 +43,10 @@ namespace rt::ui
   const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
+
+  const char* BEHAVIOR_RUNNING_COLOR = "#eefcdd";
+  const char* BEHAVIOR_READY_COLOR = "#ddeefc";
+  const char* BEHAVIOR_PENDING_COLOR = "#fcfbdd";
 
   const char* FONT_SIZE = "16px";
   const int EDGE_WIDTH = 2;
@@ -108,7 +113,6 @@ namespace rt::ui
       out << "```mermaid" << std::endl;
       out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
           << FONT_SIZE << "' }}}%%" << std::endl;
-      out << "graph TD" << std::endl;
     }
 
     void draw_footer()
@@ -184,14 +188,34 @@ namespace rt::ui
 
     void draw_behavior(behavior_ptr behavior)
     {
-      out << "subgraph " << behavior->id_str() << "[\"" << behavior->name()
-          << "\"]" << std::endl;
+      out << "subgraph " << behavior->id_str() << "[\" \"]" << std::endl;
+      out << "  info_" << behavior->id_str() << "([\"" << behavior->name()
+          << "<br>Status: "
+          << verona::interpreter::Behavior::status_to_string(behavior->status)
+          << "\"])" << std::endl;
 
       for (auto [_, c] : behavior->ordered_cown)
       {
         this->draw_cown(c, behavior);
       }
       out << "end" << std::endl;
+
+      // Set background color
+      auto background = ERROR_NODE_COLOR;
+      switch (behavior->status)
+      {
+        case verona::interpreter::Behavior::Status::Running:
+          background = BEHAVIOR_RUNNING_COLOR;
+          break;
+        case verona::interpreter::Behavior::Status::Ready:
+          background = BEHAVIOR_READY_COLOR;
+          break;
+        case verona::interpreter::Behavior::Status::Pending:
+          background = BEHAVIOR_PENDING_COLOR;
+          break;
+      }
+      out << "style " << behavior->id_str() << " fill:" << background
+          << std::endl;
     }
 
     void draw_dependencies(behavior_ptr behavior)
@@ -248,8 +272,10 @@ namespace rt::ui
 
       // Header
       this->draw_header();
+      out << "graph TD" << std::endl;
 
-      for (auto& [bid, behavior] : behaviors)
+      // Drawing in reverse order gives a better diagram
+      for (auto& [bid, behavior] : std::views::reverse(behaviors))
       {
         this->draw_behavior(behavior);
       }
@@ -262,7 +288,6 @@ namespace rt::ui
       // TODO:
       // -> Show running behavior?
       // -> Cown colors
-      // -> Mark ready behaviors
 
       // Footer
       this->draw_footer();
@@ -289,6 +314,7 @@ namespace rt::ui
     {
       // header
       this->draw_header();
+      out << "graph TD" << std::endl;
       out << "  id0(None):::immutable" << std::endl;
 
       draw_nodes(roots);

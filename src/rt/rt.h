@@ -22,7 +22,7 @@ namespace rt
   objects::DynObject* make_iter(objects::DynObject* iter_src);
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
-  objects::DynObject* make_cown(objects::DynObject* region);
+  objects::DynObject* make_cown(objects::DynObject* value, objects::DynObject* name);
 
   void freeze(objects::DynObject* obj);
   objects::DynObject* create_region();

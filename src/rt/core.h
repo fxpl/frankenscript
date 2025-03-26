@@ -284,14 +284,22 @@ namespace rt::core
     int id;
 
   public:
-    CownObject(objects::DynObject* obj)
+    CownObject(objects::DynObject* obj, std::optional<std::string> name_ = std::nullopt)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
+      id = s_id_counter++;
+      
       status = Status::Pending;
       auto old = set("value", obj);
       assert(!old);
 
-      id = s_id_counter++;
+      if (name_) {
+        name = name_.value();
+      } else {
+        std::stringstream ss;
+        ss << "<cown " << this->id << ">" << std::endl;
+        name = ss.str();
+      }
     }
 
     [[nodiscard]] DynObject* set(std::string name, DynObject* obj) override
@@ -344,10 +352,12 @@ namespace rt::core
       return this->id;
     }
 
+    // TODO: This should really be split into `get_name()` just getting the name
+    // and `get_info()` or the additional info text like lrc and status
     std::string get_name() override
     {
       std::stringstream ss;
-      ss << "<cown " << this->id << ">" << std::endl;
+      ss << this->name << std::endl;
       ss << "status=" << to_string(status);
       return ss.str();
     }

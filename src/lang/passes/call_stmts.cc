@@ -21,7 +21,7 @@ PassDef call_stmts()
         [](auto& _) {
           if (_(Ident)->location().view() == "spawn_behavior")
           {
-            return Seq << _(Call) << create_print(_(Call), "Spawning Behavior");
+            return Seq << _(Call);
           }
           else
           {

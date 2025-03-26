@@ -487,7 +487,7 @@ namespace verona::interpreter
     {
       auto frame = push_stack_frame(main);
 
-      for (auto elem : std::views::reverse(start_stack))
+      for (auto elem : start_stack)
       {
         frame->frame->stack_push(elem, "staring stack");
       }
@@ -604,7 +604,8 @@ namespace verona::interpreter
 
   Bytecode* Behavior::spawn()
   {
-    assert(!this->is_complete);
+    assert(this->status == Status::Ready);
+    this->status = Status::Running;
 
     for (auto c : this->cowns)
     {
@@ -616,7 +617,7 @@ namespace verona::interpreter
 
   void Behavior::complete()
   {
-    this->is_complete = true;
+    this->status = Status::Done;
     rt::remove_reference(nullptr, this->code);
     this->code = nullptr;
 
@@ -630,6 +631,8 @@ namespace verona::interpreter
 
   void Scheduler::add(std::shared_ptr<Behavior> behavior)
   {
+    assert(behavior->status == Behavior::Status::New);
+
     // TODO add a testing mode that selects based on a seed
     for (auto cown : behavior->cowns)
     {
@@ -639,7 +642,7 @@ namespace verona::interpreter
       {
         auto pending = cown_info->second;
         // If a behavior is pending, set the successor
-        if (!pending->is_complete)
+        if (pending->status != Behavior::Status::Done)
         {
           if (pending->succ.insert(behavior).second)
           {
@@ -655,10 +658,12 @@ namespace verona::interpreter
     if (behavior->pred_ctn == 0)
     {
       this->ready.push_back(behavior);
+      behavior->status = Behavior::Status::Ready;
       ss << "New behavior `" << behavior->name() << "` is ready";
     }
     else
     {
+      behavior->status = Behavior::Status::Pending;
       ss << "New behavior `" << behavior->name() << "` is pending";
     }
 
@@ -674,6 +679,7 @@ namespace verona::interpreter
     // :notes: I imagine a world without ugly c++ :notes:
     auto behavior = std::make_shared<Behavior>(
       main_function, std::vector<rt::objects::DynObject*>{});
+    behavior->status = Behavior::Status::Ready;
     // Seriously, why do we use this language? The memory problems I currently
     // have could easly be avoided.
     while (behavior)
@@ -699,6 +705,7 @@ namespace verona::interpreter
       succ->pred_ctn -= 1;
       if (succ->pred_ctn == 0)
       {
+        succ->status = Behavior::Status::Ready;
         this->ready.push_back(succ);
       }
     }
@@ -739,8 +746,15 @@ namespace verona::interpreter
       std::cout << "> ";
       std::string line;
       std::getline(std::cin, line);
-      std::istringstream iss(line);
 
+      // Check for quit
+      if (line == "q")
+      {
+        exit(0);
+      }
+
+      // Check selection
+      std::istringstream iss(line);
       int n = 0;
       if (iss >> n)
       {
