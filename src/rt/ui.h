@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../lang/interpreter.h"
+#include "behavior.h"
 #include "objects/visit.h"
 
 #include <cassert>
@@ -97,8 +97,7 @@ namespace rt::ui
       std::vector<objects::DynObject*>& roots, std::string message) override;
 
     void draw_schedule(
-      std::vector<std::shared_ptr<verona::interpreter::Behavior>> behaviors,
-      std::string message);
+      std::vector<core::behavior_ptr> behaviors, std::string message);
 
     void highlight(
       std::string message,

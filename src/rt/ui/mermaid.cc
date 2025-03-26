@@ -10,8 +10,6 @@
 #include <string>
 #include <vector>
 
-typedef std::shared_ptr<verona::interpreter::Behavior> behavior_ptr;
-
 namespace rt::ui
 {
   namespace fs = std::filesystem;
@@ -165,7 +163,8 @@ namespace rt::ui
       return ss.str();
     }
 
-    void draw_cown(rt::objects::DynObject* cown_obj, behavior_ptr behavior)
+    void
+    draw_cown(rt::objects::DynObject* cown_obj, core::behavior_ptr behavior)
     {
       assert(cown_obj->get_prototype() == core::cownPrototypeObject());
       core::CownObject* cown = reinterpret_cast<core::CownObject*>(cown_obj);
@@ -186,13 +185,13 @@ namespace rt::ui
       out << std::endl;
     }
 
-    void draw_behavior(behavior_ptr behavior)
+    void draw_behavior(core::behavior_ptr behavior)
     {
       out << "subgraph " << behavior->id_str() << "[\" \"]" << std::endl;
       out << "  info_" << behavior->id_str() << "([\"" << behavior->name()
           << "<br>Status: "
-          << verona::interpreter::Behavior::status_to_string(behavior->status)
-          << "\"])" << std::endl;
+          << core::Behavior::status_to_string(behavior->status) << "\"])"
+          << std::endl;
 
       for (auto [_, c] : behavior->ordered_cown)
       {
@@ -204,13 +203,13 @@ namespace rt::ui
       auto background = ERROR_NODE_COLOR;
       switch (behavior->status)
       {
-        case verona::interpreter::Behavior::Status::Running:
+        case core::Behavior::Status::Running:
           background = BEHAVIOR_RUNNING_COLOR;
           break;
-        case verona::interpreter::Behavior::Status::Ready:
+        case core::Behavior::Status::Ready:
           background = BEHAVIOR_READY_COLOR;
           break;
-        case verona::interpreter::Behavior::Status::Pending:
+        case core::Behavior::Status::Pending:
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
@@ -218,7 +217,7 @@ namespace rt::ui
           << std::endl;
     }
 
-    void draw_dependencies(behavior_ptr behavior)
+    void draw_dependencies(core::behavior_ptr behavior)
     {
       for (auto [_, cown_obj] : behavior->ordered_cown)
       {
@@ -242,10 +241,10 @@ namespace rt::ui
       }
     }
 
-    std::map<int, behavior_ptr>
-    aggregate_behaviors(std::vector<behavior_ptr> pending)
+    std::map<int, core::behavior_ptr>
+    aggregate_behaviors(std::vector<core::behavior_ptr> pending)
     {
-      std::map<int, behavior_ptr> behaviors;
+      std::map<int, core::behavior_ptr> behaviors;
 
       while (!pending.empty())
       {
@@ -266,7 +265,7 @@ namespace rt::ui
     }
 
   public:
-    void draw(std::vector<behavior_ptr> pending)
+    void draw(std::vector<core::behavior_ptr> pending)
     {
       auto behaviors = aggregate_behaviors(pending);
 
@@ -717,7 +716,7 @@ namespace rt::ui
   }
 
   void MermaidUI::draw_schedule(
-    std::vector<behavior_ptr> behaviors, std::string message)
+    std::vector<core::behavior_ptr> behaviors, std::string message)
   {
     this->prep_output();
 

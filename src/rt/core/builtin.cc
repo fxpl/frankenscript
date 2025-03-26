@@ -1,3 +1,4 @@
+#include "../behavior.h"
 #include "../core.h"
 #include "../rt.h"
 
@@ -412,8 +413,7 @@ namespace rt::core
       }
       // when
       auto behavior = frame->stack_pop("behavior");
-      scheduler->add(
-        std::make_shared<verona::interpreter::Behavior>(behavior, cowns));
+      scheduler->add(std::make_shared<rt::core::Behavior>(behavior, cowns));
 
       // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
       // 2. Inform Scheduler about `Behavior`

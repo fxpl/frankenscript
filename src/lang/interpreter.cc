@@ -1,5 +1,6 @@
 #include "interpreter.h"
 
+#include "../rt/behavior.h"
 #include "../rt/rt.h"
 #include "bytecode.h"
 #include "trieste/trieste.h"
@@ -576,62 +577,9 @@ namespace verona::interpreter
     rt::post_run(initial, ui);
   }
 
-  int Behavior::s_behavior_counter = 0;
-
-  Behavior::Behavior(
-    rt::objects::DynObject* code_, std::vector<rt::objects::DynObject*> cowns_)
-  : id(s_behavior_counter++), cowns(cowns_), code(code_)
+  void Scheduler::add(rt::core::behavior_ptr behavior)
   {
-    for (auto c : cowns)
-    {
-      this->ordered_cown[rt::get_cown_id(c)] = c;
-    }
-  }
-
-  std::string Behavior::name()
-  {
-    std::stringstream ss;
-    ss << "Behavior_" << this->id;
-    return ss.str();
-  }
-
-  std::string Behavior::id_str()
-  {
-    std::stringstream ss;
-    ss << "B" << this->id;
-    return ss.str();
-  }
-
-  Bytecode* Behavior::spawn()
-  {
-    assert(this->status == Status::Ready);
-    this->status = Status::Running;
-
-    for (auto c : this->cowns)
-    {
-      rt::aquire_cown(c);
-    }
-
-    return rt::try_get_bytecode(this->code).value();
-  }
-
-  void Behavior::complete()
-  {
-    this->status = Status::Done;
-    rt::remove_reference(nullptr, this->code);
-    this->code = nullptr;
-
-    for (auto c : this->cowns)
-    {
-      rt::release_cown(c);
-      rt::remove_reference(nullptr, c);
-    }
-    this->cowns.clear();
-  }
-
-  void Scheduler::add(std::shared_ptr<Behavior> behavior)
-  {
-    assert(behavior->status == Behavior::Status::New);
+    assert(behavior->status == rt::core::Behavior::Status::New);
 
     // TODO add a testing mode that selects based on a seed
     for (auto cown : behavior->cowns)
@@ -642,7 +590,7 @@ namespace verona::interpreter
       {
         auto pending = cown_info->second;
         // If a behavior is pending, set the successor
-        if (pending->status != Behavior::Status::Done)
+        if (pending->status != rt::core::Behavior::Status::Done)
         {
           if (pending->succ.insert(behavior).second)
           {
@@ -658,12 +606,12 @@ namespace verona::interpreter
     if (behavior->pred_ctn == 0)
     {
       this->ready.push_back(behavior);
-      behavior->status = Behavior::Status::Ready;
+      behavior->status = rt::core::Behavior::Status::Ready;
       ss << "New behavior `" << behavior->name() << "` is ready";
     }
     else
     {
-      behavior->status = Behavior::Status::Pending;
+      behavior->status = rt::core::Behavior::Status::Pending;
       ss << "New behavior `" << behavior->name() << "` is pending";
     }
 
@@ -677,9 +625,9 @@ namespace verona::interpreter
     // thereby also deleting the trieste nodes.
     rt::hack_inc_rc(main_function);
     // :notes: I imagine a world without ugly c++ :notes:
-    auto behavior = std::make_shared<Behavior>(
+    auto behavior = std::make_shared<rt::core::Behavior>(
       main_function, std::vector<rt::objects::DynObject*>{});
-    behavior->status = Behavior::Status::Ready;
+    behavior->status = rt::core::Behavior::Status::Ready;
     // Seriously, why do we use this language? The memory problems I currently
     // have could easly be avoided.
     while (behavior)
@@ -697,7 +645,7 @@ namespace verona::interpreter
     rt::remove_reference(nullptr, main_function);
   }
 
-  void Scheduler::complete(std::shared_ptr<Behavior> behavior)
+  void Scheduler::complete(rt::core::behavior_ptr behavior)
   {
     behavior->complete();
     for (auto succ : behavior->succ)
@@ -705,7 +653,7 @@ namespace verona::interpreter
       succ->pred_ctn -= 1;
       if (succ->pred_ctn == 0)
       {
-        succ->status = Behavior::Status::Ready;
+        succ->status = rt::core::Behavior::Status::Ready;
         this->ready.push_back(succ);
       }
     }
@@ -720,7 +668,7 @@ namespace verona::interpreter
     mermaid->draw_schedule(this->ready, message);
   }
 
-  std::shared_ptr<Behavior> Scheduler::get_next()
+  rt::core::behavior_ptr Scheduler::get_next()
   {
     if (this->ready.empty())
     {
