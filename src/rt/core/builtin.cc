@@ -166,13 +166,12 @@ namespace rt::core
       return std::nullopt;
     });
 
+    // Might be utilized later 
     add_builtin("breakpoint", [mermaid](auto, auto args) {
       if (args != 0)
       {
         ui::error("breakpoint() expected 0 arguments");
       }
-
-      mermaid->break_next();
 
       return std::nullopt;
     });

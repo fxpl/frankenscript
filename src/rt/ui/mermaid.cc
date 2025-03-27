@@ -500,11 +500,6 @@ namespace rt::ui
   void MermaidUI::output(
     std::vector<rt::objects::DynObject*>& roots, std::string message)
   {
-    // Reset the file if this is a breakpoint
-    if (should_break() && out.is_open())
-    {
-      out.close();
-    }
 
     // Open the file if it's not open
     if (!out.is_open())
@@ -530,16 +525,6 @@ namespace rt::ui
 
     MermaidDiagram diag(this);
     diag.draw(roots);
-
-    if (should_break())
-    {
-      out.flush();
-      next_action();
-    }
-    else
-    {
-      steps -= 1;
-    }
   }
 
   void MermaidUI::highlight(
@@ -549,54 +534,6 @@ namespace rt::ui
     auto objs = local_root_objects();
     output(objs, message);
     std::swap(highlight, this->highlight_objects);
-  }
-
-  void print_help()
-  {
-    std::cout << "Commands:" << std::endl;
-    std::cout << "- s <n>: Run n step (default n = 0) [Default]" << std::endl;
-    std::cout << "- r    : Runs until the next break point" << std::endl;
-    std::cout << "- h    : Prints this message " << std::endl;
-  }
-
-  void MermaidUI::next_action()
-  {
-    if (first_break)
-    {
-      print_help();
-      first_break = false;
-    }
-
-    while (true)
-    {
-      std::cout << "> ";
-      std::string line;
-      std::getline(std::cin, line);
-      std::istringstream iss(line);
-      std::string command;
-      iss >> command;
-
-      if (command == "s" || line.empty())
-      {
-        int n = 0;
-        steps = (iss >> n) ? n : 0;
-
-        return;
-      }
-      else if (command == "r")
-      {
-        steps = std::numeric_limits<int>::max();
-        return;
-      }
-      else if (command == "h")
-      {
-        print_help();
-      }
-      else
-      {
-        std::cerr << "Unknown command. Type 'h' for help." << std::endl;
-      }
-    }
   }
 
   void MermaidUI::hide_cown_region()
@@ -613,8 +550,6 @@ namespace rt::ui
 
   void MermaidUI::error(std::string info)
   {
-    // Make sure ui doesn't pause
-    steps += 10;
     highlight_unreachable = false;
 
     // Construct message

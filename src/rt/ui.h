@@ -49,12 +49,6 @@ namespace rt::ui
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 
-    /// @brief Indicates if this is the first break and the help message should
-    /// be printed.
-    bool first_break = true;
-    /// @brief Indicates how many steps should be taken until entering
-    /// interactive mode again.
-    int steps;
     std::string path = "mermaid.md";
     std::ofstream out;
 
@@ -93,22 +87,6 @@ namespace rt::ui
       std::string message,
       std::vector<objects::DynObject*>& highlight) override;
 
-    void next_action();
-
-    void set_step_counter(int steps_)
-    {
-      this->steps = steps_;
-    }
-
-    void break_next()
-    {
-      steps = 0;
-    }
-
-    bool should_break()
-    {
-      return steps == 0;
-    }
 
     bool is_mermaid() override
     {

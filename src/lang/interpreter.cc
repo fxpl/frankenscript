@@ -553,10 +553,10 @@ namespace verona::interpreter
   {
     auto ui = rt::ui::globalUI();
     ui->set_output_file(output);
-    if (ui->is_mermaid())
-    {
-      reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
-    }
+    // Placeholder to avoid warning
+    if (step_counter)
+    {}
+    
 
     size_t initial = rt::pre_run(ui);
 
