@@ -352,6 +352,19 @@ namespace rt::core
 
       return result_obj;
     });
+
+    add_builtin("print", [](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("print() expected 1 argument");
+      }
+
+      auto value = frame->stack_pop("value to print"); 
+      std::cout << "print: " << value->get_name() << std::endl; 
+      rt::remove_reference(frame->object(), value);
+
+      return std::nullopt;
+    });
   }
 
   void pragma_builtins()
