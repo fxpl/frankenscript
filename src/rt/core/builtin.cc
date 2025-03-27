@@ -359,8 +359,15 @@ namespace rt::core
         ui::error("print() expected 1 argument");
       }
 
-      auto value = frame->stack_pop("value to print"); 
-      std::cout << "print: " << value->get_name() << std::endl; 
+      auto value = frame->stack_pop("value to print");
+      auto name = value->get_name();
+      // Lazy way of dealing with stringPrototypeObject
+      if (name[0] == '\"')
+      {
+        name.erase(0, 1);
+        name.erase(name.size() - 1);
+      }
+      std::cout << name << std::endl; 
       rt::remove_reference(frame->object(), value);
 
       return std::nullopt;
