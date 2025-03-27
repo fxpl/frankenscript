@@ -424,25 +424,11 @@ namespace rt::core
       scheduler->add(
         std::make_shared<rt::core::Behavior>(behavior, cowns, name));
 
-      // 1. Create `Behavior` (ByteCodeFunc, [Cowns]) object
-      // 2. Inform Scheduler about `Behavior`
-      //
-      // In Scheduler:
-      // 3. Scheduler waits until all cowns are available (dependency graph)
-      //     - The "draw the rest of the owl step"
-      // 4. Create a new interpreter from `bytecode.value()->body`
-      //     - `rt::move_reference(NULL, new_interpreter->frame(), body)`
-      // 5. Aquire the cowns (Set them to aquired with this interpreter id)
-      // 6. Push the cowns on to the interpreter frame
-      //     - `rt::move_reference(NULL, new_interpreter->frame(), cown);`
-      // 7. Start interpreter
-      //
-      // In interpreter (Already done by the lowering pass):
-      // 8. Cowns from the stack are assigned to the defined names on the frame
-      //
-      // After completion in Scheduler
-      // 9. Release cowns
-      // 10. `rt::remove_reference` the `behavior.func`
+      // @Max, Interesting for your report: Some kind of ownership transfer is
+      // needed here. Freezing is "the easiest" untill we get into the mess that
+      // function objects in cpython are. It could be interesting to see if we
+      // can't just transfer ownership to the behavior region.
+      freeze(behavior);
 
       return std::nullopt;
     });

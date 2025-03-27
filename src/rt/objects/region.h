@@ -50,6 +50,8 @@ namespace rt::objects
     // part of the LRC or other pointers in this struct.
     bool is_lrc_dirty = false;
 
+    bool is_local_region = false;
+
     // For nested regions, this points at the owning region.
     // This guarantees that the regions for trees.
     Region* parent{nullptr};
@@ -72,13 +74,18 @@ namespace rt::objects
     // Bridge children of the region
     std::set<DynObject*> direct_subregions{};
 
-    ~Region()
-    {
-    }
+    ~Region() {}
 
     size_t combined_lrc()
     {
       return local_reference_count + sub_region_reference_count;
+    }
+
+    static Region* new_local_region()
+    {
+      auto r = new Region();
+      r->is_local_region = true;
+      return r;
     }
 
     static void action(Region*);
@@ -254,9 +261,13 @@ namespace rt::objects
   // encode special regions.
   using RegionPointer = utils::TaggedPointer<Region>;
 
+  // The immutable region stays the same, regardless of which interpreter
+  // or behavior is currently running
   inline Region immutable_region_impl;
   inline constexpr Region* immutable_region{&immutable_region_impl};
 
+  // The cown region stays the same, regardless of which interpreter
+  // or behavior is currently running
   inline Region cown_region_impl;
   inline constexpr Region* cown_region{&cown_region_impl};
 } // namespace rt::objects

@@ -14,6 +14,7 @@ namespace verona::interpreter
 namespace rt::objects
 {
   class DynObject;
+  struct Region;
 } // namespace rt::objects
 
 namespace rt::ui
@@ -56,7 +57,21 @@ namespace rt::core
       }
     }
 
-    Status status;
+    static void set_active_behavior(std::shared_ptr<Behavior>);
+    static std::shared_ptr<Behavior> get_active_behavior();
+
+  private:
+    // This map is a collection of all behaviors that have started running and
+    // therefore also have a local region. This is needed here for the lovely
+    // mermaid output. This uses an ordered map in the hope that the diagram
+    // will keep the same layout every iteration.
+    //
+    // It uses behavior pointers since it's being updated from inside methods
+    // where `this` is a pointer and not a `shared_ptr`. This should be fine
+    // since each behavior should call `complete()` before being freed thereby
+    // also updating this list.
+    static std::map<int, Behavior*> s_running_behaviors;
+    static std::shared_ptr<Behavior> s_active_behavior;
 
   private:
     // Static member for naming
@@ -71,7 +86,12 @@ namespace rt::core
     // a better mermaid diagram, it isn't needed for scheduling.
     std::map<int, objects::DynObject*> ordered_cown;
 
+    // The local region of this behavior. This has to be swapped into the global
+    // `local_region` when this behavior runs.
+    objects::Region* local_region;
+
   public:
+    Status status;
     // The cowns as they were passed in to the cown. These have to be provided
     // to the new Interpreter to populate the frame
     std::vector<objects::DynObject*> cowns;

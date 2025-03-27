@@ -64,6 +64,7 @@ namespace verona::interpreter
     bool paused = false;
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
+    rt::core::behavior_ptr behavior;
 
     InterpreterFrame* top_frame()
     {
@@ -489,15 +490,37 @@ namespace verona::interpreter
     Interpreter(
       rt::ui::UI* ui_,
       trieste::Node block,
-      std::vector<rt::objects::DynObject*> start_stack)
-    : ui(ui_)
+      std::vector<rt::objects::DynObject*> start_stack,
+      rt::core::behavior_ptr behavior_)
+    : ui(ui_), behavior(behavior_)
     {
+      // FIXME: Oh no, we need to set the local region before running this but
+      // the interpreter would then need to know about behaviors right?
+      // Maybe not? What if the scheduler sets the behavior before doing this?
+      // That could work, I don't like it but it could
+      //
+      // Looking at this, I believe it would be better to let the interpreter
+      // know about behaviors
+
+      // There is a question where the active behavior should be set.
+      //
+      // Python mixes the runtime and interpreter a bit more. There the runtime
+      // has access to the interpreter state. So, it would be possible to store
+      // the behavior in the interpreter state and have it accessible to cowns.
+      //
+      // However, in FrankenScript the runtime is more passive, meaning that
+      // the interpreter drives the runtime and provides all needed information.
+      auto old_behavior = rt::get_active_behavior();
+      rt::set_active_behavior(this->behavior);
+
       auto frame = push_stack_frame(block);
 
       for (auto elem : start_stack)
       {
         frame->frame->stack_push(elem, "staring stack");
       }
+
+      rt::set_active_behavior(old_behavior);
     }
 
     // Returns true if this interpreter is done, otherwise false.
@@ -505,6 +528,8 @@ namespace verona::interpreter
     {
       this->paused = false;
       auto frame = top_frame();
+
+      rt::set_active_behavior(this->behavior);
 
       while (!this->paused && frame)
       {
@@ -664,8 +689,8 @@ namespace verona::interpreter
       {
         auto block = behavior->spawn();
 
-        inter =
-          new Interpreter(rt::ui::globalUI(), block->body, behavior->cowns);
+        inter = new Interpreter(
+          rt::ui::globalUI(), block->body, behavior->cowns, behavior);
         this->running[behavior] = inter;
       }
       else if (behavior->status == rt::core::Behavior::Status::Running)

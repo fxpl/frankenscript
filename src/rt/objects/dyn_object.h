@@ -30,7 +30,6 @@ namespace rt::objects
   Region* get_region(DynObject* obj);
 
   Region* get_local_region();
-  void set_local_region(Region* region);
 
   // Representation of objects
   class DynObject
@@ -115,7 +114,7 @@ namespace rt::objects
       {
         std::stringstream stream;
         stream << this;
-        stream << "  still has references";
+        stream << " still has references";
         ui::error(stream.str(), this);
       }
 

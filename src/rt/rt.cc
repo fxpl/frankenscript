@@ -374,4 +374,11 @@ namespace rt
     obj->change_rc(+1);
   }
 
+  rt::core::behavior_ptr get_active_behavior() {
+    return core::Behavior::get_active_behavior();
+  }
+  void set_active_behavior(rt::core::behavior_ptr behavior) {
+    core::Behavior::set_active_behavior(behavior);
+  }
+
 } // namespace rt

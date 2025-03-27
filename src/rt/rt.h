@@ -77,4 +77,7 @@ namespace rt
   // This increases the rc without asking questions. Very much a
   // hack but I don't care anymore.
   void hack_inc_rc(objects::DynObject* obj);
+
+  rt::core::behavior_ptr get_active_behavior();
+  void set_active_behavior(rt::core::behavior_ptr behavior);
 } // namespace rt

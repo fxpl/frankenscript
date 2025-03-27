@@ -11,15 +11,21 @@ namespace rt::objects
     return obj->region.get_ptr();
   }
 
-  thread_local objects::RegionPointer local_region = new Region();
+  thread_local Region* local_region = Region::new_local_region();
 
+  // FIXME: This should really be a static method on the region and not this
+  // free floating one IMO
   Region* get_local_region()
   {
     return local_region;
   }
 
+  // This should be a private static function in the Region to controll that
+  // only behaviors can set the value. There is no other instance where this
+  // should be called.
   void set_local_region(Region* region)
   {
+    assert(region->is_local_region);
     local_region = region;
   }
 
@@ -118,7 +124,7 @@ namespace rt::objects
     if (target == cown_region)
       return;
 
-    if (src == get_local_region())
+    if (src->is_local_region)
     {
       Region::dec_lrc(target);
       return;
@@ -153,13 +159,13 @@ namespace rt::objects
     if (src_region == target_region)
       return;
 
-    if (src_region == get_local_region())
+    if (src_region->is_local_region)
     {
       Region::inc_lrc(target_region);
       return;
     }
 
-    if (target_region == get_local_region())
+    if (target_region->is_local_region)
     {
       add_to_region(src_region, target, source);
       return;
@@ -276,6 +282,7 @@ namespace rt::objects
 
     bool continue_visit = true;
     std::set<DynObject*> seen;
+    // FIXME: This is just completly broken...
     visit(get_local_region(), [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
@@ -424,7 +431,7 @@ namespace rt::objects
       //  Needs to check for sub_region_reference_count for send, but not
       //  deallocate.
 
-      if (r != get_local_region() && r != cown_region)
+      if (!r->is_local_region && r != cown_region)
       {
         to_collect.insert(r);
       }
@@ -517,7 +524,7 @@ namespace rt::objects
     assert(bridge->get_prototype() == objects::regionPrototypeObject());
 
     auto r = get_region(bridge);
-    assert(r != get_local_region());
+    assert(!r->is_local_region);
 
     if (r->parent != nullptr)
     {
@@ -538,6 +545,6 @@ namespace rt::objects
     auto old_proto = bridge->set_prototype(nullptr);
     remove_reference(bridge, old_proto);
     // Move all objects in the region
-    move_objects(r, local_region);
+    move_objects(r, get_local_region());
   }
 }

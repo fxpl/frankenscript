@@ -343,7 +343,7 @@ namespace rt::ui
     {
       return e.src != nullptr && e.target != nullptr &&
         objects::get_region(e.src) != objects::get_region(e.target) &&
-        objects::get_region(e.src) == objects::get_local_region();
+        objects::get_region(e.src)->is_local_region;
     }
 
     std::string node_decoration(objects::DynObject* dst, bool reachable)
