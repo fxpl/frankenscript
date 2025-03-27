@@ -148,6 +148,21 @@ namespace rt::ui
 
       return {"[", "]"};
     }
+
+    std::string behavior_node_name(core::Behavior* behavior)
+    {
+      std::stringstream ss;
+      ss << "info_" << behavior->id_str();
+      return ss.str();
+    }
+
+    void draw_behavior_info(core::Behavior* behavior)
+    {
+      out << "  " << this->behavior_node_name(behavior) << "([\""
+          << behavior->get_name() << "<br>Status: "
+          << core::Behavior::status_to_string(behavior->status) << "\"])"
+          << std::endl;
+    }
   };
 
   class ScheduleDiagram : protected MermaidDiagram
@@ -188,10 +203,7 @@ namespace rt::ui
     void draw_behavior(core::behavior_ptr behavior)
     {
       out << "subgraph " << behavior->id_str() << "[\" \"]" << std::endl;
-      out << "  info_" << behavior->id_str() << "([\"" << behavior->get_name()
-          << "<br>Status: "
-          << core::Behavior::status_to_string(behavior->status) << "\"])"
-          << std::endl;
+      draw_behavior_info(behavior.get());
 
       for (auto [_, c] : behavior->ordered_cown)
       {
@@ -309,14 +321,18 @@ namespace rt::ui
       regions[objects::immutable_region].nodes.push_back(0);
     }
 
-    void draw(std::vector<objects::DynObject*>& roots)
+    void draw(
+      std::vector<objects::DynObject*>& roots,
+      std::map<int, core::Behavior*>& behaviors)
     {
       // header
       this->draw_header();
       out << "graph TD" << std::endl;
       out << "  id0(None):::immutable" << std::endl;
 
+      draw_behavior_nodes(behaviors);
       draw_nodes(roots);
+      draw_behaviors(behaviors);
       draw_regions();
       draw_taint();
       draw_highlight();
@@ -488,7 +504,28 @@ namespace rt::ui
       indent.erase(indent.size() - 2);
     }
 
-    void draw_region(objects::Region* r, std::string& indent)
+    void draw_behavior_nodes(std::map<int, core::Behavior*>& behaviors)
+    {
+      for (auto [id, b] : behaviors)
+      {
+        draw_behavior_info(b);
+      }
+    }
+
+    void draw_behaviors(std::map<int, core::Behavior*>& behaviors)
+    {
+      std::string ident = "";
+      for (auto [id, b] : behaviors)
+      {
+        // C++ and the weird referencing rules...
+        draw_region(b->local_region, ident, b);
+      }
+    }
+
+    void draw_region(
+      objects::Region* r,
+      std::string& indent,
+      core::Behavior* behavior = nullptr)
     {
       auto info = &regions[r];
       if (info->drawn)
@@ -503,13 +540,21 @@ namespace rt::ui
       out << "reg" << r << "[\" \"]" << std::endl;
 
       // Content
+      if (behavior)
+      {
+        out << "  " << indent << this->behavior_node_name(behavior)
+            << std::endl;
+      }
       draw_region_body(r, info, indent);
 
       // Footer
       out << indent << "end" << std::endl;
-      out << indent << "style reg" << r
-          << " fill:" << REGION_COLORS[depth % std::size(REGION_COLORS)]
-          << std::endl;
+      auto color = REGION_COLORS[depth % std::size(REGION_COLORS)];
+      if (r->is_local_region)
+      {
+        color = LOCAL_REGION_COLOR;
+      }
+      out << indent << "style reg" << r << " fill:" << color << std::endl;
     }
 
     void draw_regions()
@@ -544,18 +589,6 @@ namespace rt::ui
             << std::endl;
       }
       regions[objects::immutable_region].drawn = true;
-
-      // Local region
-      {
-        auto region = objects::get_local_region();
-        out << "subgraph " << LOCAL_REGION_ID << "[\"Local region\"]"
-            << std::endl;
-        draw_region_body(objects::cown_region, &regions[region], indent);
-        out << "end" << std::endl;
-        out << "style " << LOCAL_REGION_ID << " fill:" << LOCAL_REGION_COLOR
-            << std::endl;
-      }
-      regions[objects::get_local_region()].drawn = true;
 
       // Draw all other regions
       if (MermaidUI::pragma_draw_regions_nested)
@@ -702,7 +735,7 @@ namespace rt::ui
     out << "<pre><code>" << message << "</code></pre>" << std::endl;
 
     ObjectGraphDiagram diag(this);
-    diag.draw(roots);
+    diag.draw(roots, core::Behavior::s_running_behaviors);
 
     if (should_break())
     {
@@ -713,6 +746,11 @@ namespace rt::ui
     {
       steps -= 1;
     }
+  }
+
+  void MermaidUI::output(std::string message) {
+    auto roots = local_root_objects();
+    this->output(roots, message);
   }
 
   void MermaidUI::draw_schedule(
@@ -831,15 +869,18 @@ namespace rt::ui
 
   std::vector<objects::DynObject*> MermaidUI::local_root_objects()
   {
-    auto local_set = &objects::get_local_region()->objects;
     std::vector<objects::DynObject*> nodes_vec;
-    for (auto item : *local_set)
-    {
-      if (always_hide.contains(item) || unreachable_hide.contains(item))
+    for (auto [_, behavior] : core::Behavior::s_running_behaviors) {
+      auto local_set = &behavior->local_region->objects;
+
+      for (auto item : *local_set)
       {
-        continue;
+        if (always_hide.contains(item) || unreachable_hide.contains(item))
+        {
+          continue;
+        }
+        nodes_vec.push_back(item);
       }
-      nodes_vec.push_back(item);
     }
 
     return nodes_vec;

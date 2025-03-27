@@ -18,6 +18,7 @@ namespace rt::ui
     virtual void set_output_file(std::string path_) = 0;
 
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
+    virtual void output(std::string) {}
 
     virtual void highlight(std::string, std::vector<objects::DynObject*>&) {}
 
@@ -95,6 +96,7 @@ namespace rt::ui
 
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
+    void output(std::string message) override;
 
     void draw_schedule(
       std::vector<core::behavior_ptr> behaviors, std::string message);

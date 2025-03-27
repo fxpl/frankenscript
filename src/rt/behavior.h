@@ -19,14 +19,18 @@ namespace rt::objects
 
 namespace rt::ui
 {
+  class MermaidUI;
   class ScheduleDiagram;
+  class ObjectGraphDiagram;
 }
 
 namespace rt::core
 {
   class Behavior
   {
+    friend class rt::ui::MermaidUI;
     friend class rt::ui::ScheduleDiagram;
+    friend class rt::ui::ObjectGraphDiagram;
 
   public:
     enum class Status

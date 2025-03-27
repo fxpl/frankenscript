@@ -125,12 +125,12 @@ namespace verona::interpreter
       // ==========================================
       if (node == Print)
       {
+        auto message = std::string(node->location().view());
         // Console output
-        std::cout << ">>> " << node->location().view() << std::endl;
+        std::cout << ">>> " << message << std::endl;
 
         // Mermaid output
-        std::vector<rt::objects::DynObject*> roots{frame()->object()};
-        ui->output(roots, std::string(node->location().view()));
+        ui->output(message);
 
         // Continue
         return ExecNext{};
