@@ -175,7 +175,7 @@ namespace rt::ui
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
-      out << "style " << this->behavior_node_name(behavior)
+      out << "    style " << this->behavior_node_name(behavior)
           << " fill:" << background << std::endl;
     }
   };
@@ -313,6 +313,14 @@ namespace rt::ui
 
         // Content
         out << escape(dst->get_name());
+        auto info = dst->get_additional_info();
+        if (info)
+        {
+          out << "<br/>";
+          out << escape(info.value());
+        }
+        // FIXME: Make RC display optional, on by default but can be turned off
+        // with a CLI flag like --no-rc or --simple
         out << "<br/>rc=" << dst->rc;
         out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
 

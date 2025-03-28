@@ -70,7 +70,7 @@ namespace rt
   void cown_update_state(objects::DynObject* cown);
   bool is_cown_released(objects::DynObject* cown);
   
-  void aquire_cown(objects::DynObject* cown);
+  void aquire_cown(objects::DynObject* cown, core::Behavior* behavior);
   void release_cown(objects::DynObject* cown);
   int get_cown_id(objects::DynObject* cown);
 

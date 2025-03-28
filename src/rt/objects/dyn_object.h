@@ -263,7 +263,7 @@ namespace rt::objects
       {
         if (is_cown())
         {
-          ui::error("Cannot mutate a cown that is not aquired", this);
+          ui::error("Cannot mutate a cown that is not aquired by the current behaviour", this);
         }
         else
         {

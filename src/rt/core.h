@@ -1,4 +1,5 @@
 #include "../lang/interpreter.h"
+#include "behavior.h"
 #include "objects/prototype_object.h"
 #include "objects/region.h"
 #include "objects/region_object.h"
@@ -285,6 +286,7 @@ namespace rt::core
 
     Status status;
     int id;
+    core::Behavior* owner;
 
   public:
     CownObject(
@@ -294,6 +296,7 @@ namespace rt::core
       id = s_id_counter++;
 
       status = Status::Pending;
+      this->owner = Behavior::get_active_behavior().get();
       auto old = set("value", obj);
       assert(!old);
 
@@ -365,6 +368,11 @@ namespace rt::core
     {
       std::stringstream ss;
       ss << "status=" << to_string(status);
+      if (status == Status::Pending || status == Status::Acquired)
+      {
+        assert(this->owner);
+        ss << " (" << this->owner->get_name() << ")";
+      }
       return ss.str();
     }
 
@@ -381,7 +389,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return false;
+          return Behavior::get_active_behavior().get() != this->owner;
         case Status::Released:
         default:
           return true;
@@ -406,6 +414,7 @@ namespace rt::core
       if (!value || value->is_immutable() || value->is_cown())
       {
         status = Status::Released;
+        this->owner = nullptr;
         return;
       }
 
@@ -413,16 +422,18 @@ namespace rt::core
       if (region->combined_lrc() == 0)
       {
         status = Status::Released;
+        this->owner = nullptr;
       }
     }
 
-    void aquire()
+    void aquire(Behavior* behavior)
     {
       // Who needs other safety checks than this?
       // This is so gonna bite me...
       assert(this->status == Status::Released);
 
       this->status = Status::Acquired;
+      this->owner = behavior;
     }
 
     void release()
@@ -430,6 +441,7 @@ namespace rt::core
       assert(this->status == Status::Acquired);
 
       this->status = Status::Released;
+      this->owner = nullptr;
     }
   };
 
@@ -450,6 +462,7 @@ namespace rt::core
       };
     return globals;
   }
+
   inline std::set<objects::DynObject*>* global_prototypes()
   {
     static std::set<objects::DynObject*>* globals =

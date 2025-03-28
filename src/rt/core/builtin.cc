@@ -375,7 +375,7 @@ namespace rt::core
         name.erase(0, 1);
         name.erase(name.size() - 1);
       }
-      std::cout << name << std::endl; 
+      std::cout << name << std::endl;
       rt::remove_reference(frame->object(), value);
 
       return std::nullopt;
@@ -432,7 +432,9 @@ namespace rt::core
 
       std::optional<std::string> name;
       // The last argument might be a name for the behavior
-      if (cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
+      if (
+        !cowns.empty() &&
+        cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
       {
         auto name_obj = cowns.back();
         name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();

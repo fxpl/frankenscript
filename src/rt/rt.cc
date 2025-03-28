@@ -105,7 +105,7 @@ namespace rt
     {
       if (obj->is_cown())
       {
-        ui::error("Cannot access data on a cown that is not aquired", obj);
+        ui::error("Cannot access data on a cown that is not aquired by the current behaviour", obj);
       }
       else
       {
@@ -334,14 +334,14 @@ namespace rt
     return reinterpret_cast<core::CownObject*>(cown)->is_released();
   }
 
-  void aquire_cown(objects::DynObject* cown)
+  void aquire_cown(objects::DynObject* cown, core::Behavior* behavior)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->aquire();
+    reinterpret_cast<core::CownObject*>(cown)->aquire(behavior);
   }
 
   void release_cown(objects::DynObject* cown)

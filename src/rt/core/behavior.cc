@@ -72,8 +72,7 @@ namespace rt::core
 
     for (auto c : this->cowns)
     {
-      // TODO, store aquireing behavior and check the behavior later
-      rt::aquire_cown(c);
+      rt::aquire_cown(c, this);
     }
 
     this->local_region = objects::Region::new_local_region();
