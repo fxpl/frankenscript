@@ -361,7 +361,7 @@ namespace rt
 
   int get_cown_id(objects::DynObject* cown)
   {
-    if (cown->get_prototype() != core::cownPrototypeObject())
+    if (cown && cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }

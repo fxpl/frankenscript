@@ -68,7 +68,14 @@ namespace verona::interpreter
 
     InterpreterFrame* top_frame()
     {
-      return frame_stack.back();
+      if (frame_stack.empty())
+      {
+        return nullptr;
+      }
+      else
+      {
+        return frame_stack.back();
+      }
     }
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
