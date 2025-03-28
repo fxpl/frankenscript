@@ -300,6 +300,14 @@ namespace rt::core
       auto old = set("value", obj);
       assert(!old);
 
+      // This is really wonky. The scheduler should actually know about this
+      // new cown, but meh?
+      if (this->status == Status::Pending)
+      {
+        this->change_rc(1);
+        this->owner->cowns.push_back(this);
+      }
+
       if (name_)
       {
         name = name_.value();
@@ -438,8 +446,6 @@ namespace rt::core
 
     void release()
     {
-      assert(this->status == Status::Acquired);
-
       this->status = Status::Released;
       this->owner = nullptr;
     }

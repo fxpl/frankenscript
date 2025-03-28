@@ -693,7 +693,7 @@ namespace verona::interpreter
     rt::hack_inc_rc(main_function);
     // :notes: I imagine a world without ugly c++ :notes:
     auto behavior = std::make_shared<rt::core::Behavior>(
-      main_function, std::vector<rt::objects::DynObject*>{}, "Main function");
+      main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behavior->status = rt::core::Behavior::Status::Ready;
     this->ready.push_back(behavior);
     // Seriously, why do we use this language? The memory problems I currently

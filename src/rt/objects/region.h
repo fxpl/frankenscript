@@ -195,8 +195,8 @@ namespace rt::objects
 
     /// Cleans the LRC's and forces the region to close, by setting all local
     /// references to `None`
-    static void clean_lrcs_and_close(Region* reg = nullptr);
-    static void clean_lrcs();
+    void clean_lrcs_and_close(Region* reg = nullptr);
+    void clean_lrcs();
 
     bool is_closed()
     {

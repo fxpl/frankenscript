@@ -282,7 +282,9 @@ namespace rt::objects
 
     bool continue_visit = true;
     std::set<DynObject*> seen;
-    // FIXME: This is just completly broken...
+    // FIXME: This works only for the current behavior that has
+    // set the local region. And only because the `dirty_regions`
+    // has been cleared except the current region.
     visit(get_local_region(), [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
@@ -336,13 +338,19 @@ namespace rt::objects
     }
     dirty_regions.clear();
 
-    assert(
-      (!to_close_reg || to_close_reg->is_closed()) &&
-      "The region should be closed now");
+    if (to_close_reg && !to_close_reg->is_closed())
+    {
+      ui::error("Unable to close the region");
+    }
   }
 
   void Region::clean_lrcs()
   {
+    // This is a hack, basically we don't want `try_clean` to
+    // look at any other regions than the current one. That's
+    // why we remove all other regions.
+    dirty_regions.clear();
+    dirty_regions.insert(this);
     clean_lrcs_and_close(nullptr);
   }
 

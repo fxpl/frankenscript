@@ -78,6 +78,9 @@ namespace verona::interpreter
 
     void start(Bytecode* main);
 
+    // void new_pending_cown(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
+    // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
+
   private:
     void complete(rt::core::behavior_ptr behavior);
     void draw_scedule(std::string message);

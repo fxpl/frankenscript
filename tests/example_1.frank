@@ -1,22 +1,14 @@
 # For debugging:
 # mermaid_show_functions()
 
-c2 = Cown(None, "c2")
-c1 = Cown(c2, "c1")
+r = Region()
+c1 = Cown(r, "c1")
+r.f = {}
 
 @name("B1")
 when (c1):
-    c2 = c1.value
+    print("Running B1")
 
-    @name("B1.1")
-    when:
-        pass()
-
-    c2.value = Region()
-
-@name("B2")
-when (c2):
-    @name("B2.1")
-    when:
-        pass()
+is_closed(r)
+close(r)
 
