@@ -41,7 +41,6 @@ namespace rt::core
 namespace rt::ui
 {
   class MermaidDiagram;
-  class ScheduleDiagram;
   class ObjectGraphDiagram;
 
   class MermaidUI : public UI
@@ -50,9 +49,13 @@ namespace rt::ui
     static inline bool pragma_draw_regions_nested = true;
     static inline bool highlight_unreachable = false;
 
+    // This feels really wrong, but is the easiest fix rn. The list should
+    // probably always be passed in to the `output()` call but that would
+    // require more refactorings
+    std::vector<rt::core::behavior_ptr>* scheduler_ready_list;
+
   private:
     friend class ObjectGraphDiagram;
-    friend class ScheduleDiagram;
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 
@@ -103,9 +106,6 @@ namespace rt::ui
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
     void output(std::string message) override;
-
-    void draw_schedule(
-      std::vector<core::behavior_ptr> behaviors, std::string message);
 
     void highlight(
       std::string message,

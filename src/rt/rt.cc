@@ -251,13 +251,8 @@ namespace rt
       std::cout << "Final count: " << objects::DynObject::get_count()
                 << std::endl;
 
-      std::vector<objects::DynObject*> roots;
-      for (auto obj : objects::DynObject::get_objects())
-      {
-        roots.push_back(obj);
-      }
       ui::MermaidUI::highlight_unreachable = true;
-      ui->output(roots, "Memory leak detected!");
+      ui->output("Memory leak detected!");
 
       std::exit(1);
     }

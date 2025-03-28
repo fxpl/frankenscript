@@ -14,7 +14,6 @@ namespace rt::objects
 namespace rt::core
 {
   int Behavior::s_behavior_counter = 0;
-  std::map<int, Behavior*> Behavior::s_running_behaviors = {};
   std::shared_ptr<Behavior> Behavior::s_active_behavior = nullptr;
 
   void Behavior::set_active_behavior(std::shared_ptr<Behavior> active)
@@ -79,9 +78,6 @@ namespace rt::core
 
     this->local_region = objects::Region::new_local_region();
 
-    // Add self to running behaviors to have it also drawn as a local region.
-    s_running_behaviors[this->id] = this;
-
     return rt::try_get_bytecode(this->code).value();
   }
 
@@ -108,7 +104,5 @@ namespace rt::core
         cown_deps.erase(cown);
       }
     }
-
-    this->s_running_behaviors.erase(this->id);
   }
 } // namespace rt::core

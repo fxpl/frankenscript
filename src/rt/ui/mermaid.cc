@@ -161,47 +161,6 @@ namespace rt::ui
           << behavior->get_name() << "<br>Status: "
           << core::Behavior::status_to_string(behavior->status) << "\"])"
           << std::endl;
-    }
-  };
-
-  class ScheduleDiagram : protected MermaidDiagram
-  {
-  public:
-    ScheduleDiagram(MermaidUI* info_) : MermaidDiagram(info_) {}
-
-  private:
-    std::string cown_node_id(rt::objects::DynObject* cown, int behavior_id)
-    {
-      std::stringstream ss;
-      ss << cown << "_" << behavior_id;
-      return ss.str();
-    }
-
-    void
-    draw_cown(rt::objects::DynObject* cown_obj, core::behavior_ptr behavior)
-    {
-      assert(cown_obj->get_prototype() == core::cownPrototypeObject());
-      core::CownObject* cown = reinterpret_cast<core::CownObject*>(cown_obj);
-      auto cown_id = cown->get_id();
-
-      auto markers = get_node_style(cown);
-
-      // Header
-      out << "  ";
-      out << cown_node_id(cown, behavior->id);
-      out << markers.first;
-
-      // Content
-      out << "cown " << cown_id;
-
-      // Footer
-      out << markers.second;
-      out << std::endl;
-    }
-
-    void draw_behavior(core::behavior_ptr behavior)
-    {
-      draw_behavior_info(behavior.get());
       // Set background color
       auto background = ERROR_NODE_COLOR;
       switch (behavior->status)
@@ -216,66 +175,8 @@ namespace rt::ui
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
-      out << "style " << this->behavior_node_name(behavior.get())
+      out << "style " << this->behavior_node_name(behavior)
           << " fill:" << background << std::endl;
-
-      for (auto [cown, pred] : behavior->cown_deps)
-      {
-        out << "    ";
-        out << this->behavior_node_name(behavior.get());
-        out << " --> |";
-        // TODO: This really shouldn't directly access the name. get_name()
-        // should always just return the name and then there is a
-        // `more_info()` method that provides additional info like
-        // the cown status or LRC for regions etc.
-        out << escape(cown->get_name());
-        out << "| ";
-        out << this->behavior_node_name(pred);
-        out << std::endl;
-        edge_counter += 1;
-      }
-    }
-
-    std::map<int, core::behavior_ptr>
-    aggregate_behaviors(std::vector<core::behavior_ptr> pending)
-    {
-      std::map<int, core::behavior_ptr> behaviors;
-
-      while (!pending.empty())
-      {
-        auto b = pending.back();
-        pending.pop_back();
-
-        auto [_, inserted] = behaviors.insert({b->id, b});
-        if (inserted)
-        {
-          for (auto succ : b->succ)
-          {
-            pending.push_back(succ);
-          }
-        }
-      }
-
-      return behaviors;
-    }
-
-  public:
-    void draw(std::vector<core::behavior_ptr> pending)
-    {
-      auto behaviors = aggregate_behaviors(pending);
-
-      // Header
-      this->draw_header();
-      out << "graph TD" << std::endl;
-
-      // Drawing in reverse order gives a better diagram
-      for (auto& [bid, behavior] : std::views::reverse(behaviors))
-      {
-        this->draw_behavior(behavior);
-      }
-
-      // Footer
-      this->draw_footer();
     }
   };
 
@@ -295,14 +196,14 @@ namespace rt::ui
       regions[objects::immutable_region].nodes.push_back(0);
     }
 
-    void draw(
-      std::vector<objects::DynObject*>& roots,
-      std::map<int, core::Behavior*>& behaviors)
+    void draw(std::vector<objects::DynObject*>& roots)
     {
       // header
       this->draw_header();
       out << "graph TD" << std::endl;
       out << "  id0(None):::immutable" << std::endl;
+
+      auto behaviors = aggregate_behaviors();
 
       draw_behavior_nodes(behaviors);
       draw_nodes(roots);
@@ -347,6 +248,31 @@ namespace rt::ui
         return ":::unreachable";
       }
       return "";
+    }
+
+    std::map<int, core::behavior_ptr> aggregate_behaviors()
+    {
+      // Clone the vector
+      std::vector<core::behavior_ptr> pending =
+        *this->info->scheduler_ready_list;
+      std::map<int, core::behavior_ptr> behaviors;
+
+      while (!pending.empty())
+      {
+        auto b = pending.back();
+        pending.pop_back();
+
+        auto [_, inserted] = behaviors.insert({b->id, b});
+        if (inserted)
+        {
+          for (auto succ : b->succ)
+          {
+            pending.push_back(succ);
+          }
+        }
+      }
+
+      return behaviors;
     }
 
     /// @brief Draws the target node and the edge from the source to the target.
@@ -478,21 +404,47 @@ namespace rt::ui
       indent.erase(indent.size() - 2);
     }
 
-    void draw_behavior_nodes(std::map<int, core::Behavior*>& behaviors)
+    void draw_behavior_nodes(std::map<int, core::behavior_ptr>& behaviors)
     {
       for (auto [id, b] : behaviors)
       {
-        draw_behavior_info(b);
+        draw_behavior_info(b.get());
       }
     }
 
-    void draw_behaviors(std::map<int, core::Behavior*>& behaviors)
+    void draw_behaviors(std::map<int, core::behavior_ptr>& behaviors)
     {
       std::string ident = "";
       for (auto [id, b] : behaviors)
       {
-        // C++ and the weird referencing rules...
-        draw_region(b->local_region, ident, b);
+        if (b->status == core::Behavior::Status::Running)
+        {
+          // C++ and the weird referencing rules...
+          draw_region(b->local_region, ident, b.get());
+        }
+        else
+        {
+          for (auto cown : b->cowns)
+          {
+            out << "    ";
+            out << this->behavior_node_name(b.get());
+            out << " --> |";
+            out << escape(cown->get_name());
+            out << "| ";
+
+            auto pred = b->cown_deps[cown];
+            if (pred)
+            {
+              out << this->behavior_node_name(pred);
+            }
+            else
+            {
+              out << this->nodes[cown];
+            }
+            out << std::endl;
+            edge_counter += 1;
+          }
+        }
       }
     }
 
@@ -710,7 +662,7 @@ namespace rt::ui
     out << "<pre><code>" << message << "</code></pre>" << std::endl;
 
     ObjectGraphDiagram diag(this);
-    diag.draw(roots, core::Behavior::s_running_behaviors);
+    diag.draw(roots);
 
     if (should_break())
     {
@@ -727,20 +679,6 @@ namespace rt::ui
   {
     auto roots = local_root_objects();
     this->output(roots, message);
-  }
-
-  void MermaidUI::draw_schedule(
-    std::vector<core::behavior_ptr> behaviors, std::string message)
-  {
-    this->prep_output();
-
-    out << "### " << message << std::endl;
-
-    ScheduleDiagram diag(this);
-    diag.draw(behaviors);
-
-    // Make sure the output is available.
-    out.flush();
   }
 
   void MermaidUI::highlight(
@@ -862,8 +800,12 @@ namespace rt::ui
   std::vector<objects::DynObject*> MermaidUI::local_root_objects()
   {
     std::vector<objects::DynObject*> nodes_vec;
-    for (auto [_, behavior] : core::Behavior::s_running_behaviors)
+    for (auto behavior : *this->scheduler_ready_list)
     {
+      if (!behavior->local_region)
+      {
+        continue;
+      }
       auto local_set = &behavior->local_region->objects;
 
       for (auto item : *local_set)

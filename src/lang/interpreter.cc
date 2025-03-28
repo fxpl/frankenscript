@@ -501,14 +501,6 @@ namespace verona::interpreter
       rt::core::behavior_ptr behavior_)
     : ui(ui_), behavior(behavior_)
     {
-      // FIXME: Oh no, we need to set the local region before running this but
-      // the interpreter would then need to know about behaviors right?
-      // Maybe not? What if the scheduler sets the behavior before doing this?
-      // That could work, I don't like it but it could
-      //
-      // Looking at this, I believe it would be better to let the interpreter
-      // know about behaviors
-
       // There is a question where the active behavior should be set.
       //
       // Python mixes the runtime and interpreter a bit more. There the runtime
@@ -631,6 +623,21 @@ namespace verona::interpreter
     rt::post_run(initial, ui);
   }
 
+  Scheduler::Scheduler()
+  {
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list =
+      &this->ready;
+  }
+
+  Scheduler::~Scheduler()
+  {
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list = nullptr;
+  }
+
   void Scheduler::add(rt::core::behavior_ptr behavior)
   {
     assert(behavior->status == rt::core::Behavior::Status::New);
@@ -751,10 +758,13 @@ namespace verona::interpreter
       this->next_schedule_msg.reset();
     }
 
+    // FIXME: We should really get wrid of the UI* abstraction. There is no way
+    // that we'll ever change the output at this point and it just makes several
+    // things harder, like this:
     auto ui = rt::ui::globalUI();
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
-    mermaid->draw_schedule(this->ready, message);
+    mermaid->output(message);
     mermaid->close_file();
   }
 

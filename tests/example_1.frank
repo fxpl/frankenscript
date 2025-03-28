@@ -25,13 +25,13 @@ when (c1, c2):
 
 @name("B3")
 when(c6, c7):
-    r = None
+    pass()
 
 @name("B4")
 when(c5, c6):
-    r = None
+    pass()
 
 @name("B5")
 when (c2, c3, c4, c5):
-    r = None
+    pass()
 

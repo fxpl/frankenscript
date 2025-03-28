@@ -14,11 +14,6 @@ namespace rt::objects
   class DynObject;
 } // namespace rt::objects
 
-namespace rt::ui
-{
-  class ScheduleDiagram;
-}
-
 namespace verona::interpreter
 {
   class Interpreter;
@@ -76,6 +71,9 @@ namespace verona::interpreter
     Interpreter* current_int;
 
   public:
+    Scheduler();
+    ~Scheduler();
+
     void add(rt::core::behavior_ptr behavior);
 
     void start(Bytecode* main);
