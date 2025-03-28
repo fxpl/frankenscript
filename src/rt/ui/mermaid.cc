@@ -38,13 +38,12 @@ namespace rt::ui
     "#d9d450",
   };
 
-  const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
 
-  const char* BEHAVIOR_RUNNING_COLOR = "#eefcdd";
-  const char* BEHAVIOR_READY_COLOR = "#ddeefc";
-  const char* BEHAVIOR_PENDING_COLOR = "#fcfbdd";
+  const char* BEHAVIOR_RUNNING_COLOR = "#eeeeee";
+  const char* BEHAVIOR_READY_COLOR = "#eefcdd";
+  const char* BEHAVIOR_PENDING_COLOR = "#e6d5fb";
 
   const char* FONT_SIZE = "16px";
   const int EDGE_WIDTH = 2;

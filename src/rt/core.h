@@ -19,6 +19,7 @@ namespace rt::core
   class FrameObject : public objects::DynObject,
                       public verona::interpreter::FrameObj
   {
+    static int s_frame_id_counter;
     static constexpr std::string_view STACK_PREFIX = "_stack";
     static inline thread_local std::vector<std::string> stack_keys;
     size_t stack_size = 0;
@@ -47,6 +48,10 @@ namespace rt::core
         objects::add_reference(this, parent_frame);
         assert(!old_value);
       }
+
+      std::stringstream ss;
+      ss << "<Frame " << s_frame_id_counter++ << ">";
+      name = ss.str();
     }
 
     static FrameObject* create_first_stack()

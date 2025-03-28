@@ -56,9 +56,11 @@ namespace rt::objects
     size_t rc{1};
     RegionPointer region{nullptr};
     DynObject* prototype{nullptr};
-    std::string name;
 
     std::map<std::string, DynObject*> fields{};
+
+  protected:
+    std::string name;
 
   public:
     size_t change_rc(signed delta)
@@ -121,7 +123,6 @@ namespace rt::objects
       auto r = get_region(this);
       if (!is_immutable() && r != nullptr)
         r->objects.erase(this);
-
     }
 
     size_t get_rc()
