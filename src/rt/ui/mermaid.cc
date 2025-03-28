@@ -201,15 +201,7 @@ namespace rt::ui
 
     void draw_behavior(core::behavior_ptr behavior)
     {
-      out << "subgraph " << behavior->id_str() << "[\" \"]" << std::endl;
       draw_behavior_info(behavior.get());
-
-      for (auto [_, c] : behavior->ordered_cown)
-      {
-        this->draw_cown(c, behavior);
-      }
-      out << "end" << std::endl;
-
       // Set background color
       auto background = ERROR_NODE_COLOR;
       switch (behavior->status)
@@ -224,31 +216,23 @@ namespace rt::ui
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
-      out << "style " << behavior->id_str() << " fill:" << background
-          << std::endl;
-    }
+      out << "style " << this->behavior_node_name(behavior.get())
+          << " fill:" << background << std::endl;
 
-    void draw_dependencies(core::behavior_ptr behavior)
-    {
-      for (auto [_, cown_obj] : behavior->ordered_cown)
+      for (auto [cown, pred] : behavior->cown_deps)
       {
-        assert(cown_obj->get_prototype() == core::cownPrototypeObject());
-        core::CownObject* cown = reinterpret_cast<core::CownObject*>(cown_obj);
-        auto cown_id = cown->get_id();
-
-        // Draw dependencies
-        for (auto succ : behavior->succ)
-        {
-          if (succ->ordered_cown.contains(cown_id))
-          {
-            out << "    ";
-            out << cown_node_id(cown, succ->id);
-            out << " --> ";
-            out << cown_node_id(cown, behavior->id);
-            out << std::endl;
-            edge_counter += 1;
-          }
-        }
+        out << "    ";
+        out << this->behavior_node_name(behavior.get());
+        out << " --> |";
+        // TODO: This really shouldn't directly access the name. get_name()
+        // should always just return the name and then there is a
+        // `more_info()` method that provides additional info like
+        // the cown status or LRC for regions etc.
+        out << escape(cown->get_name());
+        out << "| ";
+        out << this->behavior_node_name(pred);
+        out << std::endl;
+        edge_counter += 1;
       }
     }
 
@@ -289,15 +273,6 @@ namespace rt::ui
       {
         this->draw_behavior(behavior);
       }
-
-      for (auto& [bid, behavior] : behaviors)
-      {
-        this->draw_dependencies(behavior);
-      }
-
-      // TODO:
-      // -> Show running behavior?
-      // -> Cown colors
 
       // Footer
       this->draw_footer();

@@ -635,14 +635,16 @@ namespace verona::interpreter
       auto cown_info = cowns.find(cown);
       if (cown_info != cowns.end())
       {
-        auto pending = cown_info->second;
+        auto predecessor = cown_info->second;
         // If a behavior is pending, set the successor
-        if (pending->status != rt::core::Behavior::Status::Done)
+        if (predecessor->status != rt::core::Behavior::Status::Done)
         {
-          if (pending->succ.insert(behavior).second)
+          if (predecessor->succ.insert(behavior).second)
           {
             behavior->pred_ctn += 1;
           }
+          // Only needed for Mermaid:
+          behavior->cown_deps[cown] = predecessor.get();
         }
       }
       // Update pointer to the last pending behavior

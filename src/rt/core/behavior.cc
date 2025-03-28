@@ -85,6 +85,9 @@ namespace rt::core
     return rt::try_get_bytecode(this->code).value();
   }
 
+  // FIXME: Currently both the scheduler and the behavior has a function
+  // to complete a behavior. All of this should really be in one place. It
+  // might be better to move all of this into the scheduler.
   void Behavior::complete()
   {
     this->status = Status::Done;
@@ -97,6 +100,14 @@ namespace rt::core
       rt::remove_reference(nullptr, c);
     }
     this->cowns.clear();
+
+    for (auto [cown, waiting_on] : cown_deps)
+    {
+      if (waiting_on == this)
+      {
+        cown_deps.erase(cown);
+      }
+    }
 
     this->s_running_behaviors.erase(this->id);
   }

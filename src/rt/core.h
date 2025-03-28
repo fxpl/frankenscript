@@ -361,10 +361,9 @@ namespace rt::core
 
     // TODO: This should really be split into `get_name()` just getting the name
     // and `get_info()` or the additional info text like lrc and status
-    std::string get_name() override
+    std::optional<std::string> get_additional_info() override
     {
       std::stringstream ss;
-      ss << this->name << std::endl;
       ss << "status=" << to_string(status);
       return ss.str();
     }

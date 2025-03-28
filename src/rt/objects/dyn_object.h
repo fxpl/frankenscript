@@ -137,6 +137,12 @@ namespace rt::objects
       return name;
     }
 
+    // TODO make more types use this instead of `get_name()`
+    virtual std::optional<std::string> get_additional_info()
+    {
+      return std::nullopt;
+    }
+
     /// TODO remove virtual once we have primitive functions.
     virtual DynObject* is_primitive()
     {

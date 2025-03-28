@@ -96,6 +96,12 @@ namespace rt::core
     objects::Region* local_region;
 
   public:
+    // This maps the cowns of this behavior to the previous behavior this
+    // is waiting on. This is used to draw the dependencies, it is not used
+    // for sceduling.
+    // Both of these pointers are weak reference.
+    std::map<objects::DynObject*, Behavior*> cown_deps;
+
     Status status;
     // The cowns as they were passed in to the cown. These have to be provided
     // to the new Interpreter to populate the frame
