@@ -451,6 +451,21 @@ namespace rt::core
       };
     return globals;
   }
+  inline std::set<objects::DynObject*>* global_prototypes()
+  {
+    static std::set<objects::DynObject*>* globals =
+      new std::set<objects::DynObject*>{
+        objects::regionPrototypeObject(),
+        framePrototypeObject(),
+        funcPrototypeObject(),
+        bytecodeFuncPrototypeObject(),
+        builtinFuncPrototypeObject(),
+        stringPrototypeObject(),
+        keyIterPrototypeObject(),
+        cownPrototypeObject(),
+      };
+    return globals;
+  }
 
   inline std::map<std::string, objects::DynObject*>* global_names()
   {

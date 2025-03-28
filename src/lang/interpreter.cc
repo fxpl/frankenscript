@@ -746,6 +746,7 @@ namespace verona::interpreter
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
     mermaid->draw_schedule(this->ready, message);
+    mermaid->close_file();
   }
 
   rt::core::behavior_ptr Scheduler::get_next()

@@ -18,6 +18,7 @@ namespace rt::ui
     virtual void set_output_file(std::string path_) = 0;
 
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
+
     virtual void output(std::string) {}
 
     virtual void highlight(std::string, std::vector<objects::DynObject*>&) {}
@@ -94,6 +95,11 @@ namespace rt::ui
 
     void prep_output();
 
+    void close_file()
+    {
+      out.close();
+    }
+
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
     void output(std::string message) override;
@@ -169,6 +175,9 @@ namespace rt::ui
 
     void hide_cown_region();
     void show_cown_region();
+
+    void hide_prototypes();
+    void show_prototypes();
 
     void error(std::string) override;
 

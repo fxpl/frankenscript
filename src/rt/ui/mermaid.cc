@@ -695,6 +695,7 @@ namespace rt::ui
   MermaidUI::MermaidUI()
   {
     hide_cown_region();
+    hide_prototypes();
   }
 
   void MermaidUI::prep_output()
@@ -747,7 +748,8 @@ namespace rt::ui
     }
   }
 
-  void MermaidUI::output(std::string message) {
+  void MermaidUI::output(std::string message)
+  {
     auto roots = local_root_objects();
     this->output(roots, message);
   }
@@ -835,6 +837,22 @@ namespace rt::ui
     remove_always_hide(core::cownPrototypeObject());
   }
 
+  void MermaidUI::hide_prototypes()
+  {
+    for (auto proto : *core::global_prototypes())
+    {
+      add_always_hide(proto);
+    }
+  }
+
+  void MermaidUI::show_prototypes()
+  {
+    for (auto proto : *core::global_prototypes())
+    {
+      remove_always_hide(core::cownPrototypeObject());
+    }
+  }
+
   void MermaidUI::error(std::string info)
   {
     // Make sure ui doesn't pause
@@ -869,7 +887,8 @@ namespace rt::ui
   std::vector<objects::DynObject*> MermaidUI::local_root_objects()
   {
     std::vector<objects::DynObject*> nodes_vec;
-    for (auto [_, behavior] : core::Behavior::s_running_behaviors) {
+    for (auto [_, behavior] : core::Behavior::s_running_behaviors)
+    {
       auto local_set = &behavior->local_region->objects;
 
       for (auto item : *local_set)

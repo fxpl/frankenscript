@@ -26,6 +26,7 @@ namespace rt::ui
 
 namespace rt::core
 {
+  // TODO rename this to `Behaviour`
   class Behavior
   {
     friend class rt::ui::MermaidUI;
