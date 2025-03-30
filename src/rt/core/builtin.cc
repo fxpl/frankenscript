@@ -390,11 +390,57 @@ namespace rt::core
       });
   }
 
+  void test_builtins()
+  {
+    // Onus is on caller to provide a string object representing an actual integer 
+    // Fixme: 
+    // Refactor once integers are implemented
+    add_builtin("assert_lrc", [](auto frame, auto args) {
+      if (args != 2)
+      {
+        ui::error("assert_lrc() expected 2 arguments");
+      }
+
+      auto count_str = frame->stack_pop("count_str");
+      auto bridge = frame->stack_pop("bridge");
+      // Make sure we're comparing the correct LRC value
+      rt::remove_reference(frame->object(), bridge);
+      if (count_str->get_prototype() != stringPrototypeObject())
+      {
+        ui::error("given count is not a string", count_str);
+      }
+      if (bridge->get_prototype() != objects::regionPrototypeObject())
+      {
+        ui::error("given object is not a bridge", bridge);
+      }
+      // Remove string object whitespace
+      auto s = count_str->get_name();
+      if (s[0] == '\"')
+      {
+        s.erase(0, 1);
+        s.erase(s.size() - 1);
+      }
+      auto count = std::stoi(s);
+      auto actual = rt::objects::get_region(bridge)->local_reference_count; 
+      if (actual !=  count)
+      {
+        std::stringstream ss;
+        ss <<  "count: " << count << "did not match LRC: " << actual;
+        auto msg = ss.str();
+        ui::error(msg, bridge);
+      }
+
+      rt::remove_reference(frame->object(), count_str);
+      return std::nullopt;
+    });
+  } 
+
   void init_builtins(ui::UI* ui)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
     pragma_builtins();
+    test_builtins();
   }
 }
