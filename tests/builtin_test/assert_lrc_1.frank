@@ -1,0 +1,11 @@
+# Feels incorrect to utilize frank-tests for builtins
+# that are meant to be utilized for frank-tests...
+r1 = Region()
+# Give r1 a LRC of 2
+a = {} 
+r1.a = a
+# Using string object
+expected = "2"
+assert_lrc(r1, expected)
+# Using string directly
+assert_lrc(r1, "2")
