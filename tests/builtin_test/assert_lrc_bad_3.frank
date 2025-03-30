@@ -1,0 +1,4 @@
+r1 = Region()
+expected = "2"
+# LRC is only 1
+assert_lrc(r1, expected)

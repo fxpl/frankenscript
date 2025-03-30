@@ -409,9 +409,12 @@ namespace rt::core
       {
         ui::error("given count is not a string", count_str);
       }
-      if (bridge->get_prototype() != objects::regionPrototypeObject())
+      auto region = objects::get_region(bridge);
+      if (region->bridge != bridge)
       {
-        ui::error("given object is not a bridge", bridge);
+        std::stringstream ss;
+        ss << bridge << " is not the bridge object of the region";
+        ui::error(ss.str(), bridge);
       }
       // Remove string object whitespace
       auto s = count_str->get_name();
@@ -425,7 +428,7 @@ namespace rt::core
       if (actual !=  count)
       {
         std::stringstream ss;
-        ss <<  "count: " << count << "did not match LRC: " << actual;
+        ss <<  "count: " << count << " did not match LRC: " << actual;
         auto msg = ss.str();
         ui::error(msg, bridge);
       }

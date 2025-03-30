@@ -1,0 +1,3 @@
+# Not a string
+a = {}
+assert_lrc(a, a)

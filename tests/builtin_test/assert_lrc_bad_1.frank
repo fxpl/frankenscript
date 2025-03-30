@@ -1,0 +1,3 @@
+# Not a bridge
+a = {}
+assert_lrc(a, "2")
