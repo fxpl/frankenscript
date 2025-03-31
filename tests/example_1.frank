@@ -1,14 +1,14 @@
 # For debugging:
 # mermaid_show_functions()
 
-r = Region()
-c1 = Cown(r, "c1")
-r.f = {}
+c1 = Cown(None, "c1")
 
 @name("B1")
 when (c1):
-    print("Running B1")
+    r = Region()
+    c2 = Cown(r, "c2")
 
-is_closed(r)
-close(r)
-
+    when(c1, c2):
+        print("Running B1")
+    
+    r = None

@@ -30,21 +30,37 @@ namespace verona::interpreter
   // ==============================================
   // Statement Effects
   // ==============================================
+  // Handled by Interpreter
   struct ExecNext
   {};
 
+  // Handled by Interpreter
   struct ExecJump
   {
     trieste::Location target;
   };
 
+  // Handled by Interpreter
   struct ExecFunc
   {
     trieste::Node body;
     size_t arg_ctn;
   };
 
+  // Handled by Interpreter
   struct ExecReturn
+  {
+    std::optional<rt::objects::DynObject*> value;
+  };
+
+  // Scheduler?
+  struct ExecPrint
+  {
+    std::optional<rt::objects::DynObject*> value;
+  };
+
+  // Scheduler?
+  struct ExecSchedule
   {
     std::optional<rt::objects::DynObject*> value;
   };
@@ -140,7 +156,7 @@ namespace verona::interpreter
         ui->output(message);
 
         // Continue
-        return ExecNext{};
+        return ExecNext{}; // TODO: Return ExecPrint
       }
       if (node == Label)
       {
@@ -444,13 +460,21 @@ namespace verona::interpreter
           // arguments are still in reverse order on the stack, and the function
           // can potentially modify the "calling" frame.
           auto result = (builtin.value())(frame(), arg_ctn);
-          if (result)
+          auto is_schedule = rt::is_schedule_builtin() if (result)
           {
             auto value = result.value();
             frame()->stack_push(value, "result from builtin", false);
           }
           rt::remove_reference(frame()->object(), func);
-          return ExecNext{};
+
+          if (is_schedule)
+          {
+            return ExecSchedule{};
+          }
+          else
+          {
+            return ExecNext{};
+          }
         }
         else
         {
@@ -523,7 +547,8 @@ namespace verona::interpreter
     }
 
     // Returns true if this interpreter is done, otherwise false.
-    bool resume()
+    std::Variant<ExecPrint, ExecSchedule, ExecComplete, ExecBreak /* maybe for `breakpoint()` */ >
+     resume()
     {
       this->paused = false;
       auto frame = top_frame();
@@ -570,9 +595,11 @@ namespace verona::interpreter
         {
           frame->ip = frame->body->end();
         }
-        else
+        else if (
+          std::holds_alternative<ExecPrint>(action) ||
+          std::holds_alternative<ExecSchedule>(action))
         {
-          assert(false && "unhandled statement action");
+          return action;
         }
 
         if (frame->ip == frame->body->end())
@@ -594,7 +621,7 @@ namespace verona::interpreter
         }
       }
 
-      return !this->paused;
+      return ExecComplete{};
     }
 
     // This will pause the interpreter once it's done processing the current
@@ -646,7 +673,7 @@ namespace verona::interpreter
     for (auto cown : behavior->cowns)
     {
       // Get the last behavior that is waiting on the cown
-      auto cown_info = cowns.find(cown);
+      auto cown_info = this->cowns.find(cown);
       if (cown_info != cowns.end())
       {
         auto predecessor = cown_info->second;
@@ -678,6 +705,10 @@ namespace verona::interpreter
       ss << "New behavior `" << behavior->get_name() << "` is pending";
     }
 
+    // Two solutions:
+    // 1. Draw the schedule here and make sure that ExecSchedule doesn't
+    //    draw the scheudle
+    // 2. Store the message but use it explicitly
     this->next_schedule_msg = ss.str();
     if (this->current_int)
     {
@@ -722,12 +753,32 @@ namespace verona::interpreter
       this->current_int = inter;
       // TODO:
       // I believe, this would be the right place to only run one step at a time
-      if (inter->resume())
+      action = inter->resume();
+      //
+      auto should_break = false;
+      if (action == print)
       {
+        step--; // for interactive stuff
+        draw_schedule(action->string());
+        if (step == 0) {
+          should_break = true;
+        }
+      }
+      else if (action == schedule)
+      {
+        step++; // for interactive stuff
+        should_break = true;
+        // Don't draw since `add()` already did this
+      }
+      else if (action == complete)
+      {
+        should_break = true;
         this->complete(behavior);
       }
 
-      behavior = this->get_next();
+      if (should_break) {
+        behavior = this->get_next();
+      }
     }
 
     rt::remove_reference(nullptr, main_function);
@@ -768,6 +819,8 @@ namespace verona::interpreter
     mermaid->close_file();
   }
 
+  // Where the interactive magic happens
+  // We probably want an option to randomize this from a seed for testing
   rt::core::behavior_ptr Scheduler::get_next()
   {
     if (this->ready.empty())

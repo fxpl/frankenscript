@@ -16,6 +16,7 @@ namespace rt::objects
 
 namespace verona::interpreter
 {
+  // Move Interpreter def here (Including Exec* structs)
   class Interpreter;
   struct Bytecode;
 
