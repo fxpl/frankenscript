@@ -9,6 +9,8 @@
 
 namespace rt::core
 {
+  const std::string schedule_func_name = "spawn_behavior";
+
   using PrototypeObject = objects::PrototypeObject;
 
   inline PrototypeObject* framePrototypeObject()

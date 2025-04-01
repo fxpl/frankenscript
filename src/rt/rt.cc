@@ -30,6 +30,11 @@ namespace rt
     return nullptr;
   }
 
+  bool is_schedule_builtin(objects::DynObject* func)
+  {
+    return func == get_builtin(rt::core::schedule_func_name);
+  }
+
   std::string get_key(objects::DynObject* key)
   {
     // TODO Add some checking.  This is need to lookup the correct function in

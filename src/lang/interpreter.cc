@@ -56,7 +56,7 @@ namespace verona::interpreter
   // Scheduler?
   struct ExecPrint
   {
-    std::optional<rt::objects::DynObject*> value;
+    std::string value;
   };
 
   // Scheduler?
@@ -64,6 +64,9 @@ namespace verona::interpreter
   {
     std::optional<rt::objects::DynObject*> value;
   };
+  // Scheduler
+  struct ExecComplete
+  {};
 
   // ==============================================
   // Interpreter/state
@@ -140,7 +143,7 @@ namespace verona::interpreter
       return frame_stack.front()->frame;
     }
 
-    std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn>
+    std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule>
     run_stmt(trieste::Node& node)
     {
       // ==========================================
@@ -153,10 +156,9 @@ namespace verona::interpreter
         std::cout << ">>> " << message << std::endl;
 
         // Mermaid output
-        ui->output(message);
+        //ui->output(message);
 
-        // Continue
-        return ExecNext{}; // TODO: Return ExecPrint
+        return ExecPrint{message};
       }
       if (node == Label)
       {
@@ -460,7 +462,8 @@ namespace verona::interpreter
           // arguments are still in reverse order on the stack, and the function
           // can potentially modify the "calling" frame.
           auto result = (builtin.value())(frame(), arg_ctn);
-          auto is_schedule = rt::is_schedule_builtin() if (result)
+          auto is_schedule = rt::is_schedule_builtin(func);
+          if (result)
           {
             auto value = result.value();
             frame()->stack_push(value, "result from builtin", false);
@@ -546,8 +549,9 @@ namespace verona::interpreter
       rt::set_active_behavior(old_behavior);
     }
 
-    // Returns true if this interpreter is done, otherwise false.
-    std::Variant<ExecPrint, ExecSchedule, ExecComplete, ExecBreak /* maybe for `breakpoint()` */ >
+    // Returns 'ExecComplete' if this interpreter is done.
+    // Maybe add ExecBreak?
+    std::variant<ExecPrint, ExecSchedule, ExecComplete>
      resume()
     {
       this->paused = false;
@@ -555,7 +559,7 @@ namespace verona::interpreter
 
       rt::set_active_behavior(this->behavior);
 
-      while (!this->paused && frame)
+      while (frame)
       {
         const auto action = run_stmt(*frame->ip);
 
@@ -595,13 +599,29 @@ namespace verona::interpreter
         {
           frame->ip = frame->body->end();
         }
-        else if (
-          std::holds_alternative<ExecPrint>(action) ||
-          std::holds_alternative<ExecSchedule>(action))
-        {
-          return action;
-        }
 
+        // Ugly, but makes returned values more clear both here and in run_stmt()
+        else if (
+          std::holds_alternative<ExecPrint>(action))
+          {
+            frame->ip++;
+            if (frame->ip == frame->body->end())
+            {
+              frame = pop_stack_frame();
+            }
+            return std::get<ExecPrint>(action);
+          }
+        else if (
+          std::holds_alternative<ExecSchedule>(action))
+          {
+            frame->ip++;
+            return std::get<ExecSchedule>(action);
+          }
+        else
+        {
+          assert(false && "Unsuported operation");
+        }
+        
         if (frame->ip == frame->body->end())
         {
           if (std::holds_alternative<ExecReturn>(action))
@@ -709,10 +729,11 @@ namespace verona::interpreter
     // 1. Draw the schedule here and make sure that ExecSchedule doesn't
     //    draw the scheudle
     // 2. Store the message but use it explicitly
-    this->next_schedule_msg = ss.str();
+    //this->next_schedule_msg = ss.str();
+    draw_schedule(ss.str());
     if (this->current_int)
     {
-      this->current_int->pause();
+      //this->current_int->pause();
     }
   }
 
@@ -729,6 +750,7 @@ namespace verona::interpreter
     this->ready.push_back(behavior);
     // Seriously, why do we use this language? The memory problems I currently
     // have could easly be avoided.
+    size_t step{1};
     while (behavior)
     {
       Interpreter* inter;
@@ -753,31 +775,37 @@ namespace verona::interpreter
       this->current_int = inter;
       // TODO:
       // I believe, this would be the right place to only run one step at a time
-      action = inter->resume();
+      auto action = inter->resume();
       //
       auto should_break = false;
-      if (action == print)
+      if (std::holds_alternative<ExecPrint>(action))
       {
-        step--; // for interactive stuff
-        draw_schedule(action->string());
+        
+        //step--; // for interactive stuff
+        std::cout << ">>> " << "print" << std::endl;
+        // TODO check if we scheduled something previous step, ergo dont draw
+        draw_schedule(std::get<ExecPrint>(action).value);
         if (step == 0) {
           should_break = true;
         }
       }
-      else if (action == schedule)
+      else if (std::holds_alternative<ExecSchedule>(action))
       {
         step++; // for interactive stuff
         should_break = true;
+        std::cout << ">>> " << "schedule" << std::endl;
         // Don't draw since `add()` already did this
       }
-      else if (action == complete)
+      else if (std::holds_alternative<ExecComplete>(action))
       {
         should_break = true;
+        std::cout << ">>> " << "complete" << std::endl;
         this->complete(behavior);
       }
 
       if (should_break) {
         behavior = this->get_next();
+
       }
     }
 
@@ -801,7 +829,7 @@ namespace verona::interpreter
     behavior->succ.clear();
   }
 
-  void Scheduler::draw_scedule(std::string message)
+  void Scheduler::draw_schedule(std::string message)
   {
     if (this->next_schedule_msg)
     {
@@ -816,7 +844,8 @@ namespace verona::interpreter
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
     mermaid->output(message);
-    mermaid->close_file();
+    // TODO where do we want to close file, ergo cut off output?
+    //mermaid->close_file();
   }
 
   // Where the interactive magic happens
@@ -827,8 +856,9 @@ namespace verona::interpreter
     {
       return nullptr;
     }
-
-    this->draw_scedule("Current Schedule:");
+    std::cout << ">>> " << "hi" << std::endl;
+    this->draw_schedule("Current Schedule:");
+    std::cout << ">>> " << "hi" << std::endl;
 
     // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
     // language

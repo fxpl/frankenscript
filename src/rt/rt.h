@@ -15,6 +15,7 @@ namespace rt
     verona::interpreter::FrameObj*, size_t)>;
   void add_builtin(std::string name, BuiltinFuncPtr func);
   objects::DynObject* get_builtin(std::string name);
+  bool is_schedule_builtin(objects::DynObject* func);
   verona::interpreter::FrameObj*
   make_frame(verona::interpreter::FrameObj* parent);
 

@@ -84,7 +84,7 @@ namespace verona::interpreter
 
   private:
     void complete(rt::core::behavior_ptr behavior);
-    void draw_scedule(std::string message);
+    void draw_schedule(std::string message);
     rt::core::behavior_ptr get_next();
   };
 }

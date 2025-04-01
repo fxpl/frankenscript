@@ -420,7 +420,7 @@ namespace rt::core
 
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
-    add_builtin("spawn_behavior", [=](auto frame, auto args) {
+    add_builtin(rt::core::schedule_func_name, [=](auto frame, auto args) {
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behavior
       std::vector<objects::DynObject*> cowns = {};
