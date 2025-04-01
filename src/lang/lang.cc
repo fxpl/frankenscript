@@ -22,20 +22,22 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass()
 
 namespace verona::interpreter
 {
-  void start(trieste::Node main_body, int step_counter, std::string output);
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed);
 }
 
 struct CLIOptions : trieste::Options
 {
   int step_counter = std::numeric_limits<int>::max();
   std::string out = "mermaid.md";
+  bool interactive = false;
   int seed = 42;
 
   void configure(CLI::App& app)
   {
     app.add_flag(
       "-i,--interactive",
-      [&](auto) { step_counter = 0; },
+      //[&](auto) { step_counter = 0; },
+      [&](auto) {interactive = true;},
       "Run the interpreter iteratively");
     app.add_option(
       "-s,--step",
@@ -74,7 +76,7 @@ int load_trieste(int argc, char** argv)
   if (build_res == 0 && result->has_value())
   {
     verona::interpreter::start(
-      result->value(), options.step_counter, options.out);
+      result->value(), options.step_counter, options.out, options.interactive, options.seed);
   }
   return build_res;
 }

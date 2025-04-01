@@ -82,13 +82,16 @@ namespace verona::interpreter
     // For faster debugging
     bool prompt_user_for_steps{true};
 
+    // @brief seed for concurrency
+    int seed{42};
+
   public:
     Scheduler();
     ~Scheduler();
 
     void add(rt::core::behavior_ptr behavior);
 
-    void start(Bytecode* main);
+    void start(Bytecode* main_block, bool interactive, int seed);
 
     // void new_pending_cown(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
     // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);

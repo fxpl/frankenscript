@@ -652,7 +652,7 @@ namespace verona::interpreter
     }
   };
 
-  void start(trieste::Node main_body, int step_counter, std::string output)
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed)
   {
     auto ui = rt::ui::globalUI();
     ui->set_output_file(output);
@@ -665,7 +665,7 @@ namespace verona::interpreter
 
     size_t initial = rt::pre_run(ui, &s);
 
-    s.start(new Bytecode{main_body});
+    s.start(new Bytecode{main_body}, interactive, seed);
 
     rt::post_run(initial, ui);
   }
@@ -736,7 +736,7 @@ namespace verona::interpreter
     }
   }
 
-  void Scheduler::start(Bytecode* main_block)
+  void Scheduler::start(Bytecode* main_block, bool i, int s)
   {
     auto main_function = rt::make_func(main_block);
     // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
@@ -749,7 +749,8 @@ namespace verona::interpreter
     this->ready.push_back(behavior);
     // TODO take input
     prompt_user_for_steps = false;
-    //interactive = false;
+    this->interactive = i;
+    this->seed = s;
 
     while (behavior)
     {
