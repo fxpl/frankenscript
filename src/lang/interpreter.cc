@@ -660,7 +660,7 @@ namespace verona::interpreter
     {
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
     }
-
+    // TODO set seed
     Scheduler s;
 
     size_t initial = rt::pre_run(ui, &s);
@@ -689,7 +689,6 @@ namespace verona::interpreter
   {
     assert(behavior->status == rt::core::Behavior::Status::New);
 
-    // TODO add a testing mode that selects based on a seed
     for (auto cown : behavior->cowns)
     {
       // Get the last behavior that is waiting on the cown
@@ -748,8 +747,10 @@ namespace verona::interpreter
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behavior->status = rt::core::Behavior::Status::Ready;
     this->ready.push_back(behavior);
+    // TODO take input
+    prompt_user_for_steps = false;
+    //interactive = false;
 
-    //size_t step{1};
     while (behavior)
     {
       Interpreter* inter;
@@ -971,7 +972,15 @@ namespace verona::interpreter
           }
         }
       }
-      prompt_steps();
+      if (prompt_user_for_steps)
+      {
+        prompt_steps();
+      }
+      else
+      {
+        steps = std::numeric_limits<int>::max();
+      }
+
     }
     else
     {

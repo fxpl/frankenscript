@@ -79,6 +79,8 @@ namespace verona::interpreter
     /// @brief Indicates how many steps should be taken until
     /// prompting user again, in the case of interactive exec
     size_t steps{0};
+    // For faster debugging
+    bool prompt_user_for_steps{true};
 
   public:
     Scheduler();

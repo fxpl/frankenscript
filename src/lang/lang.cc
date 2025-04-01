@@ -29,6 +29,7 @@ struct CLIOptions : trieste::Options
 {
   int step_counter = std::numeric_limits<int>::max();
   std::string out = "mermaid.md";
+  int seed = 42;
 
   void configure(CLI::App& app)
   {
@@ -41,6 +42,7 @@ struct CLIOptions : trieste::Options
       step_counter,
       "Step n instructions before entering interactive mode");
     app.add_option("--out", out, "The output file for frankenscript");
+    app.add_option("--seed", seed, "Seed when selecting which concurrent unit to run");
   }
 
   void validate()

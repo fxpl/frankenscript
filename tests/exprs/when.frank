@@ -10,8 +10,5 @@ when (c1):
 when (c1, c2):
     r = c1
 
-when ():
-    r = c1
-
 when:
     r = None
