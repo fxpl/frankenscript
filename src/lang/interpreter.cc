@@ -772,36 +772,37 @@ namespace verona::interpreter
       }
 
       this->current_int = inter;
-      // TODO:
-      // I believe, this would be the right place to only run one step at a time
       auto action = inter->resume();
       auto should_break = false;
       if (std::holds_alternative<ExecPrint>(action))
       {
-        // TODO check if we scheduled something previous step, ergo dont draw
         draw_schedule(std::get<ExecPrint>(action).value);
         if (this->interactive)
         {
-          steps--;
           if (steps == 0) 
           {
             should_break = true;
           }
+          steps--;
         }
           
       }
       else if (std::holds_alternative<ExecSchedule>(action))
       {
-        steps++; // for interactive stuff
+        //steps++; // for interactive stuff
         should_break = true;
-        std::cout << ">>> " << "schedule" << std::endl;
+        // TODO print when(...)
+        std::cout << ">>> " << "scheduled behaviour" << std::endl;
         // Don't draw since `add()` already did this
       }
       else if (std::holds_alternative<ExecComplete>(action))
       {
         should_break = true;
-        std::cout << ">>> " << "complete" << std::endl;
+        std::cout << ">>> " << "Completed " << behavior->get_name() << std::endl;
         this->complete(behavior);
+        std::stringstream ss;
+        ss << "Completed " << behavior->get_name() << std::endl;
+        draw_schedule(ss.str());
       }
       if (this->interactive)
       {
@@ -920,7 +921,7 @@ namespace verona::interpreter
     {
       return nullptr;
     }
-    this->draw_schedule("Current Schedule:");
+    //this->draw_schedule("Current Schedule:");
 
     // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
     // language

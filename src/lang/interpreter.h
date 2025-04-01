@@ -75,10 +75,10 @@ namespace verona::interpreter
     bool interactive{true};
     /// @brief Indicates if this is the first break and the help message should
     /// be printed.
-    bool first_break{false};
+    bool first_break{true};
     /// @brief Indicates how many steps should be taken until
-    /// prompting user again
-    size_t steps{1};
+    /// prompting user again, in the case of interactive exec
+    size_t steps{0};
 
   public:
     Scheduler();
