@@ -599,24 +599,14 @@ namespace verona::interpreter
         {
           frame->ip = frame->body->end();
         }
-
-        // Ugly, but makes returned values more clear both here and in run_stmt()
+        // Could be moved to first if-statement but this addresses the possible values
+        // in listed order, for clarity
         else if (
-          std::holds_alternative<ExecPrint>(action))
-          {
-            frame->ip++;
-            if (frame->ip == frame->body->end())
-            {
-              frame = pop_stack_frame();
-            }
-            return std::get<ExecPrint>(action);
-          }
-        else if (
+          std::holds_alternative<ExecPrint>(action) ||
           std::holds_alternative<ExecSchedule>(action))
-          {
-            frame->ip++;
-            return std::get<ExecSchedule>(action);
-          }
+        {
+          frame->ip++;
+        }
         else
         {
           assert(false && "Unsuported operation");
@@ -638,6 +628,16 @@ namespace verona::interpreter
           }
 
           frame = pop_stack_frame();
+        }
+        // Ugly, but makes possible returned values more clear both here and in run_stmt()
+        // Cant return earlier as frame might have to be popped 
+        if (std::holds_alternative<ExecPrint>(action))
+        {
+          return std::get<ExecPrint>(action);
+        }
+        if (std::holds_alternative<ExecSchedule>(action))
+        {
+          return std::get<ExecSchedule>(action);
         }
       }
 
