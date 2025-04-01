@@ -71,6 +71,15 @@ namespace verona::interpreter
     // from the behavior. But no, this is faster;
     Interpreter* current_int;
 
+    // @brief Do we desire interactive execution
+    bool interactive{true};
+    /// @brief Indicates if this is the first break and the help message should
+    /// be printed.
+    bool first_break{false};
+    /// @brief Indicates how many steps should be taken until
+    /// prompting user again
+    size_t steps{1};
+
   public:
     Scheduler();
     ~Scheduler();
@@ -83,6 +92,7 @@ namespace verona::interpreter
     // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
 
   private:
+    void prompt_steps();
     void complete(rt::core::behavior_ptr behavior);
     void draw_schedule(std::string message);
     rt::core::behavior_ptr get_next();

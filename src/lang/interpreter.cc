@@ -748,9 +748,8 @@ namespace verona::interpreter
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behavior->status = rt::core::Behavior::Status::Ready;
     this->ready.push_back(behavior);
-    // Seriously, why do we use this language? The memory problems I currently
-    // have could easly be avoided.
-    size_t step{1};
+
+    //size_t step{1};
     while (behavior)
     {
       Interpreter* inter;
@@ -776,22 +775,24 @@ namespace verona::interpreter
       // TODO:
       // I believe, this would be the right place to only run one step at a time
       auto action = inter->resume();
-      //
       auto should_break = false;
       if (std::holds_alternative<ExecPrint>(action))
       {
-        
-        //step--; // for interactive stuff
-        std::cout << ">>> " << "print" << std::endl;
         // TODO check if we scheduled something previous step, ergo dont draw
         draw_schedule(std::get<ExecPrint>(action).value);
-        if (step == 0) {
-          should_break = true;
+        if (this->interactive)
+        {
+          steps--;
+          if (steps == 0) 
+          {
+            should_break = true;
+          }
         }
+          
       }
       else if (std::holds_alternative<ExecSchedule>(action))
       {
-        step++; // for interactive stuff
+        steps++; // for interactive stuff
         should_break = true;
         std::cout << ">>> " << "schedule" << std::endl;
         // Don't draw since `add()` already did this
@@ -802,15 +803,78 @@ namespace verona::interpreter
         std::cout << ">>> " << "complete" << std::endl;
         this->complete(behavior);
       }
-
-      if (should_break) {
-        behavior = this->get_next();
-
+      if (this->interactive)
+      {
+        if (should_break) 
+        {
+          behavior = this->get_next();
+        }
       }
+      // Always call if not interactive, otherwise there is no way
+      // to seed for certain execution strains
+      else
+      {
+        behavior = this->get_next();
+      }
+      
+      
+
+
+
     }
 
     rt::remove_reference(nullptr, main_function);
   }
+
+  void print_help()
+  {
+    std::cout << "Commands:" << std::endl;
+    std::cout << "- s <n>: Run n step (default n = 0) [Default]" << std::endl;
+    std::cout << "- r    : Runs until the next break point" << std::endl;
+    std::cout << "- h    : Prints this message " << std::endl;
+  }
+
+  void Scheduler::prompt_steps()
+  {
+    if (this->first_break)
+    {
+      print_help();
+      first_break = false;
+    }
+
+    while (true)
+    {
+      std::cout << "> ";
+      std::string line;
+      std::getline(std::cin, line);
+      std::istringstream iss(line);
+      std::string command;
+      iss >> command;
+
+      if (command == "s" || line.empty())
+      {
+        int n = 0;
+        steps = (iss >> n) ? n : 0;
+
+        return;
+      }
+      else if (command == "r")
+      {
+        steps = std::numeric_limits<int>::max();
+        return;
+      }
+      else if (command == "h")
+      {
+        print_help();
+      }
+      else
+      {
+        std::cerr << "Unknown command. Type 'h' for help." << std::endl;
+      }
+    }
+  }
+
+  
 
   void Scheduler::complete(rt::core::behavior_ptr behavior)
   {
@@ -856,55 +920,62 @@ namespace verona::interpreter
     {
       return nullptr;
     }
-    std::cout << ">>> " << "hi" << std::endl;
     this->draw_schedule("Current Schedule:");
-    std::cout << ">>> " << "hi" << std::endl;
 
     // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
     // language
     unsigned int selected = 0;
-    while (true)
+    if (this->interactive)
     {
-      // Promt the user:
-      std::cout << std::endl;
-      std::cout << "Available behaviors:" << std::endl;
-      for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
+      while (true)
       {
-        auto b = this->ready[idx];
-        std::cout << "- " << idx << ": " << b->get_name();
-
-        if (b->status == rt::core::Behavior::Status::Running)
-        {
-          std::cout << " (continue)";
-        }
+        // Promt the user:
         std::cout << std::endl;
-      }
-
-      // Get user input
-      std::cout << "> ";
-      std::string line;
-      std::getline(std::cin, line);
-
-      // Check for quit
-      if (line == "q")
-      {
-        exit(0);
-      }
-
-      // Check selection
-      std::istringstream iss(line);
-      int n = 0;
-      if (iss >> n)
-      {
-        selected = n;
-
-        // Sanity checks and preventing undefined behavior.
-        if (selected < this->ready.size())
+        std::cout << "Available behaviors:" << std::endl;
+        for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
         {
+          auto b = this->ready[idx];
+          std::cout << "- " << idx << ": " << b->get_name();
+
+          if (b->status == rt::core::Behavior::Status::Running)
+          {
+            std::cout << " (continue)";
+          }
           std::cout << std::endl;
-          break;
+        }
+
+        // Get user input
+        std::cout << "> ";
+        std::string line;
+        std::getline(std::cin, line);
+
+        // Check for quit
+        if (line == "q")
+        {
+          exit(0);
+        }
+
+        // Check selection
+        std::istringstream iss(line);
+        int n = 0;
+        if (iss >> n)
+        {
+          selected = n;
+
+          // Sanity checks and preventing undefined behavior.
+          if (selected < this->ready.size())
+          {
+            std::cout << std::endl;
+            break;
+          }
         }
       }
+      prompt_steps();
+    }
+    else
+    {
+      // TODO seed
+      selected = 0;
     }
 
     auto behavior = this->ready[selected];
