@@ -8,6 +8,7 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+#include <random>
 
 namespace rt::objects
 {
@@ -82,8 +83,9 @@ namespace verona::interpreter
     // For faster debugging
     bool prompt_user_for_steps{true};
 
-    // @brief seed for concurrency
-    int seed{42};
+    // @brief RNG for concurrency
+    std::mt19937 rng;
+
 
   public:
     Scheduler();

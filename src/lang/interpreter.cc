@@ -10,6 +10,7 @@
 #include <ranges>
 #include <variant>
 #include <vector>
+#include <random>
 
 namespace verona::interpreter
 {
@@ -660,7 +661,6 @@ namespace verona::interpreter
     {
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
     }
-    // TODO set seed
     Scheduler s;
 
     size_t initial = rt::pre_run(ui, &s);
@@ -750,8 +750,9 @@ namespace verona::interpreter
     // TODO take input
     prompt_user_for_steps = false;
     this->interactive = i;
-    this->seed = s;
+    this->rng.seed(s);
     this->prompt_user_for_steps = prompt_steps;
+
 
     while (behavior)
     {
@@ -986,8 +987,9 @@ namespace verona::interpreter
     }
     else
     {
-      // TODO seed
-      selected = 0;
+      // TODO 
+      std::uniform_int_distribution<int> dist(0, this->ready.size() - 1);
+      selected = dist(rng);
     }
 
     auto behavior = this->ready[selected];
