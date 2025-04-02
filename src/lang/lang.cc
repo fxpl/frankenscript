@@ -22,15 +22,16 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass()
 
 namespace verona::interpreter
 {
-  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed);
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool no_steps);
 }
 
 struct CLIOptions : trieste::Options
 {
   int step_counter = std::numeric_limits<int>::max();
   std::string out = "mermaid.md";
-  bool interactive = false;
+  bool interactive{false};
   int seed = 42;
+  bool no_steps{false};
 
   void configure(CLI::App& app)
   {
@@ -45,6 +46,7 @@ struct CLIOptions : trieste::Options
       "Step n instructions before entering interactive mode");
     app.add_option("--out", out, "The output file for frankenscript");
     app.add_option("--seed", seed, "Seed when selecting which concurrent unit to run");
+    app.add_flag("--no_steps", [&](auto) {no_steps = true;}, "Don't prompt user for steps");
   }
 
   void validate()
@@ -76,7 +78,7 @@ int load_trieste(int argc, char** argv)
   if (build_res == 0 && result->has_value())
   {
     verona::interpreter::start(
-      result->value(), options.step_counter, options.out, options.interactive, options.seed);
+      result->value(), options.step_counter, options.out, options.interactive, options.seed, options.no_steps);
   }
   return build_res;
 }
