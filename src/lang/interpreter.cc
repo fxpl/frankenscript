@@ -63,7 +63,7 @@ namespace verona::interpreter
   // Scheduler?
   struct ExecSchedule
   {
-    std::optional<rt::objects::DynObject*> value;
+    std::string value;
   };
   // Scheduler
   struct ExecComplete
@@ -153,8 +153,6 @@ namespace verona::interpreter
       if (node == Print)
       {
         auto message = std::string(node->location().view());
-        // Console output
-        std::cout << ">>> " << message << std::endl;
 
         // Mermaid output
         //ui->output(message);
@@ -630,14 +628,22 @@ namespace verona::interpreter
 
           frame = pop_stack_frame();
         }
+        // auto finished{false};
+        // if (!frame)
+        // {
+        //   finished = true;
+        // }
+        
         // Ugly, but makes possible returned values more clear both here and in run_stmt()
         // Cant return earlier as frame might have to be popped 
         if (std::holds_alternative<ExecPrint>(action))
         {
+          // TODO Store finished
           return std::get<ExecPrint>(action);
         }
         if (std::holds_alternative<ExecSchedule>(action))
         {
+          // TODO Store finished
           return std::get<ExecSchedule>(action);
         }
       }
@@ -730,10 +736,7 @@ namespace verona::interpreter
     // 2. Store the message but use it explicitly
     //this->next_schedule_msg = ss.str();
     draw_schedule(ss.str());
-    if (this->current_int)
-    {
-      //this->current_int->pause();
-    }
+    std::cout << ">>> " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
   }
 
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
@@ -742,16 +745,15 @@ namespace verona::interpreter
     // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
     // thereby also deleting the trieste nodes.
     rt::hack_inc_rc(main_function);
+    prompt_user_for_steps = false;
+    this->interactive = i;
+    this->rng.seed(s);
+    this->prompt_user_for_steps = prompt_steps;
     // :notes: I imagine a world without ugly c++ :notes:
     auto behavior = std::make_shared<rt::core::Behavior>(
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behavior->status = rt::core::Behavior::Status::Ready;
     this->ready.push_back(behavior);
-    // TODO take input
-    prompt_user_for_steps = false;
-    this->interactive = i;
-    this->rng.seed(s);
-    this->prompt_user_for_steps = prompt_steps;
 
 
     while (behavior)
@@ -780,7 +782,9 @@ namespace verona::interpreter
       auto should_break = false;
       if (std::holds_alternative<ExecPrint>(action))
       {
-        draw_schedule(std::get<ExecPrint>(action).value);
+        auto message = std::get<ExecPrint>(action).value;
+        std::cout << ">>> " << message << std::endl;
+        draw_schedule(message);
         if (this->interactive)
         {
           if (steps == 0) 
@@ -793,11 +797,8 @@ namespace verona::interpreter
       }
       else if (std::holds_alternative<ExecSchedule>(action))
       {
-        //steps++; // for interactive stuff
-        should_break = true;
-        // TODO print when(...)
-        std::cout << ">>> " << "scheduled behaviour" << std::endl;
         // Don't draw since `add()` already did this
+        should_break = true;
       }
       else if (std::holds_alternative<ExecComplete>(action))
       {

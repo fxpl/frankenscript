@@ -48,7 +48,7 @@ namespace rt::core
     else
     {
       std::stringstream ss;
-      ss << "Behavior_" << id;
+      ss << "Behaviour_" << id;
       name = ss.str();
     }
   }
