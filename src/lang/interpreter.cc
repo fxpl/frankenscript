@@ -54,7 +54,7 @@ namespace verona::interpreter
     std::optional<rt::objects::DynObject*> value;
   };
 
-  // Scheduler?
+  // Scheduler
   struct ExecPrint
   {
     std::string value;
@@ -66,8 +66,18 @@ namespace verona::interpreter
     std::string value;
   };
   // Scheduler
-  struct ExecComplete
+
+  struct ExecBreakpoint
   {};
+  using AllCommandsVariant = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
+  using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint>;
+
+  struct ExecInScheduler
+  {
+    Subaction_variant action;
+    bool exec_complete;
+  };
+
 
   // ==============================================
   // Interpreter/state
@@ -144,7 +154,7 @@ namespace verona::interpreter
       return frame_stack.front()->frame;
     }
 
-    std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule>
+    AllCommandsVariant
     run_stmt(trieste::Node& node)
     {
       // ==========================================
@@ -473,6 +483,8 @@ namespace verona::interpreter
           {
             return ExecSchedule{};
           }
+          // TODO catch breakpoint()
+          
           else
           {
             return ExecNext{};
@@ -548,15 +560,31 @@ namespace verona::interpreter
       rt::set_active_behavior(old_behavior);
     }
 
-    // Returns 'ExecComplete' if this interpreter is done.
-    // Maybe add ExecBreak?
-    std::variant<ExecPrint, ExecSchedule, ExecComplete>
+    // resume() helper
+    template<typename... Subset, typename... Superset>
+    std::variant<Subset...> narrow_variant(const std::variant<Superset...>& original)
+    {
+        return std::visit([](auto&& val) -> std::variant<Subset...> {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr ((std::is_same_v<T, Subset> || ...))
+            {
+                return val; // allowed type
+            }
+            else
+            {
+                throw std::bad_variant_access(); // or handle error
+            }
+        }, original);
+    }
+    
+    ExecInScheduler
      resume()
     {
-      this->paused = false;
+      auto return_to_scheduler{false};
       auto frame = top_frame();
 
       rt::set_active_behavior(this->behavior);
+      assert(frame && "Should never exit while-loop");
 
       while (frame)
       {
@@ -598,13 +626,13 @@ namespace verona::interpreter
         {
           frame->ip = frame->body->end();
         }
-        // Could be moved to first if-statement but this addresses the possible values
-        // in listed order, for clarity
         else if (
           std::holds_alternative<ExecPrint>(action) ||
-          std::holds_alternative<ExecSchedule>(action))
+          std::holds_alternative<ExecSchedule>(action) ||
+          std::holds_alternative<ExecBreakpoint>(action))
         {
           frame->ip++;
+          return_to_scheduler = true;
         }
         else
         {
@@ -628,27 +656,21 @@ namespace verona::interpreter
 
           frame = pop_stack_frame();
         }
-        // auto finished{false};
-        // if (!frame)
-        // {
-        //   finished = true;
-        // }
-        
-        // Ugly, but makes possible returned values more clear both here and in run_stmt()
-        // Cant return earlier as frame might have to be popped 
-        if (std::holds_alternative<ExecPrint>(action))
+        auto finished{false};
+        if (!frame)
         {
-          // TODO Store finished
-          return std::get<ExecPrint>(action);
+          finished = true;
         }
-        if (std::holds_alternative<ExecSchedule>(action))
+        if (return_to_scheduler)
         {
-          // TODO Store finished
-          return std::get<ExecSchedule>(action);
+          auto sub_action = narrow_variant<ExecPrint, ExecSchedule, ExecBreakpoint>(action);
+          return ExecInScheduler{sub_action, finished};
         }
+
       }
 
-      return ExecComplete{};
+      assert(false && "Should never exit while-loop");
+      return ExecInScheduler{};
     }
 
     // This will pause the interpreter once it's done processing the current
@@ -736,7 +758,7 @@ namespace verona::interpreter
     // 2. Store the message but use it explicitly
     //this->next_schedule_msg = ss.str();
     draw_schedule(ss.str());
-    std::cout << ">>> " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
+    std::cout << "!!! " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
   }
 
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
@@ -778,8 +800,9 @@ namespace verona::interpreter
       }
 
       this->current_int = inter;
-      auto action = inter->resume();
-      auto should_break = false;
+      auto result = inter->resume();
+      auto action = result.action;
+      auto should_break{false};
       if (std::holds_alternative<ExecPrint>(action))
       {
         auto message = std::get<ExecPrint>(action).value;
@@ -795,15 +818,18 @@ namespace verona::interpreter
         }
           
       }
-      else if (std::holds_alternative<ExecSchedule>(action))
+      else if (std::holds_alternative<ExecSchedule>(action) ||
+      std::holds_alternative<ExecBreakpoint>(action))
       {
         // Don't draw since `add()` already did this
         should_break = true;
       }
-      else if (std::holds_alternative<ExecComplete>(action))
+      else {}
+      //else if (std::holds_alternative<ExecComplete>(action))
+      if (result.exec_complete)
       {
         should_break = true;
-        std::cout << ">>> " << "Completed " << behavior->get_name() << std::endl;
+        std::cout << "!!! " << "Completed " << behavior->get_name() << std::endl;
         this->complete(behavior);
         std::stringstream ss;
         ss << "Completed " << behavior->get_name() << std::endl;
