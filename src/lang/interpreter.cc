@@ -91,7 +91,7 @@ namespace verona::interpreter
 
   class Interpreter
   {
-    bool paused = false;
+    bool prev_breakpoint_call = false;
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
     rt::core::behavior_ptr behavior;
@@ -483,8 +483,10 @@ namespace verona::interpreter
           {
             return ExecSchedule{};
           }
-          // TODO catch breakpoint()
-          
+          else if(rt::is_breakpoint_builtin(func))
+          {
+            return ExecBreakpoint{};
+          }
           else
           {
             return ExecNext{};
@@ -672,13 +674,6 @@ namespace verona::interpreter
       assert(false && "Should never exit while-loop");
       return ExecInScheduler{};
     }
-
-    // This will pause the interpreter once it's done processing the current
-    // statement.
-    void pause()
-    {
-      this->paused = true;
-    }
   };
 
   void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps)
@@ -818,12 +813,22 @@ namespace verona::interpreter
         }
           
       }
-      else if (std::holds_alternative<ExecSchedule>(action) ||
-      std::holds_alternative<ExecBreakpoint>(action))
-      {
+      else if (std::holds_alternative<ExecSchedule>(action)){
         // Don't draw since `add()` already did this
         should_break = true;
       }
+      else if (std::holds_alternative<ExecBreakpoint>(action))
+      {
+        should_break = true;
+        std::stringstream ss;
+        ss  << "Reached breakpoint in " << behavior->get_name() << std::endl;
+        draw_schedule(ss.str());
+        std::cout << "!!! " << ss.str();
+        // TODO only do this and let ExecPrint handle the rest, since ExecPrint follows
+        // the call of breakpoint()
+        //this->current_int->signal_breakpoint_call()
+      }
+      
       else {}
       //else if (std::holds_alternative<ExecComplete>(action))
       if (result.exec_complete)

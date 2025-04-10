@@ -35,6 +35,11 @@ namespace rt
     return func == get_builtin(rt::core::schedule_func_name);
   }
 
+  bool is_breakpoint_builtin(objects::DynObject* func)
+  {
+    return func == get_builtin(rt::core::breakpoint_func_name);
+  }
+
   std::string get_key(objects::DynObject* key)
   {
     // TODO Add some checking.  This is need to lookup the correct function in
