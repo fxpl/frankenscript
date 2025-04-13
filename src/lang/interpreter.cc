@@ -68,7 +68,9 @@ namespace verona::interpreter
   // Scheduler
 
   struct ExecBreakpoint
-  {};
+  {
+    std::string value;
+  };
   using AllCommandsVariant = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
   using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint>;
 
@@ -91,7 +93,6 @@ namespace verona::interpreter
 
   class Interpreter
   {
-    bool prev_breakpoint_call = false;
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
     rt::core::behavior_ptr behavior;
@@ -534,6 +535,7 @@ namespace verona::interpreter
     }
 
   public:
+    bool prev_breakpoint_call = false;
     Interpreter(
       rt::ui::UI* ui_,
       trieste::Node block,
@@ -802,6 +804,14 @@ namespace verona::interpreter
       {
         auto message = std::get<ExecPrint>(action).value;
         std::cout << ">>> " << message << std::endl;
+        if (this->current_int->prev_breakpoint_call)
+        {
+          this->current_int->prev_breakpoint_call = false;
+          std::cout << "!!! " << "Reached breakpoint in " << behavior->get_name() << std::endl;
+          should_break = true;
+        }
+        // TODO whole string
+        
         draw_schedule(message);
         if (this->interactive)
         {
@@ -819,14 +829,18 @@ namespace verona::interpreter
       }
       else if (std::holds_alternative<ExecBreakpoint>(action))
       {
-        should_break = true;
-        std::stringstream ss;
-        ss  << "Reached breakpoint in " << behavior->get_name() << std::endl;
-        draw_schedule(ss.str());
-        std::cout << "!!! " << ss.str();
+        // should_break = true;
+        // std::stringstream ss_print;
+        // ss_print << "Line " << std::get<ExecBreakpoint>(action).value << ":" << std::endl;
+        // std::stringstream ss_schedule;
+        // ss_schedule  << "Reached breakpoint in " << behavior->get_name() << std::endl;
+        // std::stringstream ss_draw;
+        // ss_draw << ss_print.str() << ss_schedule.str();
+        // draw_schedule(ss_draw.str());
+        // std::cout << "<<< " << ss_print.str() << "!!! " << ss_schedule.str();
         // TODO only do this and let ExecPrint handle the rest, since ExecPrint follows
         // the call of breakpoint()
-        //this->current_int->signal_breakpoint_call()
+        this->current_int->prev_breakpoint_call = true;
       }
       
       else {}
@@ -847,9 +861,10 @@ namespace verona::interpreter
           behavior = this->get_next();
         }
       }
-      // Always call if not interactive, otherwise there is no way
-      // to seed for certain execution strains
-      else
+      // "Always" call if not interactive, otherwise there is no way
+      // to seed for certain execution strains.
+      // The expection being breakpoints
+      else if (!this->current_int->prev_breakpoint_call)
       {
         behavior = this->get_next();
       }

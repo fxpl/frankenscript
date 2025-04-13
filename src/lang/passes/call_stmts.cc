@@ -23,10 +23,10 @@ PassDef call_stmts()
           {
             return Seq << _(Call);
           }
-          else if (_(Ident)->location().view() == "breakpoint")
-          {
-            return Seq << _(Call);
-          }
+          // else if (_(Ident)->location().view() == "breakpoint")
+          // {
+          //   return Seq << _(Call);
+          // }
           else
           {
             return Seq << _(Call) << ClearStack << create_print(_(Call));
