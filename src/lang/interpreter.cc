@@ -535,6 +535,8 @@ namespace verona::interpreter
     }
 
   public:
+    // Allows printing of schedule/breakpoint 
+    bool prev_schedule_call = false;
     bool prev_breakpoint_call = false;
     Interpreter(
       rt::ui::UI* ui_,
@@ -753,9 +755,9 @@ namespace verona::interpreter
     // 1. Draw the schedule here and make sure that ExecSchedule doesn't
     //    draw the scheudle
     // 2. Store the message but use it explicitly
-    //this->next_schedule_msg = ss.str();
-    draw_schedule(ss.str());
-    std::cout << "!!! " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
+    this->next_schedule_msg = ss.str();
+    //draw_schedule(ss.str());
+    //std::cout << "!!! " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
   }
 
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
@@ -802,17 +804,28 @@ namespace verona::interpreter
       auto should_break{false};
       if (std::holds_alternative<ExecPrint>(action))
       {
-        auto message = std::get<ExecPrint>(action).value;
-        std::cout << ">>> " << message << std::endl;
-        if (this->current_int->prev_breakpoint_call)
+        auto line_string = std::get<ExecPrint>(action).value;
+        std::stringstream draw_ss;
+        std::stringstream terminal_ss;
+        draw_ss << line_string << std::endl;
+        terminal_ss << ">>> " << draw_ss.str();
+        if (this->current_int->prev_schedule_call)
+        {
+          this->current_int->prev_schedule_call = false;
+          draw_ss << this->next_schedule_msg << std::endl; 
+          terminal_ss << "!!! " << "Scheduled new behaviour" << std::endl;
+          should_break = true;
+        }
+        else if (this->current_int->prev_breakpoint_call)
         {
           this->current_int->prev_breakpoint_call = false;
-          std::cout << "!!! " << "Reached breakpoint in " << behavior->get_name() << std::endl;
+          draw_ss << "Reached breakpoint in " << behavior->get_name() << std::endl;
+          terminal_ss << "!!! " << "Reached breakpoint in " << behavior->get_name() << std::endl;
           should_break = true;
         }
         // TODO whole string
-        
-        draw_schedule(message);
+        std::cout << terminal_ss.str();
+        draw_schedule(draw_ss.str());
         if (this->interactive)
         {
           if (steps == 0) 
@@ -821,11 +834,14 @@ namespace verona::interpreter
           }
           steps--;
         }
+
           
       }
       else if (std::holds_alternative<ExecSchedule>(action)){
-        // Don't draw since `add()` already did this
-        should_break = true;
+        this->current_int->prev_schedule_call = true;
+        // Assumption: Schedule is implemented through a builtin function call
+        // Its Call node will always be followed by a Print node 
+        assert(!result.exec_complete);
       }
       else if (std::holds_alternative<ExecBreakpoint>(action))
       {
@@ -841,10 +857,17 @@ namespace verona::interpreter
         // TODO only do this and let ExecPrint handle the rest, since ExecPrint follows
         // the call of breakpoint()
         this->current_int->prev_breakpoint_call = true;
+        // Assumption: Breakpoint is implemented through a builtin function call
+        // Its Call node will always be followed by a Print node 
+        assert(!result.exec_complete);
       }
-      
-      else {}
+      else 
+      {
+        assert(false && "Unsuported operation");
+      }
       //else if (std::holds_alternative<ExecComplete>(action))
+      // TODO move bellow into ExecPrint
+
       if (result.exec_complete)
       {
         should_break = true;
@@ -864,8 +887,8 @@ namespace verona::interpreter
       }
       // "Always" call if not interactive, otherwise there is no way
       // to seed for certain execution strains.
-      // The expection being breakpoints
-      else if (!this->current_int->prev_breakpoint_call)
+      // The expection being breakpoints/schedule
+      else if (std::holds_alternative<ExecPrint>(action))
       {
         behavior = this->get_next();
       }
@@ -914,11 +937,11 @@ namespace verona::interpreter
 
   void Scheduler::draw_schedule(std::string message)
   {
-    if (this->next_schedule_msg)
-    {
-      message = this->next_schedule_msg.value();
-      this->next_schedule_msg.reset();
-    }
+    // if (this->next_schedule_msg)
+    // {
+    //   message = this->next_schedule_msg.value();
+    //   this->next_schedule_msg.reset();
+    // }
 
     // FIXME: We should really get wrid of the UI* abstraction. There is no way
     // that we'll ever change the output at this point and it just makes several

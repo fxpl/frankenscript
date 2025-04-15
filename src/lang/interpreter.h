@@ -59,12 +59,9 @@ namespace verona::interpreter
     // on C++
     std::unordered_map<rt::core::behavior_ptr, Interpreter*> running = {};
 
-    // FIXME: To not pause twice for a new behavior (schedule::Add) and
-    // inter->pause() we'll store a message here for the next
-    // draw scedule.
-    // TO be clear, this is super duper hacky and shouldn't be done
-    // like this.
-    std::optional<std::string> next_schedule_msg;
+    // Necessary to print the line and information of a scheduled behaviour in
+    // one go, since Call nodes do not store what line they were called from
+    std::string next_schedule_msg;
 
     // FIXME:
     // This should likely be gotten by requesting the current

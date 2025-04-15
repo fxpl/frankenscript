@@ -19,15 +19,15 @@ PassDef call_stmts()
     {
       In(Block) * (T(Call)[Call] << T(Ident)[Ident]) >>
         [](auto& _) {
-          if (_(Ident)->location().view() == "spawn_behavior")
-          {
-            return Seq << _(Call);
-          }
+          // if (_(Ident)->location().view() == "spawn_behavior")
+          // {
+          //   return Seq << _(Call);
+          // }
           // else if (_(Ident)->location().view() == "breakpoint")
           // {
           //   return Seq << _(Call);
           // }
-          else
+          if(true)
           {
             return Seq << _(Call) << ClearStack << create_print(_(Call));
           }
