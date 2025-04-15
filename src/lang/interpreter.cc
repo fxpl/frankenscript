@@ -712,6 +712,13 @@ namespace verona::interpreter
     reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list = nullptr;
   }
 
+  std::string format_behaviour_name(std::string name)
+  {
+    std::stringstream ss;
+    ss << "`" << name << "`";
+    return ss.str();
+  }
+
   void Scheduler::add(rt::core::behavior_ptr behavior)
   {
     assert(behavior->status == rt::core::Behavior::Status::New);
@@ -743,12 +750,12 @@ namespace verona::interpreter
     {
       this->ready.push_back(behavior);
       behavior->status = rt::core::Behavior::Status::Ready;
-      ss << "New behavior `" << behavior->get_name() << "` is ready";
+      ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is ready";
     }
     else
     {
       behavior->status = rt::core::Behavior::Status::Pending;
-      ss << "New behavior `" << behavior->get_name() << "` is pending";
+      ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is pending";
     }
 
     // Two solutions:
@@ -757,7 +764,7 @@ namespace verona::interpreter
     // 2. Store the message but use it explicitly
     this->next_schedule_msg = ss.str();
     //draw_schedule(ss.str());
-    //std::cout << "!!! " << "Scheduled `" << behavior->get_name() << "`" << std::endl;
+    //std::cout << "!!! " << "Scheduled `" << format_behaviour_name(behavior->get_name()) << "`" << std::endl;
   }
 
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
@@ -819,8 +826,8 @@ namespace verona::interpreter
         else if (this->current_int->prev_breakpoint_call)
         {
           this->current_int->prev_breakpoint_call = false;
-          draw_ss << "Reached breakpoint in " << behavior->get_name() << std::endl;
-          terminal_ss << "!!! " << "Reached breakpoint in " << behavior->get_name() << std::endl;
+          draw_ss << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
+          terminal_ss << "!!! " << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
           should_break = true;
         }
         // TODO whole string
@@ -849,7 +856,7 @@ namespace verona::interpreter
         // std::stringstream ss_print;
         // ss_print << "Line " << std::get<ExecBreakpoint>(action).value << ":" << std::endl;
         // std::stringstream ss_schedule;
-        // ss_schedule  << "Reached breakpoint in " << behavior->get_name() << std::endl;
+        // ss_schedule  << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
         // std::stringstream ss_draw;
         // ss_draw << ss_print.str() << ss_schedule.str();
         // draw_schedule(ss_draw.str());
@@ -871,10 +878,10 @@ namespace verona::interpreter
       if (result.exec_complete)
       {
         should_break = true;
-        std::cout << "!!! " << "Completed " << behavior->get_name() << std::endl;
+        std::cout << "!!! " << "Completed " << format_behaviour_name(behavior->get_name()) << std::endl;
         this->complete(behavior);
         std::stringstream ss;
-        ss << "Completed " << behavior->get_name() << std::endl;
+        ss << "Completed " << format_behaviour_name(behavior->get_name()) << std::endl;
         draw_schedule(ss.str());
       }
       if (this->interactive)
@@ -883,6 +890,10 @@ namespace verona::interpreter
         {
           behavior = this->get_next();
           steps = std::numeric_limits<int>::max();
+          std::stringstream ss;
+          ss << "Entering behaviour " << format_behaviour_name(behavior->get_name()) << std::endl;
+          std::cout << "!!! " << ss.str();
+          draw_schedule(ss.str(), true);
         }
       }
       // "Always" call if not interactive, otherwise there is no way
@@ -935,7 +946,7 @@ namespace verona::interpreter
     behavior->succ.clear();
   }
 
-  void Scheduler::draw_schedule(std::string message)
+  void Scheduler::draw_schedule(std::string message, bool bp)
   {
     // if (this->next_schedule_msg)
     // {
@@ -949,9 +960,12 @@ namespace verona::interpreter
     auto ui = rt::ui::globalUI();
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
+    if (bp)
+    {
+      mermaid->close_file();
+    }
     mermaid->output(message);
     // TODO where do we want to close file, ergo cut off output?
-    //mermaid->close_file();
   }
   
   rt::core::behavior_ptr Scheduler::get_next()

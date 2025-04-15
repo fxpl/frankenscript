@@ -98,7 +98,7 @@ namespace verona::interpreter
   private:
     void prompt_steps();
     void complete(rt::core::behavior_ptr behavior);
-    void draw_schedule(std::string message);
+    void draw_schedule(std::string message, bool bp = false);
     rt::core::behavior_ptr get_next();
   };
 }
