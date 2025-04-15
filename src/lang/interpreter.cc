@@ -859,6 +859,7 @@ namespace verona::interpreter
         if (should_break) 
         {
           behavior = this->get_next();
+          steps = std::numeric_limits<int>::max();
         }
       }
       // "Always" call if not interactive, otherwise there is no way
@@ -893,46 +894,12 @@ namespace verona::interpreter
       print_help();
       first_break = false;
     }
-
-    while (true)
-    {
-      std::cout << "> ";
-      std::string line;
-      std::getline(std::cin, line);
-      std::istringstream iss(line);
-      std::string command;
-      iss >> command;
-
-      if (command == "s" || line.empty())
-      {
-        int n = 0;
-        steps = (iss >> n) ? n : 0;
-
-        return;
-      }
-      else if (command == "r")
-      {
-        steps = std::numeric_limits<int>::max();
-        return;
-      }
-      else if (command == "h")
-      {
-        print_help();
-      }
-      else
-      {
-        std::cerr << "Unknown command. Type 'h' for help." << std::endl;
-      }
-    }
   }
-
-  
 
   void Scheduler::complete(rt::core::behavior_ptr behavior)
   {
     behavior->complete();
     std::erase(this->ready, behavior);
-
     for (auto succ : behavior->succ)
     {
       succ->pred_ctn -= 1;
@@ -963,74 +930,95 @@ namespace verona::interpreter
     // TODO where do we want to close file, ergo cut off output?
     //mermaid->close_file();
   }
-
-  // Where the interactive magic happens
-  // We probably want an option to randomize this from a seed for testing
+  
   rt::core::behavior_ptr Scheduler::get_next()
   {
     if (this->ready.empty())
     {
       return nullptr;
     }
-    //this->draw_schedule("Current Schedule:");
 
-    // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
-    // language
-    unsigned int selected = 0;
+    size_t selected;
     if (this->interactive)
     {
       while (true)
       {
-        // Promt the user:
-        std::cout << std::endl;
-        std::cout << "Available behaviors:" << std::endl;
-        for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
-        {
-          auto b = this->ready[idx];
-          std::cout << "- " << idx << ": " << b->get_name();
-
-          if (b->status == rt::core::Behavior::Status::Running)
-          {
-            std::cout << " (continue)";
-          }
+      // Prompt the user:
           std::cout << std::endl;
-        }
-
-        // Get user input
-        std::cout << "> ";
-        std::string line;
-        std::getline(std::cin, line);
-
-        // Check for quit
-        if (line == "q")
-        {
-          exit(0);
-        }
-
-        // Check selection
-        std::istringstream iss(line);
-        int n = 0;
-        if (iss >> n)
-        {
-          selected = n;
-
-          // Sanity checks and preventing undefined behavior.
-          if (selected < this->ready.size())
+          std::cout << "Available behaviors:" << std::endl;
+          for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
           {
-            std::cout << std::endl;
-            break;
+              auto b = this->ready[idx];
+              std::cout << "- " << idx << ": " << b->get_name();
+      
+              if (b->status == rt::core::Behavior::Status::Running)
+              {
+                  std::cout << " (continue)";
+              }
+              std::cout << std::endl;
           }
-        }
-      }
-      if (prompt_user_for_steps)
-      {
-        prompt_steps();
-      }
-      else
-      {
-        steps = std::numeric_limits<int>::max();
-      }
+      
+          // Get user input
+          std::cout << "> ";
+          std::string line;
+          std::getline(std::cin, line);
+      
+          // Check for quit
+          if (line == "q")
+          {
+              exit(0);
+          }
+      
+          // Check for step command
+          if (line.size() > 1 && line[0] == 's')
+          {
+              size_t comma_pos = line.find(',');
+              if (comma_pos != std::string::npos)
+              {
+                  std::string idx_str = line.substr(1, comma_pos - 1);
+                  std::string count_str = line.substr(comma_pos + 1);
+      
+                  size_t idx = 0, count = 0;
+                  std::istringstream idx_iss(idx_str);
+                  std::istringstream count_iss(count_str);
+      
+                  if (idx_iss >> idx && count_iss >> count && idx < this->ready.size())
+                  {
+                      selected = idx;
+                      steps = count;
+                      //std::cout << "\nStepping behavior " << idx << " for " << count << " times." << std::endl;
+                      break;
+                  }
+              }
+          }
+          else
+          {
+            steps = std::numeric_limits<int>::max();
+            // Check for Enter press
+            if (this->ready.size() == 1 && line == "")
+            {
+              selected = 0;
+              break;
+            }
+            // Handle normal selection
+            std::istringstream iss(line);
+            size_t n = 0;
+            if (iss >> n && n < this->ready.size())
+            {
+              selected = n;
+              break;
+            }
+          }
+        // if (prompt_user_for_steps)
+        // {
+        //   prompt_steps();
+        // }
+        // else
+        // {
+        //   steps = std::numeric_limits<int>::max();
+        // }
 
+      }
     }
     else
     {
