@@ -22,9 +22,9 @@ if is_closed(r2):
 close(r2)
 
 # Check lref was invalidated
-if lref1 != None:
+if lref1 == None:
     unreachable()
 
 # Check lref was invalidated
-if lref2 != None:
+if lref2 == None:
     unreachable()

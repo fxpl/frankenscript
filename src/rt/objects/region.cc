@@ -341,7 +341,9 @@ namespace rt::objects
     });
 
     // Calculate real LRC
-    to_close_reg->sub_region_reference_count = total_rc - intra_region_rc;
+    to_close_reg->local_reference_count = total_rc - intra_region_rc;
+
+    std::cout << "total:" << total_rc << " intra:" << intra_region_rc << std::endl;
 
     to_close_reg->is_lrc_dirty = false;
     if (to_close_reg->combined_lrc() == 0) 
@@ -382,11 +384,12 @@ namespace rt::objects
     {
       return true;
     }
-
+    // TODO why check sbrc
     if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
     {
       // TODO change name?
       clean_lrcs_and_close(this);
+      dirty_regions.erase(this);
     }
 
     return is_closed();

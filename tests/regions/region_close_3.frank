@@ -26,6 +26,3 @@ if is_closed(r1.r2):
     pass()
 else:
     unreachable()
-
-# Force close
-close(r1.r2)

@@ -54,25 +54,28 @@ namespace verona::interpreter
     std::optional<rt::objects::DynObject*> value;
   };
 
-  // Scheduler
+  // Scheduler #########################################
+  
   struct ExecPrint
   {
     std::string value;
   };
 
-  // Scheduler?
   struct ExecSchedule
   {
     std::string value;
   };
-  // Scheduler
 
   struct ExecBreakpoint
   {
     std::string value;
   };
+
+  struct MainComplete
+  {};
+
   using AllCommandsVariant = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
-  using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint>;
+  using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
 
   struct ExecInScheduler
   {
@@ -590,7 +593,7 @@ namespace verona::interpreter
       auto frame = top_frame();
 
       rt::set_active_behavior(this->behavior);
-      assert(frame && "Should never exit while-loop");
+      assert(frame);
 
       while (frame)
       {
@@ -669,14 +672,14 @@ namespace verona::interpreter
         }
         if (return_to_scheduler)
         {
-          auto sub_action = narrow_variant<ExecPrint, ExecSchedule, ExecBreakpoint>(action);
+          auto sub_action = narrow_variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>(action);
+          assert(!std::holds_alternative<MainComplete>(sub_action));
           return ExecInScheduler{sub_action, finished};
         }
 
       }
-
-      assert(false && "Should never exit while-loop");
-      return ExecInScheduler{};
+      // Last instruction in main might not be any of the other three
+      return ExecInScheduler{MainComplete{}, true};
     }
   };
 
@@ -830,7 +833,6 @@ namespace verona::interpreter
           terminal_ss << "!!! " << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
           should_break = true;
         }
-        // TODO whole string
         std::cout << terminal_ss.str();
         draw_schedule(draw_ss.str());
         if (this->interactive)
@@ -840,6 +842,10 @@ namespace verona::interpreter
             should_break = true;
           }
           steps--;
+        }
+        else
+        {
+          should_break = true;
         }
 
           
@@ -868,12 +874,14 @@ namespace verona::interpreter
         // Its Call node will always be followed by a Print node 
         assert(!result.exec_complete);
       }
+      else if (std::holds_alternative<MainComplete>(action))
+      {
+        assert(result.exec_complete);
+      }
       else 
       {
         assert(false && "Unsuported operation");
       }
-      //else if (std::holds_alternative<ExecComplete>(action))
-      // TODO move bellow into ExecPrint
 
       if (result.exec_complete)
       {
@@ -884,11 +892,11 @@ namespace verona::interpreter
         ss << "Completed " << format_behaviour_name(behavior->get_name()) << std::endl;
         draw_schedule(ss.str());
       }
-      if (this->interactive)
+      if (should_break)
       {
-        if (should_break) 
+        behavior = this->get_next();
+        if (this->interactive) 
         {
-          behavior = this->get_next();
           steps = std::numeric_limits<int>::max();
           std::stringstream ss;
           ss << "Entering behaviour " << format_behaviour_name(behavior->get_name()) << std::endl;
@@ -899,10 +907,10 @@ namespace verona::interpreter
       // "Always" call if not interactive, otherwise there is no way
       // to seed for certain execution strains.
       // The expection being breakpoints/schedule
-      else if (std::holds_alternative<ExecPrint>(action))
-      {
-        behavior = this->get_next();
-      }
+      // else if (std::holds_alternative<ExecPrint>(action))
+      // {
+      //   behavior = this->get_next();
+      // }
       
       
 
