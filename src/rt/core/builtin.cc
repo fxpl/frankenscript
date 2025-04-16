@@ -228,7 +228,7 @@ namespace rt::core
   }
 
   bool close_function_impl(
-    verona::interpreter::FrameObj* frame, size_t args, bool force_close)
+    verona::interpreter::FrameObj* frame, size_t args)
   {
     if (args != 1)
     {
@@ -266,14 +266,7 @@ namespace rt::core
       // We have to remove our reference, as it would otherwise break the
       // `is_closed()` check from the forced close
       rt::remove_reference(frame->object(), bridge);
-      if (force_close)
-      {
-        region->close();
-      }
-      else
-      {
-        region->try_close();
-      }
+      region->try_close();
     }
 
     return region->is_closed();
@@ -307,11 +300,11 @@ namespace rt::core
     });
 
     add_builtin("close", [](auto frame, auto args) {
-      close_function_impl(frame, args, true);
+      close_function_impl(frame, args);
       return std::nullopt;
     });
     add_builtin("is_closed", [](auto frame, auto args) {
-      auto result = close_function_impl(frame, args, false);
+      auto result = close_function_impl(frame, args);
       auto result_obj = rt::get_bool(result);
       // The return will be linked to the frame by the interpreter, but the RC
       // has to be increased here.

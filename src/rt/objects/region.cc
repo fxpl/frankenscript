@@ -283,7 +283,7 @@ namespace rt::objects
 
     bool continue_visit = true;
     std::set<DynObject*> seen_o;
-    std::set<Edge> seen_e;
+    //std::set<Edge> seen_e;
     size_t intra_region_rc{0};
     size_t total_rc{0};
     // FIXME: This works only for the current behavior that has
@@ -292,7 +292,7 @@ namespace rt::objects
     visit(to_close_reg, [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
-      if (!src || !dst || seen_e.contains(e)) // C++ if-statements are lazy no?
+      if (!src || !dst)
       {
         return continue_visit;
       }
@@ -309,7 +309,7 @@ namespace rt::objects
       }
       // We know dst is an intra region obj
       intra_region_rc++;
-      seen_e.insert(e);
+      //seen_e.insert(e);
       return continue_visit;
 
       // auto invalidate = dst_reg == to_close_reg;
@@ -385,7 +385,8 @@ namespace rt::objects
 
     if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
     {
-      clean_lrcs();
+      // TODO change name?
+      clean_lrcs_and_close(this);
     }
 
     return is_closed();
