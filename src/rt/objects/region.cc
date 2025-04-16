@@ -266,81 +266,98 @@ namespace rt::objects
     remove_region_reference(src_region, old_target_region);
   }
 
-  void Region::clean_lrcs_and_close(Region* to_close_reg)
-  {
-    if (
-      dirty_regions.empty() &&
-      (to_close_reg == nullptr || to_close_reg->is_closed()))
-    {
-      return;
-    }
+  bool Region::clean_lrcs_and_close(Region* to_close_reg)
+  { 
 
-    for (auto r : dirty_regions)
+    if ((to_close_reg == nullptr || to_close_reg->is_closed()))
     {
-      r->local_reference_count = 0;
+      return true;
     }
+    // LRC isn't dirty and yet region hasn't been closed
+    // TODO no error?
+    if (!dirty_regions.contains(to_close_reg))
+    {
+      ui::error("Unable to close the region");
+    }
+    
 
     bool continue_visit = true;
-    std::set<DynObject*> seen;
+    std::set<DynObject*> seen_o;
+    std::set<Edge> seen_e;
+    size_t intra_region_rc{0};
+    size_t total_rc{0};
     // FIXME: This works only for the current behavior that has
     // set the local region. And only because the `dirty_regions`
     // has been cleared except the current region.
-    visit(get_local_region(), [&](Edge e) {
+    visit(to_close_reg, [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
-      if (!src || !dst)
+      if (!src || !dst || seen_e.contains(e)) // C++ if-statements are lazy no?
+      {
+        return continue_visit;
+      }
+      auto dst_reg = get_region(dst);
+      if (dst_reg != to_close_reg)
       {
         return continue_visit;
       }
 
-      auto dst_reg = get_region(dst);
-      if (dst_reg == get_local_region())
+      if (!seen_o.contains(dst))
       {
-        // Insert and continue if this was a new value
-        return seen.insert(dst).second;
+        seen_o.insert(dst);
+        total_rc += dst->get_rc();
       }
+      // We know dst is an intra region obj
+      intra_region_rc++;
+      seen_e.insert(e);
+      return continue_visit;
 
-      auto invalidate = dst_reg == to_close_reg;
-      invalidate |=
-        (to_close_reg && to_close_reg->sub_region_reference_count != 0 &&
-         Region::is_ancestor(dst_reg, to_close_reg));
-      if (invalidate)
-      {
-        if (e.key == PrototypeField)
-        {
-          ui::error("Can't close the region due to this prototype", e);
-        }
+      // auto invalidate = dst_reg == to_close_reg;
+      // invalidate |=
+      //   (to_close_reg && to_close_reg->sub_region_reference_count != 0 &&
+      //    Region::is_ancestor(dst_reg, to_close_reg));
+      // if (invalidate)
+      // {
+      //   if (e.key == PrototypeField)
+      //   {
+      //     ui::error("Can't close the region due to this prototype", e);
+      //   }
 
-        auto old = src->set(e.key, nullptr);
-        assert(old == dst);
-        add_reference(src, nullptr);
-        remove_reference(src, dst);
+      //   auto old = src->set(e.key, nullptr);
+      //   assert(old == dst);
+      //   add_reference(src, nullptr);
+      //   remove_reference(src, dst);
 
-        continue_visit &= to_close_reg->is_closed();
-        return false;
-      }
+      //   continue_visit &= to_close_reg->is_closed();
+      //   return false;
+      // }
 
-      if (dirty_regions.contains(dst_reg))
-      {
-        dst_reg->local_reference_count += 1;
-      }
+      // if (dirty_regions.contains(dst_reg))
+      // {
+      //   dst_reg->local_reference_count += 1;
+      // }
 
-      return false;
+      // return false;
     });
 
-    for (auto r : dirty_regions)
+    // Calculate real LRC
+    to_close_reg->sub_region_reference_count = total_rc - intra_region_rc;
+
+    to_close_reg->is_lrc_dirty = false;
+    if (to_close_reg->combined_lrc() == 0) 
     {
-      r->is_lrc_dirty = false;
-      if (r->combined_lrc() == 0)
-      {
-        action(r);
-      }
+      action(to_close_reg);
+      return true;
     }
-    dirty_regions.clear();
+    return false;
+    // else
+    // {
+    //   ui::error("Unable to close the region");
+    // }
+    
 
     if (to_close_reg && !to_close_reg->is_closed())
     {
-      ui::error("Unable to close the region");
     }
   }
 
