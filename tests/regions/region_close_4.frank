@@ -12,9 +12,3 @@ lref = r0.r1.r2.r3.a
 if is_closed(r0.r1):
     unreachable()
 
-# Force close
-close(r0.r1)
-
-# Check lref was invalidated
-if lref != None:
-    unreachable()

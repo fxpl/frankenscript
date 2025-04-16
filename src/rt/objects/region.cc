@@ -274,10 +274,9 @@ namespace rt::objects
       return true;
     }
     // LRC isn't dirty and yet region hasn't been closed
-    // TODO no error?
     if (!dirty_regions.contains(to_close_reg))
     {
-      ui::error("Unable to close the region");
+      return false;
     }
     
 
@@ -352,10 +351,6 @@ namespace rt::objects
       return true;
     }
     return false;
-    // else
-    // {
-    //   ui::error("Unable to close the region");
-    // }
     
 
     if (to_close_reg && !to_close_reg->is_closed())
@@ -387,7 +382,7 @@ namespace rt::objects
     // TODO why check sbrc
     if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
     {
-      // TODO change name?
+      // TODO change name to clean_lrcs?
       clean_lrcs_and_close(this);
       dirty_regions.erase(this);
     }

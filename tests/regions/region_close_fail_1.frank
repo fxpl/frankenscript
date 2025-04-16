@@ -11,4 +11,5 @@ local_value = create(local_ty)
 r1.region_value = create(local_ty)
 
 # This should fail, since implicit freezing is disabled
-close(r1)
+if is_closed(r1) == False:
+    unreachable()
