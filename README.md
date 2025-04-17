@@ -54,3 +54,24 @@ You can run in interactive mode by running:
 
 Which will keep overwritting the `mermaid.md` file with the new heap state after each step.
 
+## Lungfish
+
+FrankenScript has been submitted as an PLDI25 artifact to explain the *Lungfish*
+Ownership Model implemented here.
+
+A critical part of Lungfish is the write-barrier shown in Figure 6 of the Paper. FrankenScript implements
+these functions in `src/rt/objects/region.cc`. The important functions are:
+
+* `add_reference(source, target)`: This adds a new reference from `source` to `target`.
+* `add_to_region(region, target, source)`: This adds `target` and all reachable nodes to `region` if possible.
+* `remove_reference(source, old_target)`: This removes a reference from `source` to `old_target`
+* `move_reference(old_src, new_src, target)`: This is the `writeBarrier()` function, which adds a new reference
+   from `new_src` to `target` and removes the reference from `old_src` to `target`.
+
+The interpreter, implemented in `src/lang/interpreter.cc`, calls these functions via the public API of the
+runtime (`rt::add_reference`, `rt::remove_reference`, `rt::move_reference`). The `add_to_region()` method is
+never called directly by the interpreter.
+
+A good example for the write-barrier is the `StoreField` bytecode implementation:
+
+https://github.com/fxpl/frankenscript/blob/30e431c7ba8022f29fb4927913976bbf18356789/src/lang/interpreter.cc#L303-L318
