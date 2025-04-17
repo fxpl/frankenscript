@@ -218,10 +218,10 @@ namespace rt::objects
     add_region_reference(src_region, target, src);
   }
 
-  void remove_reference(DynObject* src_initial, DynObject* old_dst_initial)
+  void remove_reference(DynObject* source, DynObject* old_target)
   {
     visit(
-      {src_initial, "", old_dst_initial},
+      {source, "", old_target},
       [&](Edge e) {
         if (e.target == nullptr)
           return false;
@@ -238,18 +238,18 @@ namespace rt::objects
     Region::collect();
   }
 
-  void move_reference(DynObject* src, DynObject* dst, DynObject* target)
+  void move_reference(DynObject* old_src, DynObject* new_src, DynObject* target)
   {
-    assert(src != nullptr);
-    assert(dst != nullptr);
+    assert(old_src != nullptr);
+    assert(new_src != nullptr);
     if (target == nullptr || target->is_immutable() || target->is_cown())
     {
       return;
     }
 
-    auto src_region = get_region(src);
-    auto dst_region = get_region(dst);
-    if (src_region == dst_region)
+    auto old_src_region = get_region(old_src);
+    auto new_src_region = get_region(new_src);
+    if (old_src_region == new_src_region)
     {
       return;
     }
@@ -257,7 +257,7 @@ namespace rt::objects
     auto old_target_region = get_region(target);
     auto old_target_bridge = old_target_region->bridge;
 
-    add_region_reference(dst_region, target, src);
+    add_region_reference(new_src_region, target, old_src);
 
     // If the bridge was implicitly frozen we don't need to remove
     // the region reference. In fact, we shouldn't since the region
@@ -269,7 +269,7 @@ namespace rt::objects
 
     // Note that the region of the target might have changed after the
     // `add_region_refernce` call
-    remove_region_reference(src_region, old_target_region);
+    remove_region_reference(old_src_region, old_target_region);
   }
 
   void Region::clean_lrcs_and_close(Region* to_close_reg)
