@@ -770,6 +770,14 @@ namespace verona::interpreter
     //std::cout << "!!! " << "Scheduled `" << format_behaviour_name(behavior->get_name()) << "`" << std::endl;
   }
 
+  void print_help()
+  {
+    std::cout << "Commands:" << std::endl;
+    std::cout << "- <b>      : Run behaviour number b until the next break point" << std::endl;
+    std::cout << "- s<b>,<n> : Run behaviour number b n step (default n = 0) [Default]" << std::endl;
+    std::cout << "- h        : Prints this message " << std::endl << std::endl;
+  }
+
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
   {
     auto main_function = rt::make_func(main_block);
@@ -785,6 +793,11 @@ namespace verona::interpreter
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behavior->status = rt::core::Behavior::Status::Ready;
     this->ready.push_back(behavior);
+
+    if (this->interactive)
+    {
+      print_help();
+    }
 
 
     while (behavior)
@@ -807,6 +820,7 @@ namespace verona::interpreter
       {
         assert(false && "HOW DID IT BREAK THIS BADLY?");
       }
+
 
       this->current_int = inter;
       auto result = inter->resume();
@@ -858,18 +872,6 @@ namespace verona::interpreter
       }
       else if (std::holds_alternative<ExecBreakpoint>(action))
       {
-        // should_break = true;
-        // std::stringstream ss_print;
-        // ss_print << "Line " << std::get<ExecBreakpoint>(action).value << ":" << std::endl;
-        // std::stringstream ss_schedule;
-        // ss_schedule  << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
-        // std::stringstream ss_draw;
-        // ss_draw << ss_print.str() << ss_schedule.str();
-        // draw_schedule(ss_draw.str());
-        // std::cout << "<<< " << ss_print.str() << "!!! " << ss_schedule.str();
-        // TODO only do this and let ExecPrint handle the rest, since ExecPrint follows
-        // the call of breakpoint()
-        this->current_int->prev_breakpoint_call = true;
         // Assumption: Breakpoint is implemented through a builtin function call
         // Its Call node will always be followed by a Print node 
         assert(!result.exec_complete);
@@ -895,9 +897,8 @@ namespace verona::interpreter
       if (should_break)
       {
         behavior = this->get_next();
-        if (this->interactive) 
+        if (this->interactive && behavior) 
         {
-          steps = std::numeric_limits<int>::max();
           std::stringstream ss;
           ss << "Entering behaviour " << format_behaviour_name(behavior->get_name()) << std::endl;
           std::cout << "!!! " << ss.str();
@@ -919,14 +920,6 @@ namespace verona::interpreter
     }
 
     rt::remove_reference(nullptr, main_function);
-  }
-
-  void print_help()
-  {
-    std::cout << "Commands:" << std::endl;
-    std::cout << "- s <n>: Run n step (default n = 0) [Default]" << std::endl;
-    std::cout << "- r    : Runs until the next break point" << std::endl;
-    std::cout << "- h    : Prints this message " << std::endl;
   }
 
   void Scheduler::prompt_steps()
@@ -956,11 +949,6 @@ namespace verona::interpreter
 
   void Scheduler::draw_schedule(std::string message, bool bp)
   {
-    // if (this->next_schedule_msg)
-    // {
-    //   message = this->next_schedule_msg.value();
-    //   this->next_schedule_msg.reset();
-    // }
 
     // FIXME: We should really get wrid of the UI* abstraction. There is no way
     // that we'll ever change the output at this point and it just makes several
@@ -973,7 +961,6 @@ namespace verona::interpreter
       mermaid->close_file();
     }
     mermaid->output(message);
-    // TODO where do we want to close file, ergo cut off output?
   }
   
   rt::core::behavior_ptr Scheduler::get_next()
@@ -1013,11 +1000,21 @@ namespace verona::interpreter
           {
               exit(0);
           }
+
+          if (line == "h")
+          {
+            print_help();
+            continue;
+          }
+          
       
           // Check for step command
-          if (line.size() > 1 && line[0] == 's')
+          if (line[0] == 's')
           {
+            if (line.size() > 1)
+            {
               size_t comma_pos = line.find(',');
+              // s<b>, <n>
               if (comma_pos != std::string::npos)
               {
                   std::string idx_str = line.substr(1, comma_pos - 1);
@@ -1031,10 +1028,28 @@ namespace verona::interpreter
                   {
                       selected = idx;
                       steps = count;
-                      //std::cout << "\nStepping behavior " << idx << " for " << count << " times." << std::endl;
+                      //std::cout << "\nStepping behavior " << idx << " for " << steps << " times." << std::endl;
                       break;
                   }
               }
+              // s<b>
+              std::istringstream iss(line.substr(1));
+              size_t n = 0;
+              if (iss >> n && n < this->ready.size())
+              {
+                selected = n;
+                steps = 0;
+                break;
+              }
+            }
+            // s
+            else if (this->ready.size() == 1)
+            {
+              selected = 0;
+              steps = 0;
+              break;
+            }
+              
           }
           else
           {
@@ -1054,22 +1069,15 @@ namespace verona::interpreter
               break;
             }
           }
-        // if (prompt_user_for_steps)
-        // {
-        //   prompt_steps();
-        // }
-        // else
-        // {
-        //   steps = std::numeric_limits<int>::max();
-        // }
 
       }
     }
     else
     {
-      // TODO 
       std::uniform_int_distribution<int> dist(0, this->ready.size() - 1);
       selected = dist(rng);
+      //selected = 0;
+      std::cout << this->ready.size() << " sel:" << selected << "\n";
     }
 
     auto behavior = this->ready[selected];
