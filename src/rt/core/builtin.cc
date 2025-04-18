@@ -390,50 +390,81 @@ namespace rt::core
       });
   }
 
+  void assert_rc__function_impl(
+    verona::interpreter::FrameObj* frame, size_t args, bool assert_lrc)
+    {
+    std::string option;  
+    if (assert_lrc)
+    {
+      option = "lrc";
+    }
+    else
+    {
+      option = "sbrc";
+    }
+    
+    
+    if (args != 2)
+    {
+      std::stringstream ss;
+      ss << "assert_" << option << " expected 2 arguments";
+      ui::error(ss.str());
+    }
+
+    auto count_str = frame->stack_pop("count_str");
+    auto bridge = frame->stack_pop("bridge");
+    // Make sure we're comparing the correct LRC value
+    rt::remove_reference(frame->object(), bridge);
+    if (count_str->get_prototype() != stringPrototypeObject())
+    {
+      ui::error("given count is not a string", count_str);
+    }
+    auto region = objects::get_region(bridge);
+    if (region->bridge != bridge)
+    {
+      std::stringstream ss;
+      ss << bridge << " is not the bridge object of the region";
+      ui::error(ss.str(), bridge);
+    }
+    // Remove string object whitespace
+    auto s = count_str->get_name();
+    if (s[0] == '\"')
+    {
+      s.erase(0, 1);
+      s.erase(s.size() - 1);
+    }
+    auto count = std::stoi(s);
+    size_t actual;
+    if (assert_lrc)
+    {
+      actual = rt::objects::get_region(bridge)->local_reference_count; 
+    }
+    else
+    {
+      actual = rt::objects::get_region(bridge)->sub_region_reference_count; 
+    }
+    if (actual !=  count)
+    {
+      std::stringstream ss;
+      ss <<  "count: " << count << " did not match " << option << ": " << actual;
+      auto msg = ss.str();
+      ui::error(msg, bridge);
+    }
+
+    rt::remove_reference(frame->object(), count_str);
+  };
+
   void test_builtins()
   {
     // Onus is on caller to provide a string object representing an actual integer 
     // Fixme: 
     // Refactor once integers are implemented
     add_builtin("assert_lrc", [](auto frame, auto args) {
-      if (args != 2)
-      {
-        ui::error("assert_lrc() expected 2 arguments");
-      }
-
-      auto count_str = frame->stack_pop("count_str");
-      auto bridge = frame->stack_pop("bridge");
-      // Make sure we're comparing the correct LRC value
-      rt::remove_reference(frame->object(), bridge);
-      if (count_str->get_prototype() != stringPrototypeObject())
-      {
-        ui::error("given count is not a string", count_str);
-      }
-      auto region = objects::get_region(bridge);
-      if (region->bridge != bridge)
-      {
-        std::stringstream ss;
-        ss << bridge << " is not the bridge object of the region";
-        ui::error(ss.str(), bridge);
-      }
-      // Remove string object whitespace
-      auto s = count_str->get_name();
-      if (s[0] == '\"')
-      {
-        s.erase(0, 1);
-        s.erase(s.size() - 1);
-      }
-      auto count = std::stoi(s);
-      auto actual = rt::objects::get_region(bridge)->local_reference_count; 
-      if (actual !=  count)
-      {
-        std::stringstream ss;
-        ss <<  "count: " << count << " did not match LRC: " << actual;
-        auto msg = ss.str();
-        ui::error(msg, bridge);
-      }
-
-      rt::remove_reference(frame->object(), count_str);
+      assert_rc__function_impl(frame, args, true);
+      return std::nullopt;
+    });
+    add_builtin("assert_sbrc", [](auto frame, auto args) {
+      assert_rc__function_impl(frame, args, false);
       return std::nullopt;
     });
   } 
