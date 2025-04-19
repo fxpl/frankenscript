@@ -447,10 +447,15 @@ namespace rt::core
       this->owner = behavior;
     }
 
-    void release()
+    void release(Behavior* behavior)
     {
+      assert(this->owner == behavior);
       this->status = Status::Released;
       this->owner = nullptr;
+    }
+    bool is_owner(Behavior* behavior)
+    {
+      return this->owner == behavior;
     }
   };
 

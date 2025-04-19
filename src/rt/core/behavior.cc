@@ -91,7 +91,10 @@ namespace rt::core
 
     for (auto c : this->cowns)
     {
-      rt::release_cown(c);
+      if (rt::is_owner(c, this))
+      {
+        rt::release_cown(c, this);  
+      }
       rt::remove_reference(nullptr, c);
     }
     this->cowns.clear();

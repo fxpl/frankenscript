@@ -1,0 +1,18 @@
+# Do behaviours only release cowns they have acquired?
+# Below inst. will schedule and start B1 --> finish main --> finish B1 
+
+c1 = Cown(Region(), "c1")
+c2 = Cown(Region(), "c2")
+c3 = Cown(Region(), "c3")
+a = {}
+a = {}
+a = {}
+a = {}
+
+@name("B1")
+when (c1, c2, c3):
+    c3.value.c2 = c2
+    
+
+breakpoint()
+

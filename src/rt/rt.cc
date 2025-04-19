@@ -353,14 +353,24 @@ namespace rt
     reinterpret_cast<core::CownObject*>(cown)->aquire(behavior);
   }
 
-  void release_cown(objects::DynObject* cown)
+  void release_cown(objects::DynObject* cown, core::Behavior* behavior)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->release();
+    reinterpret_cast<core::CownObject*>(cown)->release(behavior);
+  }
+
+  bool is_owner(objects::DynObject* cown, core::Behavior* behavior)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    return reinterpret_cast<core::CownObject*>(cown)->is_owner(behavior);
   }
 
   int get_cown_id(objects::DynObject* cown)

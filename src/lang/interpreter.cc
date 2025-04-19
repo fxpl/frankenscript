@@ -1076,8 +1076,6 @@ namespace verona::interpreter
     {
       std::uniform_int_distribution<int> dist(0, this->ready.size() - 1);
       selected = dist(rng);
-      //selected = 0;
-      std::cout << this->ready.size() << " sel:" << selected << "\n";
     }
 
     auto behavior = this->ready[selected];

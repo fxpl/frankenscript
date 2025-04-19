@@ -91,8 +91,10 @@ namespace rt::core
     std::map<objects::DynObject*, Behavior*> cown_deps;
 
     Status status;
-    // The cowns as they were passed in to the cown. These have to be provided
-    // to the new Interpreter to populate the frame
+    // The cowns as they were passed in to the behavior. These have to be provided
+    // to the new Interpreter to populate the frame. Note that creating a 
+    // cown in a behavior will expand its set of cowns. Ergo, the set of aquired
+    // cowns is a subset.
     std::vector<objects::DynObject*> cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     objects::DynObject* code;
