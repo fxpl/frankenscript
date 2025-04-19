@@ -1,4 +1,4 @@
-#include "../behavior.h"
+#include "../behaviour.h"
 #include "../core.h"
 #include "../rt.h"
 
@@ -418,7 +418,7 @@ namespace rt::core
   {
     add_builtin(rt::core::schedule_func_name, [=](auto frame, auto args) {
       // cowns (Stored on the stack in reverse order)
-      // -1 since the first argument is the actual behavior
+      // -1 since the first argument is the actual behaviour
       std::vector<objects::DynObject*> cowns = {};
       for (int i = 0; i < args - 1; i++)
       {
@@ -427,7 +427,7 @@ namespace rt::core
       }
 
       std::optional<std::string> name;
-      // The last argument might be a name for the behavior
+      // The last argument might be a name for the behaviour
       if (
         !cowns.empty() &&
         cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
@@ -438,15 +438,15 @@ namespace rt::core
         cowns.pop_back();
       }
       // when
-      auto behavior = frame->stack_pop("behavior");
+      auto behaviour = frame->stack_pop("behaviour");
       scheduler->add(
-        std::make_shared<rt::core::Behaviour>(behavior, cowns, name));
+        std::make_shared<rt::core::Behaviour>(behaviour, cowns, name));
 
       // @Max, Interesting for your report: Some kind of ownership transfer is
       // needed here. Freezing is "the easiest" untill we get into the mess that
       // function objects in cpython are. It could be interesting to see if we
-      // can't just transfer ownership to the behavior region.
-      freeze(behavior);
+      // can't just transfer ownership to the behaviour region.
+      freeze(behaviour);
 
       return std::nullopt;
     });

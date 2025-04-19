@@ -19,7 +19,7 @@ PassDef call_stmts()
     {
       In(Block) * (T(Call)[Call] << T(Ident)[Ident]) >>
         [](auto& _) {
-          // if (_(Ident)->location().view() == "spawn_behavior")
+          // if (_(Ident)->location().view() == "spawn_behaviour")
           // {
           //   return Seq << _(Call);
           // }

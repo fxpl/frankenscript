@@ -36,7 +36,7 @@ Creates a new object from the given prototype.
 
 Performs a deep freeze of the object and all referenced objects.
 
-This will move the objects out of their current region into the immutable region. Cowns will stop the freeze propagation, as they can be safely shared across threads and behaviors.
+This will move the objects out of their current region into the immutable region. Cowns will stop the freeze propagation, as they can be safely shared across threads and behaviours.
 
 #### `close(reg)`
 

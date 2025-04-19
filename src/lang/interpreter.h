@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../rt/behavior.h"
+#include "../rt/behaviour.h"
 
 #include <cstddef>
 #include <map>
@@ -47,17 +47,17 @@ namespace verona::interpreter
   // FIXME: The implementation of this should probably be in a different file...
   class Scheduler
   {
-    // All behaviors that are ready to run
-    std::vector<rt::core::behavior_ptr> ready = {};
-    // A map from cowns to the last behavior that is waiting on them.
+    // All behaviours that are ready to run
+    std::vector<rt::core::behaviour_ptr> ready = {};
+    // A map from cowns to the last behaviour that is waiting on them.
     //
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
-    std::unordered_map<rt::objects::DynObject*, rt::core::behavior_ptr> cowns =
+    std::unordered_map<rt::objects::DynObject*, rt::core::behaviour_ptr> cowns =
       {};
     // This feels hacky but also like the best solution? I can't even blame this
     // on C++
-    std::unordered_map<rt::core::behavior_ptr, Interpreter*> running = {};
+    std::unordered_map<rt::core::behaviour_ptr, Interpreter*> running = {};
 
     // Necessary to print the line and information of a scheduled behaviour in
     // one go, since Call nodes do not store what line they were called from
@@ -65,8 +65,8 @@ namespace verona::interpreter
 
     // FIXME:
     // This should likely be gotten by requesting the current
-    // behavior in the runtime and then looking up the interpreter
-    // from the behavior. But no, this is faster;
+    // behaviour in the runtime and then looking up the interpreter
+    // from the behaviour. But no, this is faster;
     Interpreter* current_int;
 
     // @brief Do we desire interactive execution
@@ -89,17 +89,17 @@ namespace verona::interpreter
     ~Scheduler();
 
 
-    void add(rt::core::behavior_ptr behavior);
+    void add(rt::core::behaviour_ptr behaviour);
 
     void start(Bytecode* main_block, bool interactive, int seed, bool prompt_steps);
 
-    //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
-    // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behavior_ptr behavior);
+    //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
+    // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
 
   private:
     void prompt_steps();
-    void complete(rt::core::behavior_ptr behavior);
+    void complete(rt::core::behaviour_ptr behaviour);
     void draw_schedule(std::string message, bool bp = false);
-    rt::core::behavior_ptr get_next();
+    rt::core::behaviour_ptr get_next();
   };
 }

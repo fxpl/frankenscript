@@ -87,7 +87,7 @@ PassDef grouping()
             << (Body << _(Block));
 
           // =====================================
-          // Call `spawn_behavior()`
+          // Call `spawn_behaviour()`
           auto args = create_from(List, _(Parens)) << (Ident ^ when_name);
           if (_(Name))
           {
@@ -95,7 +95,7 @@ PassDef grouping()
           }
           args = args << clone(_[List]);
           auto call = create_from(Call, _(When))
-            << (Ident ^ "spawn_behavior") << args;
+            << (Ident ^ "spawn_behaviour") << args;
 
           // Put it all together
           return Seq << when_def << call;

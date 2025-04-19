@@ -1,4 +1,4 @@
-#include "../behavior.h"
+#include "../behaviour.h"
 
 #include "../objects/region.h"
 #include "../rt.h"
@@ -13,28 +13,28 @@ namespace rt::objects
 
 namespace rt::core
 {
-  int Behaviour::s_behavior_counter = 0;
-  std::shared_ptr<Behaviour> Behaviour::s_active_behavior = nullptr;
+  int Behaviour::s_behaviour_counter = 0;
+  std::shared_ptr<Behaviour> Behaviour::s_active_behaviour = nullptr;
 
-  void Behaviour::set_active_behavior(std::shared_ptr<Behaviour> active)
+  void Behaviour::set_active_behaviour(std::shared_ptr<Behaviour> active)
   {
-    s_active_behavior = active;
+    s_active_behaviour = active;
     if (active)
     {
       objects::set_local_region(active->local_region);
     }
   }
 
-  std::shared_ptr<Behaviour> Behaviour::get_active_behavior()
+  std::shared_ptr<Behaviour> Behaviour::get_active_behaviour()
   {
-    return s_active_behavior;
+    return s_active_behaviour;
   }
 
   Behaviour::Behaviour(
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> cowns_,
     std::optional<std::string> name_)
-  : id(s_behavior_counter++), cowns(cowns_), code(code_)
+  : id(s_behaviour_counter++), cowns(cowns_), code(code_)
   {
     for (auto c : cowns)
     {
@@ -80,8 +80,8 @@ namespace rt::core
     return rt::try_get_bytecode(this->code).value();
   }
 
-  // FIXME: Currently both the scheduler and the behavior has a function
-  // to complete a behavior. All of this should really be in one place. It
+  // FIXME: Currently both the scheduler and the behaviour has a function
+  // to complete a behaviour. All of this should really be in one place. It
   // might be better to move all of this into the scheduler.
   void Behaviour::complete()
   {

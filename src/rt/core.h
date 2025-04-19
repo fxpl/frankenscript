@@ -1,5 +1,5 @@
 #include "../lang/interpreter.h"
-#include "behavior.h"
+#include "behaviour.h"
 #include "objects/prototype_object.h"
 #include "objects/region.h"
 #include "objects/region_object.h"
@@ -9,7 +9,7 @@
 
 namespace rt::core
 {
-  const std::string schedule_func_name = "spawn_behavior";
+  const std::string schedule_func_name = "spawn_behaviour";
   const std::string breakpoint_func_name = "breakpoint";
 
   using PrototypeObject = objects::PrototypeObject;
@@ -299,7 +299,7 @@ namespace rt::core
       id = s_id_counter++;
 
       status = Status::Pending;
-      this->owner = Behaviour::get_active_behavior().get();
+      this->owner = Behaviour::get_active_behaviour().get();
       auto old = set("value", obj);
       assert(!old);
 
@@ -401,7 +401,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return Behaviour::get_active_behavior().get() != this->owner;
+          return Behaviour::get_active_behaviour().get() != this->owner;
         case Status::Released:
         default:
           return true;
@@ -438,25 +438,25 @@ namespace rt::core
       }
     }
 
-    void aquire(Behaviour* behavior)
+    void aquire(Behaviour* behaviour)
     {
       // Who needs other safety checks than this?
       // This is so gonna bite me...
       assert(this->status == Status::Released);
 
       this->status = Status::Acquired;
-      this->owner = behavior;
+      this->owner = behaviour;
     }
 
-    void release(Behaviour* behavior)
+    void release(Behaviour* behaviour)
     {
-      assert(this->owner == behavior);
+      assert(this->owner == behaviour);
       this->status = Status::Released;
       this->owner = nullptr;
     }
-    bool is_owner(Behaviour* behavior)
+    bool is_owner(Behaviour* behaviour)
     {
-      return this->owner == behavior;
+      return this->owner == behaviour;
     }
   };
 

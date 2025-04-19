@@ -36,7 +36,7 @@ add_library(
   src/rt/objects/region.cc
   src/rt/ui/mermaid.cc
   src/rt/core/builtin.cc
-  src/rt/core/behavior.cc
+  src/rt/core/behaviour.cc
 )
 
 add_library(

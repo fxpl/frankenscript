@@ -72,15 +72,15 @@ namespace rt
   void cown_update_state(objects::DynObject* cown);
   bool is_cown_released(objects::DynObject* cown);
   
-  void aquire_cown(objects::DynObject* cown, core::Behaviour* behavior);
-  void release_cown(objects::DynObject* cown, core::Behaviour* behavior);
-  bool is_owner(objects::DynObject* cown, core::Behaviour* behavior);
+  void aquire_cown(objects::DynObject* cown, core::Behaviour* behaviour);
+  void release_cown(objects::DynObject* cown, core::Behaviour* behaviour);
+  bool is_owner(objects::DynObject* cown, core::Behaviour* behaviour);
   int get_cown_id(objects::DynObject* cown);
 
   // This increases the rc without asking questions. Very much a
   // hack but I don't care anymore.
   void hack_inc_rc(objects::DynObject* obj);
 
-  rt::core::behavior_ptr get_active_behavior();
-  void set_active_behavior(rt::core::behavior_ptr behavior);
+  rt::core::behaviour_ptr get_active_behaviour();
+  void set_active_behaviour(rt::core::behaviour_ptr behaviour);
 } // namespace rt

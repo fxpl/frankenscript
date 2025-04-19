@@ -60,48 +60,48 @@ namespace rt::core
       }
     }
 
-    static void set_active_behavior(std::shared_ptr<Behaviour>);
-    static std::shared_ptr<Behaviour> get_active_behavior();
+    static void set_active_behaviour(std::shared_ptr<Behaviour>);
+    static std::shared_ptr<Behaviour> get_active_behaviour();
 
   private:
-    static std::shared_ptr<Behaviour> s_active_behavior;
+    static std::shared_ptr<Behaviour> s_active_behaviour;
 
   private:
     // Static member for naming
-    static int s_behavior_counter;
+    static int s_behaviour_counter;
 
     // A unique ID, this is used for drawing and naming, it isn't needed for
     // scheduling.
     int id;
     std::string name;
 
-    // The IDs of the cowns this behavior is waiting on. This is used to create
+    // The IDs of the cowns this behaviour is waiting on. This is used to create
     // a better mermaid diagram, it isn't needed for scheduling.
     std::map<int, objects::DynObject*> ordered_cown;
 
-    // The local region of this behavior. This has to be swapped into the global
-    // `local_region` when this behavior runs.
+    // The local region of this behaviour. This has to be swapped into the global
+    // `local_region` when this behaviour runs.
     objects::Region* local_region;
 
   public:
-    // This maps the cowns of this behavior to the previous behavior this
+    // This maps the cowns of this behaviour to the previous behaviour this
     // is waiting on. This is used to draw the dependencies, it is not used
     // for sceduling.
     // Both of these pointers are weak reference.
     std::map<objects::DynObject*, Behaviour*> cown_deps;
 
     Status status;
-    // The cowns as they were passed in to the behavior. These have to be provided
+    // The cowns as they were passed in to the behaviour. These have to be provided
     // to the new Interpreter to populate the frame. Note that creating a 
-    // cown in a behavior will expand its set of cowns. Ergo, the set of aquired
+    // cown in a behaviour will expand its set of cowns. Ergo, the set of aquired
     // cowns is a subset.
     std::vector<objects::DynObject*> cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     objects::DynObject* code;
-    // The number of behaviors that this behavior is waiting on
+    // The number of behaviours that this behaviour is waiting on
     int pred_ctn = 0;
-    // Behaviours which are waiting on this behavior. These will be notified once
-    // this behavior completes
+    // Behaviours which are waiting on this behaviour. These will be notified once
+    // this behaviour completes
     std::set<std::shared_ptr<Behaviour>> succ;
 
     Behaviour(
@@ -113,10 +113,10 @@ namespace rt::core
     std::string id_str();
 
     verona::interpreter::Bytecode* spawn();
-    // This completes the behavior by releasing all cowns
+    // This completes the behaviour by releasing all cowns
     // decreffing all held objects
     void complete();
   };
 
-  typedef std::shared_ptr<Behaviour> behavior_ptr;
+  typedef std::shared_ptr<Behaviour> behaviour_ptr;
 } // namespace rt::core

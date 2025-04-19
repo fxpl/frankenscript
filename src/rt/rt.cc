@@ -343,34 +343,34 @@ namespace rt
     return reinterpret_cast<core::CownObject*>(cown)->is_released();
   }
 
-  void aquire_cown(objects::DynObject* cown, core::Behaviour* behavior)
+  void aquire_cown(objects::DynObject* cown, core::Behaviour* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->aquire(behavior);
+    reinterpret_cast<core::CownObject*>(cown)->aquire(behaviour);
   }
 
-  void release_cown(objects::DynObject* cown, core::Behaviour* behavior)
+  void release_cown(objects::DynObject* cown, core::Behaviour* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->release(behavior);
+    reinterpret_cast<core::CownObject*>(cown)->release(behaviour);
   }
 
-  bool is_owner(objects::DynObject* cown, core::Behaviour* behavior)
+  bool is_owner(objects::DynObject* cown, core::Behaviour* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    return reinterpret_cast<core::CownObject*>(cown)->is_owner(behavior);
+    return reinterpret_cast<core::CownObject*>(cown)->is_owner(behaviour);
   }
 
   int get_cown_id(objects::DynObject* cown)
@@ -388,11 +388,11 @@ namespace rt
     obj->change_rc(+1);
   }
 
-  rt::core::behavior_ptr get_active_behavior() {
-    return core::Behaviour::get_active_behavior();
+  rt::core::behaviour_ptr get_active_behaviour() {
+    return core::Behaviour::get_active_behaviour();
   }
-  void set_active_behavior(rt::core::behavior_ptr behavior) {
-    core::Behaviour::set_active_behavior(behavior);
+  void set_active_behaviour(rt::core::behaviour_ptr behaviour) {
+    core::Behaviour::set_active_behaviour(behaviour);
   }
 
 } // namespace rt

@@ -1,6 +1,6 @@
 #include "interpreter.h"
 
-#include "../rt/behavior.h"
+#include "../rt/behaviour.h"
 #include "../rt/rt.h"
 #include "bytecode.h"
 #include "trieste/trieste.h"
@@ -98,7 +98,7 @@ namespace verona::interpreter
   {
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
-    rt::core::behavior_ptr behavior;
+    rt::core::behaviour_ptr behaviour;
 
     InterpreterFrame* top_frame()
     {
@@ -545,19 +545,19 @@ namespace verona::interpreter
       rt::ui::UI* ui_,
       trieste::Node block,
       std::vector<rt::objects::DynObject*> start_stack,
-      rt::core::behavior_ptr behavior_)
-    : ui(ui_), behavior(behavior_)
+      rt::core::behaviour_ptr behaviour_)
+    : ui(ui_), behaviour(behaviour_)
     {
-      // There is a question where the active behavior should be set.
+      // There is a question where the active behaviour should be set.
       //
       // Python mixes the runtime and interpreter a bit more. There the runtime
       // has access to the interpreter state. So, it would be possible to store
-      // the behavior in the interpreter state and have it accessible to cowns.
+      // the behaviour in the interpreter state and have it accessible to cowns.
       //
       // However, in FrankenScript the runtime is more passive, meaning that
       // the interpreter drives the runtime and provides all needed information.
-      auto old_behavior = rt::get_active_behavior();
-      rt::set_active_behavior(this->behavior);
+      auto old_behaviour = rt::get_active_behaviour();
+      rt::set_active_behaviour(this->behaviour);
 
       auto frame = push_stack_frame(block);
 
@@ -566,7 +566,7 @@ namespace verona::interpreter
         frame->frame->stack_push(elem, "staring stack");
       }
 
-      rt::set_active_behavior(old_behavior);
+      rt::set_active_behaviour(old_behaviour);
     }
 
     // resume() helper
@@ -592,7 +592,7 @@ namespace verona::interpreter
       auto return_to_scheduler{false};
       auto frame = top_frame();
 
-      rt::set_active_behavior(this->behavior);
+      rt::set_active_behaviour(this->behaviour);
       assert(frame);
 
       while (frame)
@@ -724,43 +724,43 @@ namespace verona::interpreter
 
 
 
-  void Scheduler::add(rt::core::behavior_ptr behavior)
+  void Scheduler::add(rt::core::behaviour_ptr behaviour)
   {
-    assert(behavior->status == rt::core::Behaviour::Status::New);
+    assert(behaviour->status == rt::core::Behaviour::Status::New);
 
-    for (auto cown : behavior->cowns)
+    for (auto cown : behaviour->cowns)
     {
-      // Get the last behavior that is waiting on the cown
+      // Get the last behaviour that is waiting on the cown
       auto cown_info = this->cowns.find(cown);
       if (cown_info != cowns.end())
       {
         auto predecessor = cown_info->second;
-        // If a behavior isn't Done, set the successor
+        // If a behaviour isn't Done, set the successor
         if (predecessor->status != rt::core::Behaviour::Status::Done)
         {
-          if (predecessor->succ.insert(behavior).second)
+          if (predecessor->succ.insert(behaviour).second)
           {
-            behavior->pred_ctn += 1;
+            behaviour->pred_ctn += 1;
           }
           // Only needed for Mermaid:
-          behavior->cown_deps[cown] = predecessor.get();
+          behaviour->cown_deps[cown] = predecessor.get();
         }
       }
-      // Update pointer to the last pending behavior
-      this->cowns[cown] = behavior;
+      // Update pointer to the last pending behaviour
+      this->cowns[cown] = behaviour;
     }
 
     std::stringstream ss;
-    if (behavior->pred_ctn == 0)
+    if (behaviour->pred_ctn == 0)
     {
-      this->ready.push_back(behavior);
-      behavior->status = rt::core::Behaviour::Status::Ready;
-      ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is ready";
+      this->ready.push_back(behaviour);
+      behaviour->status = rt::core::Behaviour::Status::Ready;
+      ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is ready";
     }
     else
     {
-      behavior->status = rt::core::Behaviour::Status::Pending;
-      ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is pending";
+      behaviour->status = rt::core::Behaviour::Status::Pending;
+      ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
     }
 
     // Two solutions:
@@ -769,7 +769,7 @@ namespace verona::interpreter
     // 2. Store the message but use it explicitly
     this->next_schedule_msg = ss.str();
     //draw_schedule(ss.str());
-    //std::cout << "!!! " << "Scheduled `" << format_behaviour_name(behavior->get_name()) << "`" << std::endl;
+    //std::cout << "!!! " << "Scheduled `" << format_behaviour_name(behaviour->get_name()) << "`" << std::endl;
   }
 
   void print_help()
@@ -791,10 +791,10 @@ namespace verona::interpreter
     this->rng.seed(s);
     this->prompt_user_for_steps = prompt_steps;
     // :notes: I imagine a world without ugly c++ :notes:
-    auto behavior = std::make_shared<rt::core::Behaviour>(
+    auto behaviour = std::make_shared<rt::core::Behaviour>(
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
-    behavior->status = rt::core::Behaviour::Status::Ready;
-    this->ready.push_back(behavior);
+    behaviour->status = rt::core::Behaviour::Status::Ready;
+    this->ready.push_back(behaviour);
 
     if (this->interactive)
     {
@@ -802,20 +802,20 @@ namespace verona::interpreter
     }
 
 
-    while (behavior)
+    while (behaviour)
     {
       Interpreter* inter;
-      if (behavior->status == rt::core::Behaviour::Status::Ready)
+      if (behaviour->status == rt::core::Behaviour::Status::Ready)
       {
-        auto block = behavior->spawn();
+        auto block = behaviour->spawn();
 
         inter = new Interpreter(
-          rt::ui::globalUI(), block->body, behavior->cowns, behavior);
-        this->running[behavior] = inter;
+          rt::ui::globalUI(), block->body, behaviour->cowns, behaviour);
+        this->running[behaviour] = inter;
       }
-      else if (behavior->status == rt::core::Behaviour::Status::Running)
+      else if (behaviour->status == rt::core::Behaviour::Status::Running)
       {
-        inter = this->running[behavior];
+        inter = this->running[behaviour];
         assert(inter);
       }
       else
@@ -845,8 +845,8 @@ namespace verona::interpreter
         else if (this->current_int->prev_breakpoint_call)
         {
           this->current_int->prev_breakpoint_call = false;
-          draw_ss << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
-          terminal_ss << "!!! " << "Reached breakpoint in " << format_behaviour_name(behavior->get_name()) << std::endl;
+          draw_ss << "Reached breakpoint in " << format_behaviour_name(behaviour->get_name()) << std::endl;
+          terminal_ss << "!!! " << "Reached breakpoint in " << format_behaviour_name(behaviour->get_name()) << std::endl;
           should_break = true;
         }
         std::cout << terminal_ss.str();
@@ -890,19 +890,19 @@ namespace verona::interpreter
       if (result.exec_complete)
       {
         should_break = true;
-        std::cout << "!!! " << "Completed " << format_behaviour_name(behavior->get_name()) << std::endl;
-        this->complete(behavior);
+        std::cout << "!!! " << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
+        this->complete(behaviour);
         std::stringstream ss;
-        ss << "Completed " << format_behaviour_name(behavior->get_name()) << std::endl;
+        ss << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
         draw_schedule(ss.str());
       }
       if (should_break)
       {
-        behavior = this->get_next();
-        if (this->interactive && behavior) 
+        behaviour = this->get_next();
+        if (this->interactive && behaviour) 
         {
           std::stringstream ss;
-          ss << "Entering behaviour " << format_behaviour_name(behavior->get_name()) << std::endl;
+          ss << "Entering behaviour " << format_behaviour_name(behaviour->get_name()) << std::endl;
           std::cout << "!!! " << ss.str();
           draw_schedule(ss.str(), true);
         }
@@ -912,7 +912,7 @@ namespace verona::interpreter
       // The expection being breakpoints/schedule
       // else if (std::holds_alternative<ExecPrint>(action))
       // {
-      //   behavior = this->get_next();
+      //   behaviour = this->get_next();
       // }
       
       
@@ -933,11 +933,11 @@ namespace verona::interpreter
     }
   }
 
-  void Scheduler::complete(rt::core::behavior_ptr behavior)
+  void Scheduler::complete(rt::core::behaviour_ptr behaviour)
   {
-    behavior->complete();
-    std::erase(this->ready, behavior);
-    for (auto succ : behavior->succ)
+    behaviour->complete();
+    std::erase(this->ready, behaviour);
+    for (auto succ : behaviour->succ)
     {
       succ->pred_ctn -= 1;
       if (succ->pred_ctn == 0)
@@ -946,7 +946,7 @@ namespace verona::interpreter
         this->ready.push_back(succ);
       }
     }
-    behavior->succ.clear();
+    behaviour->succ.clear();
   }
 
   void Scheduler::draw_schedule(std::string message, bool bp)
@@ -965,7 +965,7 @@ namespace verona::interpreter
     mermaid->output(message);
   }
   
-  rt::core::behavior_ptr Scheduler::get_next()
+  rt::core::behaviour_ptr Scheduler::get_next()
   {
     if (this->ready.empty())
     {
@@ -979,7 +979,7 @@ namespace verona::interpreter
       {
       // Prompt the user:
           std::cout << std::endl;
-          std::cout << "Available behaviors:" << std::endl;
+          std::cout << "Available behaviours:" << std::endl;
           for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
           {
               auto b = this->ready[idx];
@@ -1030,7 +1030,7 @@ namespace verona::interpreter
                   {
                       selected = idx;
                       steps = count;
-                      //std::cout << "\nStepping behavior " << idx << " for " << steps << " times." << std::endl;
+                      //std::cout << "\nStepping behaviour " << idx << " for " << steps << " times." << std::endl;
                       break;
                   }
               }
@@ -1080,8 +1080,8 @@ namespace verona::interpreter
       selected = dist(rng);
     }
 
-    auto behavior = this->ready[selected];
-    return behavior;
+    auto behaviour = this->ready[selected];
+    return behaviour;
   }
 
 } // namespace verona::interpreter

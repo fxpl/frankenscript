@@ -177,7 +177,7 @@ PassDef flatten()
           if (!_(Ident)->location().view().starts_with("__when_"))
           {
             result << create_print(_(Func), def_text);
-            // def_text = std::string("Creating behavior from: ") + func_head;
+            // def_text = std::string("Creating behaviour from: ") + func_head;
           }
           // Function cleanup
           return result;

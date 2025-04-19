@@ -21,7 +21,7 @@ namespace rt::objects
   }
 
   // This should be a private static function in the Region to controll that
-  // only behaviors can set the value. There is no other instance where this
+  // only behaviours can set the value. There is no other instance where this
   // should be called.
   void set_local_region(Region* region)
   {
@@ -285,7 +285,7 @@ namespace rt::objects
     //std::set<Edge> seen_e;
     size_t intra_region_rc{0};
     size_t total_rc{0};
-    // FIXME: This works only for the current behavior that has
+    // FIXME: This works only for the current behaviour that has
     // set the local region. And only because the `dirty_regions`
     // has been cleared except the current region.
     visit(to_close_reg, [&](Edge e) {
