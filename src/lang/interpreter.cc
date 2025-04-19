@@ -722,9 +722,11 @@ namespace verona::interpreter
     return ss.str();
   }
 
+
+
   void Scheduler::add(rt::core::behavior_ptr behavior)
   {
-    assert(behavior->status == rt::core::Behavior::Status::New);
+    assert(behavior->status == rt::core::Behaviour::Status::New);
 
     for (auto cown : behavior->cowns)
     {
@@ -733,8 +735,8 @@ namespace verona::interpreter
       if (cown_info != cowns.end())
       {
         auto predecessor = cown_info->second;
-        // If a behavior is pending, set the successor
-        if (predecessor->status != rt::core::Behavior::Status::Done)
+        // If a behavior isn't Done, set the successor
+        if (predecessor->status != rt::core::Behaviour::Status::Done)
         {
           if (predecessor->succ.insert(behavior).second)
           {
@@ -752,12 +754,12 @@ namespace verona::interpreter
     if (behavior->pred_ctn == 0)
     {
       this->ready.push_back(behavior);
-      behavior->status = rt::core::Behavior::Status::Ready;
+      behavior->status = rt::core::Behaviour::Status::Ready;
       ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is ready";
     }
     else
     {
-      behavior->status = rt::core::Behavior::Status::Pending;
+      behavior->status = rt::core::Behaviour::Status::Pending;
       ss << "New behavior " << format_behaviour_name(behavior->get_name()) << " is pending";
     }
 
@@ -789,9 +791,9 @@ namespace verona::interpreter
     this->rng.seed(s);
     this->prompt_user_for_steps = prompt_steps;
     // :notes: I imagine a world without ugly c++ :notes:
-    auto behavior = std::make_shared<rt::core::Behavior>(
+    auto behavior = std::make_shared<rt::core::Behaviour>(
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
-    behavior->status = rt::core::Behavior::Status::Ready;
+    behavior->status = rt::core::Behaviour::Status::Ready;
     this->ready.push_back(behavior);
 
     if (this->interactive)
@@ -803,7 +805,7 @@ namespace verona::interpreter
     while (behavior)
     {
       Interpreter* inter;
-      if (behavior->status == rt::core::Behavior::Status::Ready)
+      if (behavior->status == rt::core::Behaviour::Status::Ready)
       {
         auto block = behavior->spawn();
 
@@ -811,7 +813,7 @@ namespace verona::interpreter
           rt::ui::globalUI(), block->body, behavior->cowns, behavior);
         this->running[behavior] = inter;
       }
-      else if (behavior->status == rt::core::Behavior::Status::Running)
+      else if (behavior->status == rt::core::Behaviour::Status::Running)
       {
         inter = this->running[behavior];
         assert(inter);
@@ -940,7 +942,7 @@ namespace verona::interpreter
       succ->pred_ctn -= 1;
       if (succ->pred_ctn == 0)
       {
-        succ->status = rt::core::Behavior::Status::Ready;
+        succ->status = rt::core::Behaviour::Status::Ready;
         this->ready.push_back(succ);
       }
     }
@@ -983,7 +985,7 @@ namespace verona::interpreter
               auto b = this->ready[idx];
               std::cout << "- " << idx << ": " << b->get_name();
       
-              if (b->status == rt::core::Behavior::Status::Running)
+              if (b->status == rt::core::Behaviour::Status::Running)
               {
                   std::cout << " (continue)";
               }

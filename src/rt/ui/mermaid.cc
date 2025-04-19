@@ -148,30 +148,30 @@ namespace rt::ui
       return {"[", "]"};
     }
 
-    std::string behavior_node_name(core::Behavior* behavior)
+    std::string behavior_node_name(core::Behaviour* behavior)
     {
       std::stringstream ss;
       ss << "info_" << behavior->id_str();
       return ss.str();
     }
 
-    void draw_behavior_info(core::Behavior* behavior)
+    void draw_behavior_info(core::Behaviour* behavior)
     {
       out << "  " << this->behavior_node_name(behavior) << "([\""
           << behavior->get_name() << "<br>Status: "
-          << core::Behavior::status_to_string(behavior->status) << "\"])"
+          << core::Behaviour::status_to_string(behavior->status) << "\"])"
           << std::endl;
       // Set background color
       auto background = ERROR_NODE_COLOR;
       switch (behavior->status)
       {
-        case core::Behavior::Status::Running:
+        case core::Behaviour::Status::Running:
           background = BEHAVIOR_RUNNING_COLOR;
           break;
-        case core::Behavior::Status::Ready:
+        case core::Behaviour::Status::Ready:
           background = BEHAVIOR_READY_COLOR;
           break;
-        case core::Behavior::Status::Pending:
+        case core::Behaviour::Status::Pending:
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
@@ -425,7 +425,7 @@ namespace rt::ui
       std::string ident = "";
       for (auto [id, b] : behaviors)
       {
-        if (b->status == core::Behavior::Status::Running)
+        if (b->status == core::Behaviour::Status::Running)
         {
           // C++ and the weird referencing rules...
           draw_region(b->local_region, ident, b.get());
@@ -459,7 +459,7 @@ namespace rt::ui
     void draw_region(
       objects::Region* r,
       std::string& indent,
-      core::Behavior* behavior = nullptr)
+      core::Behaviour* behavior = nullptr)
     {
       auto info = &regions[r];
       if (info->drawn)

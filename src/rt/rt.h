@@ -72,9 +72,9 @@ namespace rt
   void cown_update_state(objects::DynObject* cown);
   bool is_cown_released(objects::DynObject* cown);
   
-  void aquire_cown(objects::DynObject* cown, core::Behavior* behavior);
-  void release_cown(objects::DynObject* cown, core::Behavior* behavior);
-  bool is_owner(objects::DynObject* cown, core::Behavior* behavior);
+  void aquire_cown(objects::DynObject* cown, core::Behaviour* behavior);
+  void release_cown(objects::DynObject* cown, core::Behaviour* behavior);
+  bool is_owner(objects::DynObject* cown, core::Behaviour* behavior);
   int get_cown_id(objects::DynObject* cown);
 
   // This increases the rc without asking questions. Very much a

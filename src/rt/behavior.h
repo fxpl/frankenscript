@@ -26,7 +26,7 @@ namespace rt::ui
 namespace rt::core
 {
   // TODO rename this to `Behaviour`
-  class Behavior
+  class Behaviour
   {
     friend class rt::ui::MermaidUI;
     friend class rt::ui::ObjectGraphDiagram;
@@ -60,11 +60,11 @@ namespace rt::core
       }
     }
 
-    static void set_active_behavior(std::shared_ptr<Behavior>);
-    static std::shared_ptr<Behavior> get_active_behavior();
+    static void set_active_behavior(std::shared_ptr<Behaviour>);
+    static std::shared_ptr<Behaviour> get_active_behavior();
 
   private:
-    static std::shared_ptr<Behavior> s_active_behavior;
+    static std::shared_ptr<Behaviour> s_active_behavior;
 
   private:
     // Static member for naming
@@ -88,7 +88,7 @@ namespace rt::core
     // is waiting on. This is used to draw the dependencies, it is not used
     // for sceduling.
     // Both of these pointers are weak reference.
-    std::map<objects::DynObject*, Behavior*> cown_deps;
+    std::map<objects::DynObject*, Behaviour*> cown_deps;
 
     Status status;
     // The cowns as they were passed in to the behavior. These have to be provided
@@ -100,11 +100,11 @@ namespace rt::core
     objects::DynObject* code;
     // The number of behaviors that this behavior is waiting on
     int pred_ctn = 0;
-    // Behaviors which are waiting on this behavior. These will be notified once
+    // Behaviours which are waiting on this behavior. These will be notified once
     // this behavior completes
-    std::set<std::shared_ptr<Behavior>> succ;
+    std::set<std::shared_ptr<Behaviour>> succ;
 
-    Behavior(
+    Behaviour(
       objects::DynObject* code_,
       std::vector<objects::DynObject*> cowns_,
       std::optional<std::string> name_ = std::nullopt);
@@ -118,5 +118,5 @@ namespace rt::core
     void complete();
   };
 
-  typedef std::shared_ptr<Behavior> behavior_ptr;
+  typedef std::shared_ptr<Behaviour> behavior_ptr;
 } // namespace rt::core

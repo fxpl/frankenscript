@@ -13,10 +13,10 @@ namespace rt::objects
 
 namespace rt::core
 {
-  int Behavior::s_behavior_counter = 0;
-  std::shared_ptr<Behavior> Behavior::s_active_behavior = nullptr;
+  int Behaviour::s_behavior_counter = 0;
+  std::shared_ptr<Behaviour> Behaviour::s_active_behavior = nullptr;
 
-  void Behavior::set_active_behavior(std::shared_ptr<Behavior> active)
+  void Behaviour::set_active_behavior(std::shared_ptr<Behaviour> active)
   {
     s_active_behavior = active;
     if (active)
@@ -25,12 +25,12 @@ namespace rt::core
     }
   }
 
-  std::shared_ptr<Behavior> Behavior::get_active_behavior()
+  std::shared_ptr<Behaviour> Behaviour::get_active_behavior()
   {
     return s_active_behavior;
   }
 
-  Behavior::Behavior(
+  Behaviour::Behaviour(
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> cowns_,
     std::optional<std::string> name_)
@@ -53,19 +53,19 @@ namespace rt::core
     }
   }
 
-  std::string Behavior::get_name()
+  std::string Behaviour::get_name()
   {
     return this->name;
   }
 
-  std::string Behavior::id_str()
+  std::string Behaviour::id_str()
   {
     std::stringstream ss;
     ss << "B" << this->id;
     return ss.str();
   }
 
-  verona::interpreter::Bytecode* Behavior::spawn()
+  verona::interpreter::Bytecode* Behaviour::spawn()
   {
     assert(this->status == Status::Ready);
     this->status = Status::Running;
@@ -83,7 +83,7 @@ namespace rt::core
   // FIXME: Currently both the scheduler and the behavior has a function
   // to complete a behavior. All of this should really be in one place. It
   // might be better to move all of this into the scheduler.
-  void Behavior::complete()
+  void Behaviour::complete()
   {
     this->status = Status::Done;
     rt::remove_reference(nullptr, this->code);

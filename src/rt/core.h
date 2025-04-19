@@ -289,7 +289,7 @@ namespace rt::core
 
     Status status;
     int id;
-    core::Behavior* owner;
+    core::Behaviour* owner;
 
   public:
     CownObject(
@@ -299,7 +299,7 @@ namespace rt::core
       id = s_id_counter++;
 
       status = Status::Pending;
-      this->owner = Behavior::get_active_behavior().get();
+      this->owner = Behaviour::get_active_behavior().get();
       auto old = set("value", obj);
       assert(!old);
 
@@ -309,6 +309,7 @@ namespace rt::core
       {
         this->change_rc(1);
         this->owner->cowns.push_back(this);
+        //verona::interpreter::Scheduler::new_pending_cown(this, this->owner);
       }
 
       if (name_)
@@ -400,7 +401,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return Behavior::get_active_behavior().get() != this->owner;
+          return Behaviour::get_active_behavior().get() != this->owner;
         case Status::Released:
         default:
           return true;
@@ -437,7 +438,7 @@ namespace rt::core
       }
     }
 
-    void aquire(Behavior* behavior)
+    void aquire(Behaviour* behavior)
     {
       // Who needs other safety checks than this?
       // This is so gonna bite me...
@@ -447,13 +448,13 @@ namespace rt::core
       this->owner = behavior;
     }
 
-    void release(Behavior* behavior)
+    void release(Behaviour* behavior)
     {
       assert(this->owner == behavior);
       this->status = Status::Released;
       this->owner = nullptr;
     }
-    bool is_owner(Behavior* behavior)
+    bool is_owner(Behaviour* behavior)
     {
       return this->owner == behavior;
     }
