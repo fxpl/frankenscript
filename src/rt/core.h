@@ -308,7 +308,7 @@ namespace rt::core
       if (this->status == Status::Pending)
       {
         this->change_rc(1);
-        this->owner->cowns.push_back(this);
+        this->owner->signal_new_cown(this);
         //verona::interpreter::Scheduler::new_pending_cown(this, this->owner);
       }
 
@@ -434,6 +434,7 @@ namespace rt::core
       if (region->combined_lrc() == 0)
       {
         status = Status::Released;
+        this->owner->signal_early_release(this);
         this->owner = nullptr;
       }
     }

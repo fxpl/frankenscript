@@ -1,0 +1,28 @@
+
+breakpoint()
+# test in behaviour
+@name("B1")
+when ():
+    a = {}
+    breakpoint()
+    pass()
+
+# first inst. in behaviour
+@name("B2")
+when ():
+    breakpoint()
+    a = {}
+
+# last inst. in behaviour
+@name("B3")
+when ():
+    a = {}
+    breakpoint()
+
+# Only inst. in behaviour
+@name("B4")
+when ():
+    breakpoint()
+
+# last inst. in main
+breakpoint()

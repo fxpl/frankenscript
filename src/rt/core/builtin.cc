@@ -440,7 +440,7 @@ namespace rt::core
       // when
       auto behaviour = frame->stack_pop("behaviour");
       scheduler->add(
-        std::make_shared<rt::core::Behaviour>(behaviour, cowns, name));
+        std::make_shared<rt::core::Behaviour>(behaviour, cowns, scheduler, name));
 
       // @Max, Interesting for your report: Some kind of ownership transfer is
       // needed here. Freezing is "the easiest" untill we get into the mess that

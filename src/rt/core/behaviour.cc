@@ -33,8 +33,9 @@ namespace rt::core
   Behaviour::Behaviour(
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> cowns_,
+    verona::interpreter::Scheduler* scheduler_,
     std::optional<std::string> name_)
-  : id(s_behaviour_counter++), cowns(cowns_), code(code_)
+  : id(s_behaviour_counter++), cowns(cowns_), code(code_), scheduler(scheduler_)
   {
     for (auto c : cowns)
     {
@@ -107,4 +108,18 @@ namespace rt::core
       }
     }
   }
+
+  void Behaviour::signal_new_cown(rt::objects::DynObject* cown)
+  {
+    this->cowns.push_back(cown);
+    this->scheduler->signal_new_cown(cown, s_active_behaviour);
+  }
+
+  void Behaviour::signal_early_release(rt::objects::DynObject* cown)
+  {
+    // assert(cown in cowns)
+    this->scheduler->pending_cown_released(cown, s_active_behaviour);
+  }
+
+
 } // namespace rt::core

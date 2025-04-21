@@ -722,11 +722,36 @@ namespace verona::interpreter
     return ss.str();
   }
 
+  void Scheduler::signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour)
+  {
+    // cown must be new
+    assert(this->cowns.find(cown) == this->cowns.end());
+    this->cowns[cown] = behaviour;
+  }
+
+  void Scheduler::pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour)
+  {
+    // Is there a successor waiting on the cown 
+    auto cown_info = behaviour->cown_succ.find(cown);
+    if (cown_info != behaviour->cown_succ.end())
+    {
+      auto succ = cown_info->second;
+      succ->cown_ctn -= 1;
+      if (succ->cown_ctn == 0)
+      {
+        succ->status = rt::core::Behaviour::Status::Ready;
+        this->ready.push_back(succ);
+      }
+      behaviour->cown_succ.erase(cown);
+      
+    }
+  }
 
 
   void Scheduler::add(rt::core::behaviour_ptr behaviour)
   {
     assert(behaviour->status == rt::core::Behaviour::Status::New);
+    
 
     for (auto cown : behaviour->cowns)
     {
@@ -738,6 +763,8 @@ namespace verona::interpreter
         // If a behaviour isn't Done, set the successor
         if (predecessor->status != rt::core::Behaviour::Status::Done)
         {
+          predecessor->cown_succ[cown] = behaviour;
+          behaviour->cown_ctn += 1;
           if (predecessor->succ.insert(behaviour).second)
           {
             behaviour->pred_ctn += 1;
@@ -780,6 +807,8 @@ namespace verona::interpreter
     std::cout << "- h        : Prints this message " << std::endl << std::endl;
   }
 
+
+
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
   {
     auto main_function = rt::make_func(main_block);
@@ -792,7 +821,7 @@ namespace verona::interpreter
     this->prompt_user_for_steps = prompt_steps;
     // :notes: I imagine a world without ugly c++ :notes:
     auto behaviour = std::make_shared<rt::core::Behaviour>(
-      main_function, std::vector<rt::objects::DynObject*>{}, "main");
+      main_function, std::vector<rt::objects::DynObject*>{}, this, "main");
     behaviour->status = rt::core::Behaviour::Status::Ready;
     this->ready.push_back(behaviour);
 
@@ -933,19 +962,35 @@ namespace verona::interpreter
     }
   }
 
+
+
+
   void Scheduler::complete(rt::core::behaviour_ptr behaviour)
   {
+    // TODO utilize/update cown_succ
     behaviour->complete();
     std::erase(this->ready, behaviour);
-    for (auto succ : behaviour->succ)
+    for (auto cown_info : behaviour->cown_succ)
     {
-      succ->pred_ctn -= 1;
-      if (succ->pred_ctn == 0)
+      auto succ  = cown_info.second;
+      succ->cown_ctn -= 1;
+      if (succ->cown_ctn == 0)
       {
         succ->status = rt::core::Behaviour::Status::Ready;
         this->ready.push_back(succ);
       }
     }
+    behaviour->cown_succ.clear();
+    
+    // for (auto succ : behaviour->succ)
+    // {
+    //   succ->pred_ctn -= 1;
+    //   if (succ->pred_ctn == 0)
+    //   {
+    //     succ->status = rt::core::Behaviour::Status::Ready;
+    //     this->ready.push_back(succ);
+    //   }
+    // }
     behaviour->succ.clear();
   }
 

@@ -1,0 +1,19 @@
+
+r = Region()
+# Create a cown using an open region
+c1 = Cown(r, "c1")
+c2 = Cown(Region(), "c2")
+
+@name("B1")
+when (c1):
+    pass()
+    when (c1):
+        pass()
+
+# Close the region. B1 should now be available for execution, as c1 goes from 'pending' to 'freed' 
+r = None
+
+@name("B2")
+when (c1, c2):
+    c1.value = c2
+

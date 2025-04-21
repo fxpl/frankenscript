@@ -93,8 +93,9 @@ namespace verona::interpreter
 
     void start(Bytecode* main_block, bool interactive, int seed, bool prompt_steps);
 
+    void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
+    void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
-    // void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
 
   private:
     void prompt_steps();

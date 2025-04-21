@@ -9,6 +9,7 @@
 namespace verona::interpreter
 {
   struct Bytecode;
+  class Scheduler;
 }
 
 namespace rt::objects
@@ -25,7 +26,6 @@ namespace rt::ui
 
 namespace rt::core
 {
-  // TODO rename this to `Behaviour`
   class Behaviour
   {
     friend class rt::ui::MermaidUI;
@@ -83,6 +83,8 @@ namespace rt::core
     // `local_region` when this behaviour runs.
     objects::Region* local_region;
 
+    verona::interpreter::Scheduler* scheduler;
+
   public:
     // This maps the cowns of this behaviour to the previous behaviour this
     // is waiting on. This is used to draw the dependencies, it is not used
@@ -100,13 +102,18 @@ namespace rt::core
     objects::DynObject* code;
     // The number of behaviours that this behaviour is waiting on
     int pred_ctn = 0;
+    // Number of cowns behaviour is waiting on
+    size_t cown_ctn{0};
     // Behaviours which are waiting on this behaviour. These will be notified once
     // this behaviour completes
     std::set<std::shared_ptr<Behaviour>> succ;
+    std::map<objects::DynObject*, std::shared_ptr<Behaviour>> cown_succ;
+
 
     Behaviour(
       objects::DynObject* code_,
       std::vector<objects::DynObject*> cowns_,
+      verona::interpreter::Scheduler* scheduler_,
       std::optional<std::string> name_ = std::nullopt);
 
     std::string get_name();
@@ -116,6 +123,9 @@ namespace rt::core
     // This completes the behaviour by releasing all cowns
     // decreffing all held objects
     void complete();
+    
+    void signal_new_cown(rt::objects::DynObject* cown);
+    void signal_early_release(rt::objects::DynObject* cown);
   };
 
   typedef std::shared_ptr<Behaviour> behaviour_ptr;
