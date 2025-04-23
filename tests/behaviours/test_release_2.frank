@@ -9,6 +9,8 @@ when (c1):
     pass()
     when (c1):
         pass()
+    pass()
+    pass()
 
 # Close the region. B1 should now be available for execution, as c1 goes from 'pending' to 'freed' 
 r = None

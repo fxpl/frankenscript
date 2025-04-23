@@ -808,6 +808,26 @@ namespace verona::interpreter
   }
 
 
+  std::string processLines(const std::string& input, const size_t desired_lines) {
+    std::istringstream iss(input);
+    //std::vector<std::string> lines;
+    std::string line;
+    
+    // Split input into lines
+    size_t i{0};
+    std::string result = "";
+    while (std::getline(iss, line) && i < desired_lines) 
+    {
+      result += line + "\n";
+      i++;
+    }
+    if (std::getline(iss, line))
+    {
+      result += "   {...}\n";
+    }
+    
+    return result;
+  }
 
   void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
   {
@@ -860,9 +880,10 @@ namespace verona::interpreter
       if (std::holds_alternative<ExecPrint>(action))
       {
         auto line_string = std::get<ExecPrint>(action).value;
+        auto shortened_string = processLines(line_string, 4);
         std::stringstream draw_ss;
         std::stringstream terminal_ss;
-        draw_ss << line_string << std::endl;
+        draw_ss << shortened_string << std::endl;
         terminal_ss << ">>> " << draw_ss.str();
         if (this->current_int->prev_schedule_call)
         {

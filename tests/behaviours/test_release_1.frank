@@ -4,10 +4,10 @@
 c1 = Cown(Region(), "c1")
 c2 = Cown(Region(), "c2")
 c3 = Cown(Region(), "c3")
-a = {}
-a = {}
-a = {}
-a = {}
+pass()
+pass()
+pass()
+pass()
 
 @name("B1")
 when (c1, c2, c3):
