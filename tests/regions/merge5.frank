@@ -1,0 +1,15 @@
+
+r1 = Region()
+r2 = Region()
+r1.r2 = r2
+
+assert_sbrc(r1, "1")
+r2 = None
+assert_sbrc(r1, "0")
+assert_lrc(r1.r2, "0")
+
+# Edge case where r2 does not contribute to sbrc of r1
+# Assure that lrc is unchanged
+assert_lrc(r1, "1")
+merge(r1.r2, r1)
+assert_lrc(r1, "1")
