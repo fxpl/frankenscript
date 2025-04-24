@@ -16,10 +16,10 @@ when (c1):
 # Close the region. B1 should now be available for execution,
 # as c1 goes from 'pending' to 'Released' 
 r = None
-# Note that this check only works due to the current default seed
-# B1 could complete before this inst. is reached
-if is_ready("B1") == False:
-    unreachable()
+# B1 must either be executable or complete
+if is_executable("B1") == False:
+    if is_complete("B1") == False:
+        unreachable()
 
 @name("B2")
 when (c1, c2):

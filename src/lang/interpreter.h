@@ -69,7 +69,7 @@ namespace verona::interpreter
     // from the behaviour. But no, this is faster;
     Interpreter* current_int;
 
-    // @brief Do we desire interactive execution
+    /// @brief Do we desire interactive execution
     bool interactive{true};
     /// @brief Indicates if this is the first break and the help message should
     /// be printed.
@@ -80,9 +80,13 @@ namespace verona::interpreter
     // For faster debugging
     bool prompt_user_for_steps{true};
 
-    // @brief RNG for concurrency
+    /// @brief RNG for concurrency
     std::mt19937 rng;
 
+    // Track completed behaviours, only needed for testing
+    // Onus is on user to provide distinct names, if manual
+    // ones are used
+    std::vector<std::string> completed_behaviours;
 
   public:
     Scheduler();
@@ -96,8 +100,10 @@ namespace verona::interpreter
     void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
+    
     // Used for testing
-    bool is_ready(const std::string behaviour_name);
+    bool is_executable(const std::string behaviour_name);
+    bool is_complete(const std::string behaviour_name);
 
   private:
     void prompt_steps();

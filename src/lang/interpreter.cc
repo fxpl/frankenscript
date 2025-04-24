@@ -849,7 +849,6 @@ namespace verona::interpreter
       print_help();
     }
 
-    //std::malloc()
 
     while (behaviour)
     {
@@ -988,7 +987,6 @@ namespace verona::interpreter
 
   void Scheduler::complete(rt::core::behaviour_ptr behaviour)
   {
-    // TODO utilize/update cown_succ
     behaviour->complete();
     std::erase(this->ready, behaviour);
     for (auto cown_info : behaviour->cown_succ)
@@ -1002,16 +1000,18 @@ namespace verona::interpreter
       }
     }
     behaviour->cown_succ.clear();
+
+    this->completed_behaviours.push_back(behaviour->get_name());
     
     // for (auto succ : behaviour->succ)
     // {
-    //   succ->pred_ctn -= 1;
-    //   if (succ->pred_ctn == 0)
-    //   {
-    //     succ->status = rt::core::Behaviour::Status::Ready;
-    //     this->ready.push_back(succ);
-    //   }
-    // }
+      //   succ->pred_ctn -= 1;
+      //   if (succ->pred_ctn == 0)
+      //   {
+        //     succ->status = rt::core::Behaviour::Status::Ready;
+        //     this->ready.push_back(succ);
+        //   }
+        // }
     behaviour->succ.clear();
   }
 
@@ -1152,11 +1152,23 @@ namespace verona::interpreter
 
   // ################### TESTING FUNCTIONALITY ####################################
 
-  bool Scheduler::is_ready(const std::string behaviour_name)
+  bool Scheduler::is_executable(const std::string behaviour_name)
   {
     for (auto behaviour : this->ready)
     {
       if (behaviour->get_name() == behaviour_name)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool Scheduler::is_complete(const std::string sought_name)
+  {
+    for (auto behaviour_name : this->completed_behaviours)
+    {
+      if (behaviour_name == sought_name)
       {
         return true;
       }

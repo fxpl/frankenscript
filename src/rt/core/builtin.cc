@@ -450,12 +450,12 @@ namespace rt::core
 
       return std::nullopt;
     });
-    add_builtin("is_ready", [=](auto frame, auto args) {
+    add_builtin("is_executable", [=](auto frame, auto args) {
       
       if (args != 1)
       {
         std::stringstream ss;
-        ss << "is_ready" << " expected 1 argument";
+        ss << "is_executable" << " expected 1 argument";
         ui::error(ss.str());
       }
   
@@ -471,7 +471,34 @@ namespace rt::core
         s.erase(0, 1);
         s.erase(s.size() - 1);
       }
-      auto result = scheduler->is_ready(s);
+      auto result = scheduler->is_executable(s);
+      auto result_obj = rt::get_bool(result);
+      result_obj->change_rc(1);
+      rt::remove_reference(frame->object(), behaviour_name);
+      return result_obj;
+    });
+    add_builtin("is_complete", [=](auto frame, auto args) {
+      
+      if (args != 1)
+      {
+        std::stringstream ss;
+        ss << "is_complete" << " expected 1 argument";
+        ui::error(ss.str());
+      }
+  
+      auto behaviour_name = frame->stack_pop("behaviour_name");
+      if (behaviour_name->get_prototype() != stringPrototypeObject())
+      {
+        ui::error("given count is not a string", behaviour_name);
+      }
+      // Remove string object whitespace
+      auto s = behaviour_name->get_name();
+      if (s[0] == '\"')
+      {
+        s.erase(0, 1);
+        s.erase(s.size() - 1);
+      }
+      auto result = scheduler->is_complete(s);
       auto result_obj = rt::get_bool(result);
       result_obj->change_rc(1);
       rt::remove_reference(frame->object(), behaviour_name);

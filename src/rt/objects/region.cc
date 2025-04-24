@@ -351,11 +351,6 @@ namespace rt::objects
       return true;
     }
     return false;
-    
-
-    if (to_close_reg && !to_close_reg->is_closed())
-    {
-    }
   }
 
   void Region::clean_lrcs()
