@@ -450,6 +450,33 @@ namespace rt::core
 
       return std::nullopt;
     });
+    add_builtin("is_ready", [=](auto frame, auto args) {
+      
+      if (args != 1)
+      {
+        std::stringstream ss;
+        ss << "is_ready" << " expected 1 argument";
+        ui::error(ss.str());
+      }
+  
+      auto behaviour_name = frame->stack_pop("behaviour_name");
+      if (behaviour_name->get_prototype() != stringPrototypeObject())
+      {
+        ui::error("given count is not a string", behaviour_name);
+      }
+      // Remove string object whitespace
+      auto s = behaviour_name->get_name();
+      if (s[0] == '\"')
+      {
+        s.erase(0, 1);
+        s.erase(s.size() - 1);
+      }
+      auto result = scheduler->is_ready(s);
+      auto result_obj = rt::get_bool(result);
+      result_obj->change_rc(1);
+      rt::remove_reference(frame->object(), behaviour_name);
+      return result_obj;
+    });
   }
 
   void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler)

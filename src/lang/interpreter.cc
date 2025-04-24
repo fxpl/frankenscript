@@ -810,7 +810,6 @@ namespace verona::interpreter
 
   std::string processLines(const std::string& input, const size_t desired_lines) {
     std::istringstream iss(input);
-    //std::vector<std::string> lines;
     std::string line;
     
     // Split input into lines
@@ -850,6 +849,7 @@ namespace verona::interpreter
       print_help();
     }
 
+    //std::malloc()
 
     while (behaviour)
     {
@@ -1148,6 +1148,20 @@ namespace verona::interpreter
 
     auto behaviour = this->ready[selected];
     return behaviour;
+  }
+
+  // ################### TESTING FUNCTIONALITY ####################################
+
+  bool Scheduler::is_ready(const std::string behaviour_name)
+  {
+    for (auto behaviour : this->ready)
+    {
+      if (behaviour->get_name() == behaviour_name)
+      {
+        return true;
+      }
+    }
+    return false;
   }
 
 } // namespace verona::interpreter

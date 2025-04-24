@@ -96,6 +96,8 @@ namespace verona::interpreter
     void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
+    // Used for testing
+    bool is_ready(const std::string behaviour_name);
 
   private:
     void prompt_steps();
