@@ -98,6 +98,7 @@ namespace rt::core
     // to the new Interpreter to populate the frame. Note that creating a 
     // cown in a behaviour will expand its set of cowns. Ergo, the set of aquired
     // cowns is a subset.
+    // TODO split created and aquired cowns into two separate structures  
     std::vector<objects::DynObject*> cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     objects::DynObject* code;
