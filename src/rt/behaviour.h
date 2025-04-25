@@ -82,7 +82,8 @@ namespace rt::core
     // The local region of this behaviour. This has to be swapped into the global
     // `local_region` when this behaviour runs.
     objects::Region* local_region;
-
+    // "Necessary" to signal the status change 'Pending --> Released' for cowns to the Scheduler
+    // Ergo change is propagated like so: cown->behaviour(owner)->scheduler
     verona::interpreter::Scheduler* scheduler;
 
   public:
@@ -105,8 +106,11 @@ namespace rt::core
     // Number of cowns behaviour is waiting on
     size_t cown_ctn{0};
     // Behaviours which are waiting on this behaviour. These will be notified once
-    // this behaviour completes
+    // this behaviour completes.
+    // Currently needed for mermaid
     std::set<std::shared_ptr<Behaviour>> succ;
+    // Map from a cown to the next behaviour waiting for it, needed since all cowns are not 
+    // necessarily released at the end of behaviours. 
     std::map<objects::DynObject*, std::shared_ptr<Behaviour>> cown_succ;
 
 

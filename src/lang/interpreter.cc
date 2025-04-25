@@ -726,6 +726,8 @@ namespace verona::interpreter
   {
     // cown must be new
     assert(this->cowns.find(cown) == this->cowns.end());
+    // This slightly complicates the description of the cowns map, since a cown will now initially map to
+    // the behaviour that creates it  
     this->cowns[cown] = behaviour;
   }
 
@@ -765,11 +767,11 @@ namespace verona::interpreter
         {
           predecessor->cown_succ[cown] = behaviour;
           behaviour->cown_ctn += 1;
+          // Only needed for Mermaid:
           if (predecessor->succ.insert(behaviour).second)
           {
             behaviour->pred_ctn += 1;
           }
-          // Only needed for Mermaid:
           behaviour->cown_deps[cown] = predecessor.get();
         }
       }

@@ -49,7 +49,8 @@ namespace verona::interpreter
   {
     // All behaviours that are ready to run
     std::vector<rt::core::behaviour_ptr> ready = {};
-    // A map from cowns to the last behaviour that is waiting on them.
+    // A map from cowns to the last behaviour that will as some point own them.
+    // Ergo this will initially map to the creating behaviour
     //
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
