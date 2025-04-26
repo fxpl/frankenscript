@@ -884,7 +884,7 @@ namespace verona::interpreter
         auto shortened_string = processLines(line_string, 4);
         std::stringstream draw_ss;
         std::stringstream terminal_ss;
-        draw_ss << shortened_string << std::endl;
+        draw_ss << shortened_string;
         terminal_ss << ">>> " << draw_ss.str();
         if (this->current_int->prev_schedule_call)
         {
