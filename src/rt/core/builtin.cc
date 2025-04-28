@@ -203,6 +203,16 @@ namespace rt::core
       return cown;
     });
 
+    add_builtin("Create_lock", [](auto frame, auto args) {
+      if (args != 0)
+      {
+        ui::error("Create_lock() expected 0 arguments");
+      }
+
+      auto value = rt::create_region();
+      return value;
+    });
+
     add_builtin("Region", [](auto frame, auto args) {
       if (args != 0)
       {
@@ -486,7 +496,6 @@ namespace rt::core
       return std::nullopt;
     });
 
-    add_builtin(lock, [=](auto frame, auto args) {
 
     add_builtin("is_executable", [=](auto frame, auto args) {
       

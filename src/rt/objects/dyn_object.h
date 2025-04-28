@@ -81,7 +81,7 @@ namespace rt::objects
     }
 
     // prototype is borrowed, the caller does not need to provide an RC.
-    DynObject(
+     DynObject(
       DynObject* prototype_ = nullptr,
       Region* containing_region = get_local_region())
     : prototype(prototype_)
