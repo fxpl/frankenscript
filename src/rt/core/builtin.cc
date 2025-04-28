@@ -416,7 +416,7 @@ namespace rt::core
 
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
-    add_builtin(rt::core::schedule_func_name, [=](auto frame, auto args) {
+    add_builtin(rt::core::BoC_schedule_func_name, [=](auto frame, auto args) {
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behaviour
       std::vector<objects::DynObject*> cowns = {};
@@ -450,6 +450,44 @@ namespace rt::core
 
       return std::nullopt;
     });
+
+
+    add_builtin(rt::core::thread_schedule_func_name, [=](auto frame, auto args) {
+
+      // TODO both builtin scheduling functions could utilize the exact same underlying function
+      
+      // TODO error instead of assert
+      assert(scheduler->BoC_model == false);
+      std::vector<objects::DynObject*> arguments = {};
+      for (int i = 0; i < args - 1; i++)
+      {
+        auto value = frame->stack_pop("arg");
+        arguments.push_back(value);
+      }
+
+      std::optional<std::string> name;
+      // The last argument might be a name for the thread
+      if (
+        !arguments.empty() &&
+        arguments.back()->get_prototype() == rt::core::stringPrototypeObject())
+      {
+        auto name_obj = arguments.back();
+        name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();
+        rt::remove_reference(frame->object(), name_obj);
+        arguments.pop_back();
+      }
+      // block
+      auto thread = frame->stack_pop("block");
+      scheduler->add(
+        std::make_shared<rt::core::Behaviour>(thread, arguments, scheduler, name));
+
+      freeze(thread);
+
+      return std::nullopt;
+    });
+
+    add_builtin(lock, [=](auto frame, auto args) {
+
     add_builtin("is_executable", [=](auto frame, auto args) {
       
       if (args != 1)

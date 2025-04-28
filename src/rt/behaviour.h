@@ -114,6 +114,10 @@ namespace rt::core
     // necessarily released at the end of behaviours. 
     std::map<objects::DynObject*, std::shared_ptr<Behaviour>> cown_succ;
 
+    // #################### Thread functionality ####################
+    std::vector<objects::DynObject*> args;
+    // #################### Thread functionality ####################
+
 
     Behaviour(
       objects::DynObject* code_,
@@ -124,7 +128,7 @@ namespace rt::core
     std::string get_name();
     std::string id_str();
 
-    verona::interpreter::Bytecode* spawn();
+    verona::interpreter::Bytecode* spawn(bool BoC_model);
     // This completes the behaviour by releasing all cowns
     // decreffing all held objects
     void complete();

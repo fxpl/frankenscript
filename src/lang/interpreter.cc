@@ -683,7 +683,7 @@ namespace verona::interpreter
     }
   };
 
-  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps)
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps, bool BoC_model)
   {
     auto ui = rt::ui::globalUI();
     ui->set_output_file(output);
@@ -695,7 +695,7 @@ namespace verona::interpreter
 
     size_t initial = rt::pre_run(ui, &s);
 
-    s.start(new Bytecode{main_body}, interactive, seed, prompt_steps);
+    s.start(new Bytecode{main_body}, interactive, seed, prompt_steps, BoC_model);
 
     rt::post_run(initial, ui);
   }
@@ -754,43 +754,52 @@ namespace verona::interpreter
   {
     assert(behaviour->status == rt::core::Behaviour::Status::New);
     
-
-    for (auto cown : behaviour->cowns)
-    {
-      // Get the last behaviour that is waiting on the cown
-      auto cown_info = this->cowns.find(cown);
-      if (cown_info != cowns.end())
-      {
-        auto predecessor = cown_info->second;
-        // If a behaviour isn't Done, set the successor
-        if (predecessor->status != rt::core::Behaviour::Status::Done)
-        {
-          predecessor->cown_succ[cown] = behaviour;
-          behaviour->cown_ctn += 1;
-          // Only needed for Mermaid:
-          if (predecessor->succ.insert(behaviour).second)
-          {
-            behaviour->pred_ctn += 1;
-          }
-          behaviour->cown_deps[cown] = predecessor.get();
-        }
-      }
-      // Update pointer to the last pending behaviour
-      this->cowns[cown] = behaviour;
-    }
-
     std::stringstream ss;
-    if (behaviour->pred_ctn == 0)
+    if (this->BoC_model)
+    {
+      for (auto cown : behaviour->cowns)
+      {
+        // Get the last behaviour that is waiting on the cown
+        auto cown_info = this->cowns.find(cown);
+        if (cown_info != cowns.end())
+        {
+          auto predecessor = cown_info->second;
+          // If a behaviour isn't Done, set the successor
+          if (predecessor->status != rt::core::Behaviour::Status::Done)
+          {
+            predecessor->cown_succ[cown] = behaviour;
+            behaviour->cown_ctn += 1;
+            // Only needed for Mermaid:
+            if (predecessor->succ.insert(behaviour).second)
+            {
+              behaviour->pred_ctn += 1;
+            }
+            behaviour->cown_deps[cown] = predecessor.get();
+          }
+        }
+        // Update pointer to the last pending behaviour
+        this->cowns[cown] = behaviour;
+      }
+
+      if (behaviour->pred_ctn == 0)
+      {
+        this->ready.push_back(behaviour);
+        behaviour->status = rt::core::Behaviour::Status::Ready;
+        ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is ready";
+      }
+      else
+      {
+        behaviour->status = rt::core::Behaviour::Status::Pending;
+        ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
+      }
+    }
+    else
     {
       this->ready.push_back(behaviour);
       behaviour->status = rt::core::Behaviour::Status::Ready;
       ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is ready";
     }
-    else
-    {
-      behaviour->status = rt::core::Behaviour::Status::Pending;
-      ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
-    }
+    
 
     // Two solutions:
     // 1. Draw the schedule here and make sure that ExecSchedule doesn't
@@ -830,7 +839,7 @@ namespace verona::interpreter
     return result;
   }
 
-  void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
+  void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps, bool m)
   {
     auto main_function = rt::make_func(main_block);
     // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
@@ -845,6 +854,7 @@ namespace verona::interpreter
       main_function, std::vector<rt::objects::DynObject*>{}, this, "main");
     behaviour->status = rt::core::Behaviour::Status::Ready;
     this->ready.push_back(behaviour);
+    this->BoC_model = m;
 
     if (this->interactive)
     {
@@ -857,11 +867,12 @@ namespace verona::interpreter
       Interpreter* inter;
       if (behaviour->status == rt::core::Behaviour::Status::Ready)
       {
-        auto block = behaviour->spawn();
+        auto block = behaviour->spawn(this->BoC_model);
 
         inter = new Interpreter(
           rt::ui::globalUI(), block->body, behaviour->cowns, behaviour);
         this->running[behaviour] = inter;
+        
       }
       else if (behaviour->status == rt::core::Behaviour::Status::Running)
       {

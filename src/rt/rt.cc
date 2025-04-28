@@ -32,7 +32,9 @@ namespace rt
 
   bool is_schedule_builtin(objects::DynObject* func)
   {
-    return func == get_builtin(rt::core::schedule_func_name);
+    return 
+    func == get_builtin(rt::core::BoC_schedule_func_name) ||
+    func == get_builtin(rt::core::thread_schedule_func_name);
   }
 
   bool is_breakpoint_builtin(objects::DynObject* func)

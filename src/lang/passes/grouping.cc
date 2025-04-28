@@ -3,11 +3,18 @@
 inline const TokenDef Rest{"rest"};
 
 int g_when_counter = 0;
+int g_spawn_counter = 0;
 
 std::string new_when_ident()
 {
   g_when_counter += 1;
   return "__when_" + std::to_string(g_when_counter);
+}
+
+std::string new_spawn_ident()
+{
+  g_spawn_counter += 1;
+  return "__spawn_" + std::to_string(g_spawn_counter);
 }
 
 PassDef grouping()
@@ -99,6 +106,43 @@ PassDef grouping()
 
           // Put it all together
           return Seq << when_def << call;
+        },
+
+        // Mirror 'When'
+        T(Spawn)[Spawn] << (T(Group)[Empty] * T(Group)[Block] * End) >>
+        [](auto& _) {
+          return create_from(Spawn, _(Spawn))
+            << _(Empty) << (Group << Parens) << _(Block);
+        },
+      ~(T(Group) << T(Name)[Name]) *
+          (T(Spawn)[Spawn]
+           << ((T(Group)) *
+               (T(Group)
+                << (T(Parens)[Parens] << ((~(T(List) << T(Ident)++[List]))))) *
+               (T(Group) << T(Block)[Block]))) >>
+        [](auto& _) {
+          auto spawn_name = new_spawn_ident();
+
+          // =====================================
+          // Define `__spawn_X()` function
+          auto spawn_def = create_from(Func, _(Spawn))
+            << (Ident ^ spawn_name)
+            << (create_from(Params, _(Parens)) << clone(_[List]))
+            << (Body << _(Block));
+
+          // =====================================
+          // Call `spawn_behaviour()`
+          auto args = create_from(List, _(Parens)) << (Ident ^ spawn_name);
+          if (_(Name))
+          {
+            args = args << create_from(String, _(Name));
+          }
+          args = args << clone(_[List]);
+          auto call = create_from(Call, _(Spawn))
+            << (Ident ^ "spawn_thread") << args;
+
+          // Put it all together
+          return Seq << spawn_def << call;
         },
 
       T(Assign)

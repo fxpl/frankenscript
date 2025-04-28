@@ -7,7 +7,7 @@ namespace verona::wf
   inline const auto parse_tokens =
     Ident | Lookup | Empty | Drop | Move | Null | String | Parens | Name;
   inline const auto parse_groups = Group | Assign | If | Else | Block | For |
-    Func | List | Return | While | When;
+    Func | List | Return | While | When | Spawn;
 
   inline const auto parser = (Top <<= File) | (File <<= parse_groups++) |
     (Assign <<= Group * (Lhs >>= (Group | cond))) |
@@ -15,7 +15,7 @@ namespace verona::wf
     (Else <<= Group * Group) | (Group <<= (parse_tokens | Block | List)++) |
     (Block <<= (parse_tokens | parse_groups)++) | (Eq <<= Group * Group) |
     (Neq <<= Group * Group) | (Lookup <<= Group) | (When <<= Group++) |
-    (For <<= Group * List * Group * Group) |
+    (Spawn <<= Group++) | (For <<= Group * List * Group * Group) |
     (While <<= Group * (Op >>= (cond | Group)) * Group) | (List <<= Group++) |
     (Parens <<= (Group | List)++) | (Func <<= Group * Group * Group) |
     (Return <<= (Group | cond)++);
@@ -98,6 +98,7 @@ trieste::Parse parser()
       "def\\b" >> [](auto& m) { m.seq(Func); },
       "@name\\(\"([^\\n\"]+)\"\\)" >> [](auto& m) { m.add(Name, 1); },
       "when\\b" >> [](auto& m) { m.seq(When); },
+      "spawn\\b" >> [](auto& m) { m.seq(Spawn); },
       "\\(" >> [](auto& m) { m.push(Parens); },
       "\\)" >>
         [](auto& m) {
@@ -154,6 +155,10 @@ trieste::Parse parser()
           else if (m.in(When))
           {
             toc = When;
+          }
+          else if (m.in(Spawn))
+          {
+            toc = Spawn;
           }
           else
           {

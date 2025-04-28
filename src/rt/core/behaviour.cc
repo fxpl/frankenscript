@@ -36,10 +36,14 @@ namespace rt::core
     verona::interpreter::Scheduler* scheduler_,
     std::optional<std::string> name_)
   : id(s_behaviour_counter++), cowns(cowns_), code(code_), scheduler(scheduler_)
-  {
-    for (auto c : cowns)
+  { 
+    // Fixme: Very hacky, the model could be passed as an arg instead?
+    if (this->scheduler->BoC_model)
     {
-      ordered_cown[rt::get_cown_id(c)] = c;
+      for (auto c : cowns)
+      {
+        ordered_cown[rt::get_cown_id(c)] = c;
+      }
     }
 
     if (name_)
@@ -66,14 +70,17 @@ namespace rt::core
     return ss.str();
   }
 
-  verona::interpreter::Bytecode* Behaviour::spawn()
+  verona::interpreter::Bytecode* Behaviour::spawn(bool BoC_model)
   {
     assert(this->status == Status::Ready);
     this->status = Status::Running;
-
-    for (auto c : this->cowns)
+    if (BoC_model == true)
     {
-      rt::aquire_cown(c, this);
+      printf("wat \n");
+      for (auto c : this->cowns)
+      {
+        rt::aquire_cown(c, this);
+      }
     }
 
     this->local_region = objects::Region::new_local_region();
@@ -91,10 +98,14 @@ namespace rt::core
     this->code = nullptr;
 
     for (auto c : this->cowns)
-    {
-      if (rt::is_owner(c, this))
+    { 
+      // Fixme: use as func. arg instead
+      if (this->scheduler->BoC_model)
       {
-        rt::release_cown(c, this);  
+        if (rt::is_owner(c, this))
+        {
+          rt::release_cown(c, this);  
+        }
       }
       rt::remove_reference(nullptr, c);
     }

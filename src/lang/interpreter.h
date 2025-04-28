@@ -84,6 +84,10 @@ namespace verona::interpreter
     /// @brief RNG for concurrency
     std::mt19937 rng;
 
+
+
+
+
     // Track completed behaviours, only needed for testing
     // Onus is on user to provide distinct names, if manual
     // ones are used
@@ -96,7 +100,7 @@ namespace verona::interpreter
 
     void add(rt::core::behaviour_ptr behaviour);
 
-    void start(Bytecode* main_block, bool interactive, int seed, bool prompt_steps);
+    void start(Bytecode* main_block, bool interactive, int seed, bool prompt_steps, bool BoC_model);
 
     void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
@@ -105,6 +109,13 @@ namespace verona::interpreter
     // Used for testing
     bool is_executable(const std::string behaviour_name);
     bool is_complete(const std::string behaviour_name);
+
+    // #################### Thread functionality ####################
+    // Are we using BoC? Fascilitates reuse of functions involving spawning a behaviour
+    // Since the set of tasks needed to spawn a thread is a subset of the tasks needed to spawn a behaviour,
+    // it seems somewhat reasonable to take this route.
+    bool BoC_model{true};
+    // #################### Thread functionality ####################
 
   private:
     void prompt_steps();

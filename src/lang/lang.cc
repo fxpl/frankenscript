@@ -22,7 +22,7 @@ std::pair<PassDef, std::shared_ptr<std::optional<Node>>> extract_bytecode_pass()
 
 namespace verona::interpreter
 {
-  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps);
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps, bool no_BoC);
 }
 
 struct CLIOptions : trieste::Options
@@ -32,6 +32,7 @@ struct CLIOptions : trieste::Options
   bool interactive{false};
   int seed = 42;
   bool prompt_steps{false};
+  bool BoC_model{true};
 
   void configure(CLI::App& app)
   {
@@ -47,6 +48,7 @@ struct CLIOptions : trieste::Options
     app.add_option("--out", out, "The output file for frankenscript");
     app.add_option("--seed", seed, "Seed when selecting which concurrent unit to run");
     app.add_flag("--prompt_steps", [&](auto) {prompt_steps = true;}, "Prompt user for steps");
+    app.add_flag("--no_BoC", [&](auto) {BoC_model = false;}, "Should the concurrency model be BoC");
   }
 
   void validate()
@@ -78,7 +80,7 @@ int load_trieste(int argc, char** argv)
   if (build_res == 0 && result->has_value())
   {
     verona::interpreter::start(
-      result->value(), options.step_counter, options.out, options.interactive, options.seed, options.prompt_steps);
+      result->value(), options.step_counter, options.out, options.interactive, options.seed, options.prompt_steps, options.BoC_model);
   }
   return build_res;
 }

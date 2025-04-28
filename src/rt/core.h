@@ -9,7 +9,8 @@
 
 namespace rt::core
 {
-  const std::string schedule_func_name = "spawn_behaviour";
+  const std::string BoC_schedule_func_name = "spawn_behaviour";
+  const std::string thread_schedule_func_name = "spawn_thread";
   const std::string breakpoint_func_name = "breakpoint";
 
   using PrototypeObject = objects::PrototypeObject;
