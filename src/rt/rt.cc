@@ -98,6 +98,17 @@ namespace rt
     return new core::CownObject(value, name);
   }
 
+  objects::DynObject* make_lock(objects::DynObject* name_obj)
+  {
+    std::optional<std::string> name;
+    if (name_obj)
+    {
+      name = get_key(name_obj);
+    }
+    return new core::LockObject(name);
+  }
+
+
   void freeze(objects::DynObject* obj)
   {
     // Cown specific handling of the freeze operation is handled by the
@@ -109,6 +120,7 @@ namespace rt
   {
     return objects::create_region();
   }
+
 
   std::optional<objects::DynObject*>
   get(objects::DynObject* obj, std::string key)
@@ -395,6 +407,26 @@ namespace rt
   }
   void set_active_behaviour(rt::core::behaviour_ptr behaviour) {
     core::Behaviour::set_active_behaviour(behaviour);
+  }
+
+  bool aquire_lock(objects::DynObject* lock)
+  {
+    if (lock && lock->get_prototype() != core::lockPrototypeObject())
+    {
+      ui::error("The given object is not a lock", lock);
+    }
+
+    return reinterpret_cast<core::LockObject*>(lock)->aquire();
+  }
+
+  void release_lock(objects::DynObject* lock)
+  {
+    if (lock && lock->get_prototype() != core::lockPrototypeObject())
+    {
+      ui::error("The given object is not a lock", lock);
+    }
+
+    return reinterpret_cast<core::LockObject*>(lock)->release();
   }
 
 } // namespace rt

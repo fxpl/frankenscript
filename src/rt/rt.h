@@ -25,6 +25,8 @@ namespace rt
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
   objects::DynObject* make_cown(objects::DynObject* value, objects::DynObject* name);
+  objects::DynObject* make_lock(objects::DynObject* name_obj);
+
 
   void freeze(objects::DynObject* obj);
   objects::DynObject* create_region();
@@ -83,4 +85,7 @@ namespace rt
 
   rt::core::behaviour_ptr get_active_behaviour();
   void set_active_behaviour(rt::core::behaviour_ptr behaviour);
+
+  bool aquire_lock(objects::DynObject* lock);
+  void release_lock(objects::DynObject* lock);
 } // namespace rt

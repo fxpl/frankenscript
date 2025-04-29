@@ -1,0 +1,14 @@
+
+a = {}
+b = Make_lock()
+spawn (a, b):
+    Lock(b)
+    a.x = {}
+    Unlock(b)
+
+spawn (a, b):
+    Lock(b)
+    a.x = "x"
+    Unlock(b)
+
+pass()

@@ -76,7 +76,6 @@ namespace rt::core
     this->status = Status::Running;
     if (BoC_model == true)
     {
-      printf("wat \n");
       for (auto c : this->cowns)
       {
         rt::aquire_cown(c, this);

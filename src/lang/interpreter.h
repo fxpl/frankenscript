@@ -6,9 +6,11 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 #include <random>
+//#include <algorithm>
 
 namespace rt::objects
 {
@@ -115,6 +117,10 @@ namespace verona::interpreter
     // Since the set of tasks needed to spawn a thread is a subset of the tasks needed to spawn a behaviour,
     // it seems somewhat reasonable to take this route.
     bool BoC_model{true};
+    std::unordered_map<rt::objects::DynObject*, std::unordered_set<rt::core::behaviour_ptr>> lock_map = {};
+    void lock(rt::objects::DynObject* lock_obj);
+    void unlock(rt::objects::DynObject* lock_obj);
+
     // #################### Thread functionality ####################
 
   private:

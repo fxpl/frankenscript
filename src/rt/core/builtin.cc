@@ -203,13 +203,20 @@ namespace rt::core
       return cown;
     });
 
-    add_builtin("Create_lock", [](auto frame, auto args) {
+    // TODO Potentially allow naming 
+    add_builtin("Make_lock", [](auto frame, auto args) {
       if (args != 0)
       {
-        ui::error("Create_lock() expected 0 arguments");
+        ui::error("Make_lock() expected 0 arguments");
       }
 
-      auto value = rt::create_region();
+      objects::DynObject* name = nullptr;
+      // if (args == 1)
+      // {
+      //   name = frame->stack_pop("name");
+      // }
+
+      auto value = rt::make_lock(name);
       return value;
     });
 
@@ -275,7 +282,6 @@ namespace rt::core
     {
       // We have to remove our reference, as it would otherwise break the
       // `is_closed()` check from the forced close
-      std::cout << "yep" << std::endl;
       rt::remove_reference(frame->object(), bridge);
       region->try_close();
     }
@@ -492,6 +498,32 @@ namespace rt::core
         std::make_shared<rt::core::Behaviour>(thread, arguments, scheduler, name));
 
       freeze(thread);
+
+      return std::nullopt;
+    });
+
+    add_builtin("Lock", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("Lock() expected 1 argument");
+      }
+
+      auto obj = frame->stack_pop("Obj to lock");
+      scheduler->lock(obj);
+      rt::remove_reference(frame->object(), obj);
+
+      return std::nullopt;
+    });
+
+    add_builtin("Unlock", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("Unlock() expected 1 argument");
+      }
+
+      auto obj = frame->stack_pop("Obj to Unlock");
+      scheduler->unlock(obj);
+      rt::remove_reference(frame->object(), obj);
 
       return std::nullopt;
     });

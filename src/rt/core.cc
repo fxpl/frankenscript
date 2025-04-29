@@ -4,4 +4,5 @@ namespace rt::core
 {
   int FrameObject::s_frame_id_counter = 1;
   int CownObject::s_id_counter = 1;
+  int LockObject::lock_id_counter = 1;
 }

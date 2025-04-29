@@ -254,73 +254,86 @@ namespace rt::core
     }
   };
 
-  //   // The prototype object for lock
-  //   inline PrototypeObject* lockPrototypeObject()
-  //   {
-  //     static PrototypeObject* proto = new PrototypeObject("Lock");
-  //     return proto;
-  //   }
+    // The prototype object for lock
+    inline PrototypeObject* lockPrototypeObject()
+    {
+      static PrototypeObject* proto = new PrototypeObject("Lock");
+      return proto;
+    }
   
-  // class LockObject : public objects::DynObject
-  // {
-  //   private:
-  //   static int s_id_counter;
+  class LockObject : public objects::DynObject
+  {
+    private:
+    static int lock_id_counter;
 
-  //   enum class Status
-  //   {
-  //     Open,
-  //     Closed
-  //   };
+    enum class Status
+    {
+      Open,
+      Closed
+    };
 
-  //   static std::string to_string(Status status)
-  //   {
-  //     switch (status)
-  //     {
-  //       case Status::Open:
-  //         return "Open";
-  //       case Status::Closed:
-  //         return "Closed";
-  //       default:
-  //         return "Unknown";
-  //     }
-  //   }
+    static std::string to_string(Status status)
+    {
+      switch (status)
+      {
+        case Status::Open:
+          return "Open";
+        case Status::Closed:
+          return "Closed";
+        default:
+          return "Unknown";
+      }
+    }
 
-  //   Status status;
-  //   int id;
+    Status status;
+    int id;
+  
+  // TODO Use cown region? Separate lock region?
+  public:
+    LockObject(
+       std::optional<std::string> name_ = std::nullopt)
+    : objects::DynObject(lockPrototypeObject(), objects::cown_region)
+    {
+      id = lock_id_counter++;
 
-  // public:
-  //   LockObject(
-  //     objects::DynObject* obj, std::optional<std::string> name_ = std::nullopt)
-  //   : objects::DynObject(cownPrototypeObject(), objects::cown_region)
-  //   {
-  //     id = s_id_counter++;
+      status = Status::Open;
+      //auto old = set("value", obj);
+      //assert(!old);
 
-  //     status = Status::Pending;
-  //     this->owner = Behaviour::get_active_behaviour().get();
-  //     auto old = set("value", obj);
-  //     assert(!old);
+      if (this->status == Status::Open)
+      {
+        //this->change_rc(1);
+        //this->owner->signal_new_cown(this);
+      }
 
-  //     // This is really wonky. The scheduler should actually know about this
-  //     // new cown, but meh?
-  //     if (this->status == Status::Pending)
-  //     {
-  //       this->change_rc(1);
-  //       this->owner->signal_new_cown(this);
-  //       //verona::interpreter::Scheduler::new_pending_cown(this, this->owner);
-  //     }
+      if (name_)
+      {
+        name = name_.value();
+      }
+      else
+      {
+        std::stringstream ss;
+        ss << "<lock " << this->id << ">";
+        name = ss.str();
+      }
+    }
 
-  //     if (name_)
-  //     {
-  //       name = name_.value();
-  //     }
-  //     else
-  //     {
-  //       std::stringstream ss;
-  //       ss << "<cown " << this->id << ">";
-  //       name = ss.str();
-  //     }
-  //   }
-  // }
+    bool aquire()
+    {
+      if(this->status == Status::Open)
+      {
+        this->status = Status::Closed;
+        return true;
+      }
+      return false;
+    }
+
+    void release()
+    {
+      assert(this->status = Status::Closed);
+      this->status = Status::Open;
+    }
+  };
 
   // The prototype object for cown
   inline PrototypeObject* cownPrototypeObject()
@@ -542,6 +555,7 @@ namespace rt::core
         stringPrototypeObject(),
         keyIterPrototypeObject(),
         cownPrototypeObject(),
+        lockPrototypeObject(),
         trueObject(),
         falseObject(),
       };
@@ -560,6 +574,7 @@ namespace rt::core
         stringPrototypeObject(),
         keyIterPrototypeObject(),
         cownPrototypeObject(),
+        lockPrototypeObject(),
       };
     return globals;
   }

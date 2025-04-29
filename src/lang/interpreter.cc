@@ -861,7 +861,6 @@ namespace verona::interpreter
       print_help();
     }
 
-
     while (behaviour)
     {
       Interpreter* inter;
@@ -1161,6 +1160,36 @@ namespace verona::interpreter
 
     auto behaviour = this->ready[selected];
     return behaviour;
+  }
+
+  // ################### THREAD FUNCTIONALITY ####################################
+  void Scheduler::lock(rt::objects::DynObject* lock_obj)
+  {
+    if (!rt::aquire_lock(lock_obj))
+    {
+      auto active = rt::get_active_behaviour(); 
+      auto info = this->lock_map[lock_obj].insert(active);
+      assert(info.second == true);
+      // Ugly way to remove element, however not using a vector for 'ready' will complicate random selection in get_next()
+      this->ready.erase(std::remove(this->ready.begin(), this->ready.end(), active), this->ready.end());
+    }
+  }
+
+  void Scheduler::unlock(rt::objects::DynObject* lock_obj)
+  {
+    rt::release_lock(lock_obj);
+    auto lock_info = this->lock_map.find(lock_obj);
+    if (lock_info != this->lock_map.end())
+    {
+      auto waiting_threads = lock_info->second;
+      //assert(!waiting_threads.empty());
+      if (!waiting_threads.empty())
+      {
+        // The set is unsorted, somewhat like choosing a random thread
+        this->ready.push_back(*waiting_threads.begin());
+        waiting_threads.erase(waiting_threads.begin());
+      }
+    }
   }
 
   // ################### TESTING FUNCTIONALITY ####################################
