@@ -6,6 +6,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -37,9 +38,12 @@ namespace rt::ui
     "#d9d450",
   };
 
-  const char* LOCAL_REGION_ID = "LocalReg";
   const char* IMM_REGION_ID = "ImmReg";
   const char* COWN_REGION_ID = "CownReg";
+
+  const char* BEHAVIOR_RUNNING_COLOR = "#eeeeee";
+  const char* BEHAVIOR_READY_COLOR = "#eefcdd";
+  const char* BEHAVIOR_PENDING_COLOR = "#e6d5fb";
 
   const char* FONT_SIZE = "16px";
   const int EDGE_WIDTH = 2;
@@ -91,22 +95,30 @@ namespace rt::ui
 
   class MermaidDiagram
   {
+  protected:
     MermaidUI* info;
     std::ofstream& out;
-
-    size_t id_counter = 1;
     size_t edge_counter = 0;
 
-    // Give a nice id to each object.
-    std::map<objects::DynObject*, NodeInfo> nodes;
-    std::map<objects::Region*, RegionInfo> regions;
+    MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out) {}
 
-  public:
-    MermaidDiagram(MermaidUI* info_) : info(info_), out(info->out)
+    void draw_header()
     {
-      // Add nullptr
-      nodes[nullptr] = {0};
-      regions[objects::immutable_region].nodes.push_back(0);
+      // Header
+      out << "<div style='background: #fff'>" << std::endl;
+      out << std::endl;
+      out << "```mermaid" << std::endl;
+      out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
+          << FONT_SIZE << "' }}}%%" << std::endl;
+    }
+
+    void draw_footer()
+    {
+      // Footer (end of mermaid graph)
+      out << "```" << std::endl;
+      out << "</div>" << std::endl;
+      out << "<div style='break-after:page'></div>" << std::endl;
+      out << std::endl;
     }
 
     void color_edge(size_t edge_id, const char* color, int width = EDGE_WIDTH)
@@ -115,41 +127,6 @@ namespace rt::ui
           << ",stroke-width:" << width << "px" << std::endl;
     }
 
-    void draw(std::vector<objects::DynObject*>& roots)
-    {
-      // Header
-      out << "<div style='background: #fff'>" << std::endl;
-      out << std::endl;
-      out << "```mermaid" << std::endl;
-      out << "%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '"
-          << FONT_SIZE << "' }}}%%" << std::endl;
-      out << "graph TD" << std::endl;
-      out << "  id0(None):::immutable" << std::endl;
-
-      draw_nodes(roots);
-      draw_regions();
-      draw_taint();
-      draw_highlight();
-      draw_error();
-
-      out << "classDef unreachable stroke-width:2px,stroke:"
-          << UNREACHABLE_NODE_COLOR << std::endl;
-      out << "classDef highlight stroke-width:4px,stroke:"
-          << HIGHLIGHT_NODE_COLOR << std::endl;
-      out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
-          << std::endl;
-      out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
-      out << "classDef tainted_immutable stroke-width:4px,stroke:"
-          << TAINT_NODE_COLOR << std::endl;
-      out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
-      // Footer (end of mermaid graph)
-      out << "```" << std::endl;
-      out << "</div>" << std::endl;
-      out << "<div style='break-after:page'></div>" << std::endl;
-      out << std::endl;
-    }
-
-  private:
     std::pair<const char*, const char*> get_node_style(objects::DynObject* obj)
     {
       if (obj->get_prototype() == core::cownPrototypeObject())
@@ -171,11 +148,93 @@ namespace rt::ui
       return {"[", "]"};
     }
 
+    std::string behavior_node_name(core::Behavior* behavior)
+    {
+      std::stringstream ss;
+      ss << "info_" << behavior->id_str();
+      return ss.str();
+    }
+
+    void draw_behavior_info(core::Behavior* behavior)
+    {
+      out << "  " << this->behavior_node_name(behavior) << "([\""
+          << behavior->get_name() << "<br>Status: "
+          << core::Behavior::status_to_string(behavior->status) << "\"])"
+          << std::endl;
+      // Set background color
+      auto background = ERROR_NODE_COLOR;
+      switch (behavior->status)
+      {
+        case core::Behavior::Status::Running:
+          background = BEHAVIOR_RUNNING_COLOR;
+          break;
+        case core::Behavior::Status::Ready:
+          background = BEHAVIOR_READY_COLOR;
+          break;
+        case core::Behavior::Status::Pending:
+          background = BEHAVIOR_PENDING_COLOR;
+          break;
+      }
+      out << "    style " << this->behavior_node_name(behavior)
+          << " fill:" << background << std::endl;
+    }
+  };
+
+  class ObjectGraphDiagram : protected MermaidDiagram
+  {
+    size_t id_counter = 1;
+
+    // Give a nice id to each object.
+    std::map<objects::DynObject*, NodeInfo> nodes;
+    std::map<objects::Region*, RegionInfo> regions;
+
+  public:
+    ObjectGraphDiagram(MermaidUI* info_) : MermaidDiagram(info_)
+    {
+      // Add nullptr
+      nodes[nullptr] = {0};
+      regions[objects::immutable_region].nodes.push_back(0);
+    }
+
+    void draw(std::vector<objects::DynObject*>& roots)
+    {
+      // header
+      this->draw_header();
+      out << "graph TD" << std::endl;
+      out << "  id0(None):::immutable" << std::endl;
+
+      auto behaviors = aggregate_behaviors();
+
+      draw_behavior_nodes(behaviors);
+      draw_nodes(roots);
+      draw_behaviors(behaviors);
+      draw_regions();
+      draw_taint();
+      draw_highlight();
+      draw_error();
+
+      // Classes
+      out << "classDef unreachable stroke-width:2px,stroke:"
+          << UNREACHABLE_NODE_COLOR << std::endl;
+      out << "classDef highlight stroke-width:4px,stroke:"
+          << HIGHLIGHT_NODE_COLOR << std::endl;
+      out << "classDef error stroke-width:4px,stroke:" << ERROR_NODE_COLOR
+          << std::endl;
+      out << "classDef tainted fill:" << TAINT_NODE_COLOR << std::endl;
+      out << "classDef tainted_immutable stroke-width:4px,stroke:"
+          << TAINT_NODE_COLOR << std::endl;
+      out << "classDef immutable fill:" << IMMUTABLE_NODE_COLOR << std::endl;
+
+      // Footer
+      this->draw_footer();
+    }
+
+  private:
     bool is_borrow_edge(objects::Edge e)
     {
       return e.src != nullptr && e.target != nullptr &&
         objects::get_region(e.src) != objects::get_region(e.target) &&
-        objects::get_region(e.src) == objects::get_local_region();
+        objects::get_region(e.src)->is_local_region;
     }
 
     std::string node_decoration(objects::DynObject* dst, bool reachable)
@@ -189,6 +248,31 @@ namespace rt::ui
         return ":::unreachable";
       }
       return "";
+    }
+
+    std::map<int, core::behavior_ptr> aggregate_behaviors()
+    {
+      // Clone the vector
+      std::vector<core::behavior_ptr> pending =
+        *this->info->scheduler_ready_list;
+      std::map<int, core::behavior_ptr> behaviors;
+
+      while (!pending.empty())
+      {
+        auto b = pending.back();
+        pending.pop_back();
+
+        auto [_, inserted] = behaviors.insert({b->id, b});
+        if (inserted)
+        {
+          for (auto succ : b->succ)
+          {
+            pending.push_back(succ);
+          }
+        }
+      }
+
+      return behaviors;
     }
 
     /// @brief Draws the target node and the edge from the source to the target.
@@ -229,6 +313,14 @@ namespace rt::ui
 
         // Content
         out << escape(dst->get_name());
+        auto info = dst->get_additional_info();
+        if (info)
+        {
+          out << "<br/>";
+          out << escape(info.value());
+        }
+        // FIXME: Make RC display optional, on by default but can be turned off
+        // with a CLI flag like --no-rc or --simple
         out << "<br/>rc=" << dst->rc;
         out << (rt::core::globals()->contains(dst) ? " #40;global#41;" : "");
 
@@ -320,7 +412,54 @@ namespace rt::ui
       indent.erase(indent.size() - 2);
     }
 
-    void draw_region(objects::Region* r, std::string& indent)
+    void draw_behavior_nodes(std::map<int, core::behavior_ptr>& behaviors)
+    {
+      for (auto [id, b] : behaviors)
+      {
+        draw_behavior_info(b.get());
+      }
+    }
+
+    void draw_behaviors(std::map<int, core::behavior_ptr>& behaviors)
+    {
+      std::string ident = "";
+      for (auto [id, b] : behaviors)
+      {
+        if (b->status == core::Behavior::Status::Running)
+        {
+          // C++ and the weird referencing rules...
+          draw_region(b->local_region, ident, b.get());
+        }
+        else
+        {
+          for (auto cown : b->cowns)
+          {
+            out << "    ";
+            out << this->behavior_node_name(b.get());
+            out << " --> |";
+            out << escape(cown->get_name());
+            out << "| ";
+
+            auto pred = b->cown_deps[cown];
+            if (pred)
+            {
+              out << this->behavior_node_name(pred);
+            }
+            else
+            {
+              out << this->nodes[cown];
+            }
+            out << std::endl;
+            edge_counter += 1;
+          }
+        }
+      }
+    }
+
+    void draw_region(
+      objects::Region* r,
+      std::string& indent,
+      core::Behavior* behavior = nullptr)
     {
       auto info = &regions[r];
       if (info->drawn)
@@ -335,13 +474,21 @@ namespace rt::ui
       out << "reg" << r << "[\" \"]" << std::endl;
 
       // Content
+      if (behavior)
+      {
+        out << "  " << indent << this->behavior_node_name(behavior)
+            << std::endl;
+      }
       draw_region_body(r, info, indent);
 
       // Footer
       out << indent << "end" << std::endl;
-      out << indent << "style reg" << r
-          << " fill:" << REGION_COLORS[depth % std::size(REGION_COLORS)]
-          << std::endl;
+      auto color = REGION_COLORS[depth % std::size(REGION_COLORS)];
+      if (r->is_local_region)
+      {
+        color = LOCAL_REGION_COLOR;
+      }
+      out << indent << "style reg" << r << " fill:" << color << std::endl;
     }
 
     void draw_regions()
@@ -376,18 +523,6 @@ namespace rt::ui
             << std::endl;
       }
       regions[objects::immutable_region].drawn = true;
-
-      // Local region
-      {
-        auto region = objects::get_local_region();
-        out << "subgraph " << LOCAL_REGION_ID << "[\"Local region\"]"
-            << std::endl;
-        draw_region_body(objects::cown_region, &regions[region], indent);
-        out << "end" << std::endl;
-        out << "style " << LOCAL_REGION_ID << " fill:" << LOCAL_REGION_COLOR
-            << std::endl;
-      }
-      regions[objects::get_local_region()].drawn = true;
 
       // Draw all other regions
       if (MermaidUI::pragma_draw_regions_nested)
@@ -495,10 +630,10 @@ namespace rt::ui
   MermaidUI::MermaidUI()
   {
     hide_cown_region();
+    hide_prototypes();
   }
 
-  void MermaidUI::output(
-    std::vector<rt::objects::DynObject*>& roots, std::string message)
+  void MermaidUI::prep_output()
   {
     // Reset the file if this is a breakpoint
     if (should_break() && out.is_open())
@@ -525,10 +660,16 @@ namespace rt::ui
         std::abort();
       }
     }
+  }
+
+  void MermaidUI::output(
+    std::vector<rt::objects::DynObject*>& roots, std::string message)
+  {
+    this->prep_output();
 
     out << "<pre><code>" << message << "</code></pre>" << std::endl;
 
-    MermaidDiagram diag(this);
+    ObjectGraphDiagram diag(this);
     diag.draw(roots);
 
     if (should_break())
@@ -540,6 +681,12 @@ namespace rt::ui
     {
       steps -= 1;
     }
+  }
+
+  void MermaidUI::output(std::string message)
+  {
+    auto roots = local_root_objects();
+    this->output(roots, message);
   }
 
   void MermaidUI::highlight(
@@ -611,6 +758,22 @@ namespace rt::ui
     remove_always_hide(core::cownPrototypeObject());
   }
 
+  void MermaidUI::hide_prototypes()
+  {
+    for (auto proto : *core::global_prototypes())
+    {
+      add_always_hide(proto);
+    }
+  }
+
+  void MermaidUI::show_prototypes()
+  {
+    for (auto proto : *core::global_prototypes())
+    {
+      remove_always_hide(core::cownPrototypeObject());
+    }
+  }
+
   void MermaidUI::error(std::string info)
   {
     // Make sure ui doesn't pause
@@ -644,15 +807,23 @@ namespace rt::ui
 
   std::vector<objects::DynObject*> MermaidUI::local_root_objects()
   {
-    auto local_set = &objects::get_local_region()->objects;
     std::vector<objects::DynObject*> nodes_vec;
-    for (auto item : *local_set)
+    for (auto behavior : *this->scheduler_ready_list)
     {
-      if (always_hide.contains(item) || unreachable_hide.contains(item))
+      if (!behavior->local_region)
       {
         continue;
       }
-      nodes_vec.push_back(item);
+      auto local_set = &behavior->local_region->objects;
+
+      for (auto item : *local_set)
+      {
+        if (always_hide.contains(item) || unreachable_hide.contains(item))
+        {
+          continue;
+        }
+        nodes_vec.push_back(item);
+      }
     }
 
     return nodes_vec;

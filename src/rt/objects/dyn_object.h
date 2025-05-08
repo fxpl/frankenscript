@@ -30,7 +30,6 @@ namespace rt::objects
   Region* get_region(DynObject* obj);
 
   Region* get_local_region();
-  void set_local_region(Region* region);
 
   // Representation of objects
   class DynObject
@@ -38,7 +37,7 @@ namespace rt::objects
     friend class Reference;
     friend objects::DynObject* rt::make_iter(objects::DynObject* obj);
     friend class ui::MermaidUI;
-    friend class ui::MermaidDiagram;
+    friend class ui::ObjectGraphDiagram;
     friend class core::CownObject;
     friend void destruct(DynObject* obj);
     friend void dealloc(DynObject* obj);
@@ -60,11 +59,12 @@ namespace rt::objects
 
     std::map<std::string, DynObject*> fields{};
 
+  protected:
+    std::string name;
+
   public:
     size_t change_rc(signed delta)
     {
-      std::cout << "Change RC: " << get_name() << " " << rc << " + " << delta
-                << std::endl;
       if (!(is_immutable() || is_cown()))
       {
         assert(delta == 0 || rc != 0);
@@ -94,10 +94,12 @@ namespace rt::objects
 
       if (prototype != nullptr)
       {
-        // prototype->change_rc(1);
         objects::add_reference(this, prototype);
       }
-      std::cout << "Allocate: " << this << std::endl;
+
+      std::stringstream stream;
+      stream << this;
+      name = stream.str();
     }
 
     // TODO This should use prototype lookup for the destructor.
@@ -114,15 +116,13 @@ namespace rt::objects
       {
         std::stringstream stream;
         stream << this;
-        stream << "  still has references";
+        stream << " still has references";
         ui::error(stream.str(), this);
       }
 
       auto r = get_region(this);
       if (!is_immutable() && r != nullptr)
         r->objects.erase(this);
-
-      std::cout << "Deallocate: " << get_name() << std::endl;
     }
 
     size_t get_rc()
@@ -134,9 +134,13 @@ namespace rt::objects
     /// TODO remove virtual once we have primitive functions.
     virtual std::string get_name()
     {
-      std::stringstream stream;
-      stream << this;
-      return stream.str();
+      return name;
+    }
+
+    // TODO make more types use this instead of `get_name()`
+    virtual std::optional<std::string> get_additional_info()
+    {
+      return std::nullopt;
     }
 
     /// TODO remove virtual once we have primitive functions.
@@ -259,7 +263,7 @@ namespace rt::objects
       {
         if (is_cown())
         {
-          ui::error("Cannot mutate a cown that is not aquired", this);
+          ui::error("Cannot mutate a cown that is not aquired by the current behaviour", this);
         }
         else
         {

@@ -1,9 +1,13 @@
+#include "interpreter.h"
+
+#include "../rt/behavior.h"
 #include "../rt/rt.h"
 #include "bytecode.h"
 #include "trieste/trieste.h"
 
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <variant>
 #include <vector>
 
@@ -57,8 +61,22 @@ namespace verona::interpreter
 
   class Interpreter
   {
+    bool paused = false;
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
+    rt::core::behavior_ptr behavior;
+
+    InterpreterFrame* top_frame()
+    {
+      if (frame_stack.empty())
+      {
+        return nullptr;
+      }
+      else
+      {
+        return frame_stack.back();
+      }
+    }
 
     InterpreterFrame* push_stack_frame(trieste::Node body)
     {
@@ -114,12 +132,12 @@ namespace verona::interpreter
       // ==========================================
       if (node == Print)
       {
+        auto message = std::string(node->location().view());
         // Console output
-        std::cout << node->location().view() << std::endl << std::endl;
+        std::cout << ">>> " << message << std::endl;
 
         // Mermaid output
-        std::vector<rt::objects::DynObject*> roots{frame()->object()};
-        ui->output(roots, std::string(node->location().view()));
+        ui->output(message);
 
         // Continue
         return ExecNext{};
@@ -132,7 +150,6 @@ namespace verona::interpreter
       // ==========================================
       // Operators that should be printed
       // ==========================================
-      std::cout << "Op: " << node->type().str() << std::endl;
       if (node == CreateObject)
       {
         rt::objects::DynObject* obj = nullptr;
@@ -477,13 +494,43 @@ namespace verona::interpreter
     }
 
   public:
-    Interpreter(rt::ui::UI* ui_) : ui(ui_) {}
-
-    void run(trieste::Node main)
+    Interpreter(
+      rt::ui::UI* ui_,
+      trieste::Node block,
+      std::vector<rt::objects::DynObject*> start_stack,
+      rt::core::behavior_ptr behavior_)
+    : ui(ui_), behavior(behavior_)
     {
-      auto frame = push_stack_frame(main);
+      // There is a question where the active behavior should be set.
+      //
+      // Python mixes the runtime and interpreter a bit more. There the runtime
+      // has access to the interpreter state. So, it would be possible to store
+      // the behavior in the interpreter state and have it accessible to cowns.
+      //
+      // However, in FrankenScript the runtime is more passive, meaning that
+      // the interpreter drives the runtime and provides all needed information.
+      auto old_behavior = rt::get_active_behavior();
+      rt::set_active_behavior(this->behavior);
 
-      while (frame)
+      auto frame = push_stack_frame(block);
+
+      for (auto elem : start_stack)
+      {
+        frame->frame->stack_push(elem, "staring stack");
+      }
+
+      rt::set_active_behavior(old_behavior);
+    }
+
+    // Returns true if this interpreter is done, otherwise false.
+    bool resume()
+    {
+      this->paused = false;
+      auto frame = top_frame();
+
+      rt::set_active_behavior(this->behavior);
+
+      while (!this->paused && frame)
       {
         const auto action = run_stmt(*frame->ip);
 
@@ -546,6 +593,15 @@ namespace verona::interpreter
           frame = pop_stack_frame();
         }
       }
+
+      return !this->paused;
+    }
+
+    // This will pause the interpreter once it's done processing the current
+    // statement.
+    void pause()
+    {
+      this->paused = true;
     }
   };
 
@@ -558,12 +614,218 @@ namespace verona::interpreter
       reinterpret_cast<rt::ui::MermaidUI*>(ui)->set_step_counter(step_counter);
     }
 
-    size_t initial = rt::pre_run(ui);
+    Scheduler s;
 
-    Interpreter inter(ui);
-    inter.run(main_body);
+    size_t initial = rt::pre_run(ui, &s);
+
+    s.start(new Bytecode{main_body});
 
     rt::post_run(initial, ui);
+  }
+
+  Scheduler::Scheduler()
+  {
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list =
+      &this->ready;
+  }
+
+  Scheduler::~Scheduler()
+  {
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list = nullptr;
+  }
+
+  void Scheduler::add(rt::core::behavior_ptr behavior)
+  {
+    assert(behavior->status == rt::core::Behavior::Status::New);
+
+    // TODO add a testing mode that selects based on a seed
+    for (auto cown : behavior->cowns)
+    {
+      // Get the last behavior that is waiting on the cown
+      auto cown_info = cowns.find(cown);
+      if (cown_info != cowns.end())
+      {
+        auto predecessor = cown_info->second;
+        // If a behavior is pending, set the successor
+        if (predecessor->status != rt::core::Behavior::Status::Done)
+        {
+          if (predecessor->succ.insert(behavior).second)
+          {
+            behavior->pred_ctn += 1;
+          }
+          // Only needed for Mermaid:
+          behavior->cown_deps[cown] = predecessor.get();
+        }
+      }
+      // Update pointer to the last pending behavior
+      this->cowns[cown] = behavior;
+    }
+
+    std::stringstream ss;
+    if (behavior->pred_ctn == 0)
+    {
+      this->ready.push_back(behavior);
+      behavior->status = rt::core::Behavior::Status::Ready;
+      ss << "New behavior `" << behavior->get_name() << "` is ready";
+    }
+    else
+    {
+      behavior->status = rt::core::Behavior::Status::Pending;
+      ss << "New behavior `" << behavior->get_name() << "` is pending";
+    }
+
+    this->next_schedule_msg = ss.str();
+    if (this->current_int)
+    {
+      this->current_int->pause();
+    }
+  }
+
+  void Scheduler::start(Bytecode* main_block)
+  {
+    auto main_function = rt::make_func(main_block);
+    // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
+    // thereby also deleting the trieste nodes.
+    rt::hack_inc_rc(main_function);
+    // :notes: I imagine a world without ugly c++ :notes:
+    auto behavior = std::make_shared<rt::core::Behavior>(
+      main_function, std::vector<rt::objects::DynObject*>{}, "main");
+    behavior->status = rt::core::Behavior::Status::Ready;
+    this->ready.push_back(behavior);
+    // Seriously, why do we use this language? The memory problems I currently
+    // have could easly be avoided.
+    while (behavior)
+    {
+      Interpreter* inter;
+      if (behavior->status == rt::core::Behavior::Status::Ready)
+      {
+        auto block = behavior->spawn();
+
+        inter = new Interpreter(
+          rt::ui::globalUI(), block->body, behavior->cowns, behavior);
+        this->running[behavior] = inter;
+      }
+      else if (behavior->status == rt::core::Behavior::Status::Running)
+      {
+        inter = this->running[behavior];
+        assert(inter);
+      }
+      else
+      {
+        assert(false && "HOW DID IT BREAK THIS BADLY?");
+      }
+
+      this->current_int = inter;
+      // TODO:
+      // I believe, this would be the right place to only run one step at a time
+      if (inter->resume())
+      {
+        this->complete(behavior);
+      }
+
+      behavior = this->get_next();
+    }
+
+    rt::remove_reference(nullptr, main_function);
+  }
+
+  void Scheduler::complete(rt::core::behavior_ptr behavior)
+  {
+    behavior->complete();
+    std::erase(this->ready, behavior);
+
+    for (auto succ : behavior->succ)
+    {
+      succ->pred_ctn -= 1;
+      if (succ->pred_ctn == 0)
+      {
+        succ->status = rt::core::Behavior::Status::Ready;
+        this->ready.push_back(succ);
+      }
+    }
+    behavior->succ.clear();
+  }
+
+  void Scheduler::draw_scedule(std::string message)
+  {
+    if (this->next_schedule_msg)
+    {
+      message = this->next_schedule_msg.value();
+      this->next_schedule_msg.reset();
+    }
+
+    // FIXME: We should really get wrid of the UI* abstraction. There is no way
+    // that we'll ever change the output at this point and it just makes several
+    // things harder, like this:
+    auto ui = rt::ui::globalUI();
+    assert(ui->is_mermaid());
+    auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
+    mermaid->output(message);
+    mermaid->close_file();
+  }
+
+  rt::core::behavior_ptr Scheduler::get_next()
+  {
+    if (this->ready.empty())
+    {
+      return nullptr;
+    }
+
+    this->draw_scedule("Current Schedule:");
+
+    // I hate c and c++ `unsigned` soo much... This is such an s... *suboptimal*
+    // language
+    unsigned int selected = 0;
+    while (true)
+    {
+      // Promt the user:
+      std::cout << std::endl;
+      std::cout << "Available behaviors:" << std::endl;
+      for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
+      {
+        auto b = this->ready[idx];
+        std::cout << "- " << idx << ": " << b->get_name();
+
+        if (b->status == rt::core::Behavior::Status::Running)
+        {
+          std::cout << " (continue)";
+        }
+        std::cout << std::endl;
+      }
+
+      // Get user input
+      std::cout << "> ";
+      std::string line;
+      std::getline(std::cin, line);
+
+      // Check for quit
+      if (line == "q")
+      {
+        exit(0);
+      }
+
+      // Check selection
+      std::istringstream iss(line);
+      int n = 0;
+      if (iss >> n)
+      {
+        selected = n;
+
+        // Sanity checks and preventing undefined behavior.
+        if (selected < this->ready.size())
+        {
+          std::cout << std::endl;
+          break;
+        }
+      }
+    }
+
+    auto behavior = this->ready[selected];
+    return behavior;
   }
 
 } // namespace verona::interpreter

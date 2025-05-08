@@ -20,6 +20,8 @@ inline const TokenDef Move{"move"};
 inline const TokenDef Lookup{"lookup"};
 inline const TokenDef Parens{"parens"};
 inline const TokenDef Method{"method"};
+inline const TokenDef When{"when"};
+inline const TokenDef Name{"Name"};
 
 inline const TokenDef Op{"op"};
 inline const TokenDef Rhs{"rhs"};

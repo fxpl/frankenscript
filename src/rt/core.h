@@ -1,4 +1,5 @@
 #include "../lang/interpreter.h"
+#include "behavior.h"
 #include "objects/prototype_object.h"
 #include "objects/region.h"
 #include "objects/region_object.h"
@@ -19,6 +20,7 @@ namespace rt::core
   class FrameObject : public objects::DynObject,
                       public verona::interpreter::FrameObj
   {
+    static int s_frame_id_counter;
     static constexpr std::string_view STACK_PREFIX = "_stack";
     static inline thread_local std::vector<std::string> stack_keys;
     size_t stack_size = 0;
@@ -47,6 +49,10 @@ namespace rt::core
         objects::add_reference(this, parent_frame);
         assert(!old_value);
       }
+
+      std::stringstream ss;
+      ss << "<Frame " << s_frame_id_counter++ << ">";
+      name = ss.str();
     }
 
     static FrameObject* create_first_stack()
@@ -66,7 +72,6 @@ namespace rt::core
       assert(old == nullptr && "the stack already had a value");
       stack_size += 1;
 
-      std::cout << "pushed " << value << " (" << info << ")" << std::endl;
       if (rc_add)
       {
         rt::add_reference(this, value);
@@ -77,7 +82,6 @@ namespace rt::core
     {
       stack_size -= 1;
       auto value = erase(stack_name(stack_size));
-      std::cout << "poped " << value << " (" << value << ")" << std::endl;
       return value;
     }
 
@@ -256,6 +260,8 @@ namespace rt::core
   class CownObject : public objects::DynObject
   {
   private:
+    static int s_id_counter;
+
     enum class Status
     {
       Pending,
@@ -279,14 +285,39 @@ namespace rt::core
     }
 
     Status status;
+    int id;
+    core::Behavior* owner;
 
   public:
-    CownObject(objects::DynObject* obj)
+    CownObject(
+      objects::DynObject* obj, std::optional<std::string> name_ = std::nullopt)
     : objects::DynObject(cownPrototypeObject(), objects::cown_region)
     {
+      id = s_id_counter++;
+
       status = Status::Pending;
+      this->owner = Behavior::get_active_behavior().get();
       auto old = set("value", obj);
       assert(!old);
+
+      // This is really wonky. The scheduler should actually know about this
+      // new cown, but meh?
+      if (this->status == Status::Pending)
+      {
+        this->change_rc(1);
+        this->owner->cowns.push_back(this);
+      }
+
+      if (name_)
+      {
+        name = name_.value();
+      }
+      else
+      {
+        std::stringstream ss;
+        ss << "<cown " << this->id << ">";
+        name = ss.str();
+      }
     }
 
     [[nodiscard]] DynObject* set(std::string name, DynObject* obj) override
@@ -333,11 +364,23 @@ namespace rt::core
       return old;
     }
 
-    std::string get_name() override
+    // A unique cown ID
+    int get_id()
+    {
+      return this->id;
+    }
+
+    // TODO: This should really be split into `get_name()` just getting the name
+    // and `get_info()` or the additional info text like lrc and status
+    std::optional<std::string> get_additional_info() override
     {
       std::stringstream ss;
-      ss << "<cown>" << std::endl;
       ss << "status=" << to_string(status);
+      if (status == Status::Pending || status == Status::Acquired)
+      {
+        assert(this->owner);
+        ss << " (" << this->owner->get_name() << ")";
+      }
       return ss.str();
     }
 
@@ -354,7 +397,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return false;
+          return Behavior::get_active_behavior().get() != this->owner;
         case Status::Released:
         default:
           return true;
@@ -379,6 +422,7 @@ namespace rt::core
       if (!value || value->is_immutable() || value->is_cown())
       {
         status = Status::Released;
+        this->owner = nullptr;
         return;
       }
 
@@ -386,7 +430,24 @@ namespace rt::core
       if (region->combined_lrc() == 0)
       {
         status = Status::Released;
+        this->owner = nullptr;
       }
+    }
+
+    void aquire(Behavior* behavior)
+    {
+      // Who needs other safety checks than this?
+      // This is so gonna bite me...
+      assert(this->status == Status::Released);
+
+      this->status = Status::Acquired;
+      this->owner = behavior;
+    }
+
+    void release()
+    {
+      this->status = Status::Released;
+      this->owner = nullptr;
     }
   };
 
@@ -408,6 +469,22 @@ namespace rt::core
     return globals;
   }
 
+  inline std::set<objects::DynObject*>* global_prototypes()
+  {
+    static std::set<objects::DynObject*>* globals =
+      new std::set<objects::DynObject*>{
+        objects::regionPrototypeObject(),
+        framePrototypeObject(),
+        funcPrototypeObject(),
+        bytecodeFuncPrototypeObject(),
+        builtinFuncPrototypeObject(),
+        stringPrototypeObject(),
+        keyIterPrototypeObject(),
+        cownPrototypeObject(),
+      };
+    return globals;
+  }
+
   inline std::map<std::string, objects::DynObject*>* global_names()
   {
     static std::map<std::string, objects::DynObject*>* global_names =
@@ -422,5 +499,5 @@ namespace rt::core
   ///
   /// @param ui The UI to allow builtin functions to create output, when they're
   /// called.
-  void init_builtins(ui::UI* ui);
+  void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
 } // namespace rt::core

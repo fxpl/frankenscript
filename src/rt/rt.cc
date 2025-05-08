@@ -30,6 +30,18 @@ namespace rt
     return nullptr;
   }
 
+  std::string get_key(objects::DynObject* key)
+  {
+    // TODO Add some checking.  This is need to lookup the correct function in
+    // the prototype chain.
+    if (key && key->get_prototype() != core::stringPrototypeObject())
+    {
+      ui::error("Object must be a string.", key);
+    }
+    core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
+    return str_key->as_key();
+  }
+
   objects::DynObject* make_func(verona::interpreter::Bytecode* body)
   {
     return new core::BytecodeFuncObject(body);
@@ -63,9 +75,15 @@ namespace rt
     }
   }
 
-  objects::DynObject* make_cown(objects::DynObject* region)
+  objects::DynObject*
+  make_cown(objects::DynObject* value, objects::DynObject* name_obj)
   {
-    return new core::CownObject(region);
+    std::optional<std::string> name;
+    if (name_obj)
+    {
+      name = get_key(name_obj);
+    }
+    return new core::CownObject(value, name);
   }
 
   void freeze(objects::DynObject* obj)
@@ -87,7 +105,7 @@ namespace rt
     {
       if (obj->is_cown())
       {
-        ui::error("Cannot access data on a cown that is not aquired", obj);
+        ui::error("Cannot access data on a cown that is not aquired by the current behaviour", obj);
       }
       else
       {
@@ -95,18 +113,6 @@ namespace rt
       }
     }
     return obj->get(key);
-  }
-
-  std::string get_key(objects::DynObject* key)
-  {
-    // TODO Add some checking.  This is need to lookup the correct function in
-    // the prototype chain.
-    if (key && key->get_prototype() != core::stringPrototypeObject())
-    {
-      ui::error("Key must be a string.", key);
-    }
-    core::StringObject* str_key = reinterpret_cast<core::StringObject*>(key);
-    return str_key->as_key();
   }
 
   std::optional<objects::DynObject*>
@@ -190,11 +196,11 @@ namespace rt
     objects::move_reference(src, dst, target);
   }
 
-  size_t pre_run(ui::UI* ui)
+  size_t pre_run(ui::UI* ui, verona::interpreter::Scheduler* scheduler)
   {
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
-    core::init_builtins(ui);
+    core::init_builtins(ui, scheduler);
 
     if (ui->is_mermaid())
     {
@@ -213,7 +219,6 @@ namespace rt
   {
     std::cout << "Test complete - checking for cycles in local region..."
               << std::endl;
-    objects::Region::clean_lrcs();
     objects::Region::collect();
     auto globals = core::globals();
     if (objects::DynObject::get_count() != initial_count)
@@ -245,13 +250,8 @@ namespace rt
       std::cout << "Final count: " << objects::DynObject::get_count()
                 << std::endl;
 
-      std::vector<objects::DynObject*> roots;
-      for (auto obj : objects::DynObject::get_objects())
-      {
-        roots.push_back(obj);
-      }
       ui::MermaidUI::highlight_unreachable = true;
-      ui->output(roots, "Memory leak detected!");
+      ui->output("Memory leak detected!");
 
       std::exit(1);
     }
@@ -313,6 +313,16 @@ namespace rt
     objects::dissolve_region(bridge);
   }
 
+  void cown_update_state(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    reinterpret_cast<core::CownObject*>(cown)->update_status();
+  }
+
   bool is_cown_released(objects::DynObject* cown)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
@@ -323,13 +333,46 @@ namespace rt
     return reinterpret_cast<core::CownObject*>(cown)->is_released();
   }
 
-  void cown_update_state(objects::DynObject* cown)
+  void aquire_cown(objects::DynObject* cown, core::Behavior* behavior)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
       ui::error("The given object is not a cown", cown);
     }
 
-    reinterpret_cast<core::CownObject*>(cown)->update_status();
+    reinterpret_cast<core::CownObject*>(cown)->aquire(behavior);
   }
+
+  void release_cown(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    reinterpret_cast<core::CownObject*>(cown)->release();
+  }
+
+  int get_cown_id(objects::DynObject* cown)
+  {
+    if (cown && cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    return reinterpret_cast<core::CownObject*>(cown)->get_id();
+  }
+
+  void hack_inc_rc(objects::DynObject* obj)
+  {
+    obj->change_rc(+1);
+  }
+
+  rt::core::behavior_ptr get_active_behavior() {
+    return core::Behavior::get_active_behavior();
+  }
+  void set_active_behavior(rt::core::behavior_ptr behavior) {
+    core::Behavior::set_active_behavior(behavior);
+  }
+
 } // namespace rt

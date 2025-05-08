@@ -1,5 +1,6 @@
 #pragma once
 
+#include "behavior.h"
 #include "objects/visit.h"
 
 #include <cassert>
@@ -17,6 +18,8 @@ namespace rt::ui
     virtual void set_output_file(std::string path_) = 0;
 
     virtual void output(std::vector<objects::DynObject*>&, std::string) {}
+
+    virtual void output(std::string) {}
 
     virtual void highlight(std::string, std::vector<objects::DynObject*>&) {}
 
@@ -38,6 +41,7 @@ namespace rt::core
 namespace rt::ui
 {
   class MermaidDiagram;
+  class ObjectGraphDiagram;
 
   class MermaidUI : public UI
   {
@@ -45,7 +49,13 @@ namespace rt::ui
     static inline bool pragma_draw_regions_nested = true;
     static inline bool highlight_unreachable = false;
 
+    // This feels really wrong, but is the easiest fix rn. The list should
+    // probably always be passed in to the `output()` call but that would
+    // require more refactorings
+    std::vector<rt::core::behavior_ptr>* scheduler_ready_list;
+
   private:
+    friend class ObjectGraphDiagram;
     friend class MermaidDiagram;
     friend void core::mermaid_builtins(ui::UI* ui);
 
@@ -86,8 +96,16 @@ namespace rt::ui
       this->path = path_;
     }
 
+    void prep_output();
+
+    void close_file()
+    {
+      out.close();
+    }
+
     void output(
       std::vector<objects::DynObject*>& roots, std::string message) override;
+    void output(std::string message) override;
 
     void highlight(
       std::string message,
@@ -157,6 +175,9 @@ namespace rt::ui
 
     void hide_cown_region();
     void show_cown_region();
+
+    void hide_prototypes();
+    void show_prototypes();
 
     void error(std::string) override;
 

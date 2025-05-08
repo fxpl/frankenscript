@@ -11,15 +11,21 @@ namespace rt::objects
     return obj->region.get_ptr();
   }
 
-  thread_local objects::RegionPointer local_region = new Region();
+  thread_local Region* local_region = Region::new_local_region();
 
+  // FIXME: This should really be a static method on the region and not this
+  // free floating one IMO
   Region* get_local_region()
   {
     return local_region;
   }
 
+  // This should be a private static function in the Region to controll that
+  // only behaviors can set the value. There is no other instance where this
+  // should be called.
   void set_local_region(Region* region)
   {
+    assert(region->is_local_region);
     local_region = region;
   }
 
@@ -59,8 +65,6 @@ namespace rt::objects
 
       if (obj->region.get_ptr() == get_local_region())
       {
-        std::cout << "Adding object to region: " << obj->get_name()
-                  << " rc = " << obj->get_rc() << std::endl;
         rc_of_added_objects += obj->get_rc();
         internal_references++;
         obj->region = {r};
@@ -72,8 +76,6 @@ namespace rt::objects
       auto obj_region = get_region(obj);
       if (obj_region == r)
       {
-        std::cout << "Adding internal reference to object: " << obj->get_name()
-                  << std::endl;
         internal_references++;
         return false;
       }
@@ -105,12 +107,6 @@ namespace rt::objects
     });
 
     r->local_reference_count += rc_of_added_objects - internal_references;
-
-    std::cout << "Added " << rc_of_added_objects - internal_references
-              << " to LRC of region" << std::endl;
-    std::cout << "Region LRC: " << r->local_reference_count << std::endl;
-    std::cout << "Internal references found: " << internal_references
-              << std::endl;
   }
 
   void remove_region_reference(Region* src, Region* target)
@@ -128,7 +124,7 @@ namespace rt::objects
     if (target == cown_region)
       return;
 
-    if (src == get_local_region())
+    if (src->is_local_region)
     {
       Region::dec_lrc(target);
       return;
@@ -137,8 +133,6 @@ namespace rt::objects
     if (src)
     {
       assert(target->parent == src);
-      std::cout << "Removing parent reference from region: " << src << " to "
-                << target << std::endl;
       src->direct_subregions.erase(target->bridge);
       if (target->combined_lrc() != 0)
       {
@@ -165,13 +159,13 @@ namespace rt::objects
     if (src_region == target_region)
       return;
 
-    if (src_region == get_local_region())
+    if (src_region->is_local_region)
     {
       Region::inc_lrc(target_region);
       return;
     }
 
-    if (target_region == get_local_region())
+    if (target_region->is_local_region)
     {
       add_to_region(src_region, target, source);
       return;
@@ -226,11 +220,11 @@ namespace rt::objects
         if (e.target == nullptr)
           return false;
 
-        std::cout << "Remove reference from: " << e.src->get_name() << " to "
-                  << e.target->get_name() << std::endl;
         bool result = e.target->change_rc(-1) == 0;
-
-        remove_region_reference(get_region(e.src), get_region(e.target));
+        if (e.src)
+        {
+          remove_region_reference(get_region(e.src), get_region(e.target));
+        }
         return result;
       },
       [&](DynObject* obj) { delete obj; });
@@ -281,15 +275,6 @@ namespace rt::objects
       return;
     }
 
-    if (to_close_reg)
-    {
-      std::cout << "Cleaning LRCs and closing " << to_close_reg << std::endl;
-    }
-    else
-    {
-      std::cout << "Cleaning LRCs" << std::endl;
-    }
-
     for (auto r : dirty_regions)
     {
       r->local_reference_count = 0;
@@ -297,6 +282,9 @@ namespace rt::objects
 
     bool continue_visit = true;
     std::set<DynObject*> seen;
+    // FIXME: This works only for the current behavior that has
+    // set the local region. And only because the `dirty_regions`
+    // has been cleared except the current region.
     visit(get_local_region(), [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
@@ -342,8 +330,6 @@ namespace rt::objects
 
     for (auto r : dirty_regions)
     {
-      std::cout << "Corrected LRC of " << r << " to "
-                << r->local_reference_count << std::endl;
       r->is_lrc_dirty = false;
       if (r->combined_lrc() == 0)
       {
@@ -352,13 +338,19 @@ namespace rt::objects
     }
     dirty_regions.clear();
 
-    assert(
-      (!to_close_reg || to_close_reg->is_closed()) &&
-      "The region should be closed now");
+    if (to_close_reg && !to_close_reg->is_closed())
+    {
+      ui::error("Unable to close the region");
+    }
   }
 
   void Region::clean_lrcs()
   {
+    // This is a hack, basically we don't want `try_clean` to
+    // look at any other regions than the current one. That's
+    // why we remove all other regions.
+    dirty_regions.clear();
+    dirty_regions.insert(this);
     clean_lrcs_and_close(nullptr);
   }
 
@@ -436,7 +428,6 @@ namespace rt::objects
     RegionObject* obj = new RegionObject(r);
     r->bridge = obj;
     r->local_reference_count++;
-    std::cout << "Created region " << r << " with bridge " << obj << std::endl;
     return obj;
   }
 
@@ -448,11 +439,9 @@ namespace rt::objects
       //  Needs to check for sub_region_reference_count for send, but not
       //  deallocate.
 
-      if (r != get_local_region() && r != cown_region)
+      if (!r->is_local_region && r != cown_region)
       {
         to_collect.insert(r);
-        std::cout << "Collecting region: " << r << " with bridge: " << r->bridge
-                  << std::endl;
       }
     }
   }
@@ -473,9 +462,6 @@ namespace rt::objects
     for (auto obj : src->objects)
     {
       auto r = get_region(obj);
-      std::cout << "Moving object: " << obj
-                << " with region bridge: " << r->bridge
-                << " to region with bridge: " << sink->bridge << std::endl;
       obj->region = {sink};
       sink->objects.insert(obj);
       src->objects.erase(obj);
@@ -546,7 +532,7 @@ namespace rt::objects
     assert(bridge->get_prototype() == objects::regionPrototypeObject());
 
     auto r = get_region(bridge);
-    assert(r != get_local_region());
+    assert(!r->is_local_region);
 
     if (r->parent != nullptr)
     {
@@ -567,6 +553,6 @@ namespace rt::objects
     auto old_proto = bridge->set_prototype(nullptr);
     remove_reference(bridge, old_proto);
     // Move all objects in the region
-    move_objects(r, local_region);
+    move_objects(r, get_local_region());
   }
 }

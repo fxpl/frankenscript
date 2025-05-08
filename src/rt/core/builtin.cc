@@ -1,3 +1,4 @@
+#include "../behavior.h"
 #include "../core.h"
 #include "../rt.h"
 
@@ -181,14 +182,21 @@ namespace rt::core
   void ctor_builtins()
   {
     add_builtin("Cown", [](auto frame, auto args) {
-      if (args != 1)
+      if (args < 1 && args > 2)
       {
-        ui::error("Cown() expected 1 argument");
+        ui::error("Cown() expected 1 or 2 arguments");
+      }
+
+      objects::DynObject* name = nullptr;
+      if (args == 2)
+      {
+        name = frame->stack_pop("name");
       }
 
       auto region = frame->stack_pop("region for cown creation");
-      auto cown = make_cown(region);
+      auto cown = make_cown(region, name);
       rt::move_reference(frame->object(), cown, region);
+      rt::remove_reference(frame->object(), name);
 
       return cown;
     });
@@ -352,6 +360,26 @@ namespace rt::core
 
       return result_obj;
     });
+
+    add_builtin("print", [](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("print() expected 1 argument");
+      }
+
+      auto value = frame->stack_pop("value to print");
+      auto name = value->get_name();
+      // Lazy way of dealing with stringPrototypeObject
+      if (name[0] == '\"')
+      {
+        name.erase(0, 1);
+        name.erase(name.size() - 1);
+      }
+      std::cout << name << std::endl;
+      rt::remove_reference(frame->object(), value);
+
+      return std::nullopt;
+    });
   }
 
   void pragma_builtins()
@@ -390,11 +418,50 @@ namespace rt::core
       });
   }
 
-  void init_builtins(ui::UI* ui)
+  void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
+  {
+    add_builtin("spawn_behavior", [=](auto frame, auto args) {
+      // cowns (Stored on the stack in reverse order)
+      // -1 since the first argument is the actual behavior
+      std::vector<objects::DynObject*> cowns = {};
+      for (int i = 0; i < args - 1; i++)
+      {
+        auto value = frame->stack_pop("cown");
+        cowns.push_back(value);
+      }
+
+      std::optional<std::string> name;
+      // The last argument might be a name for the behavior
+      if (
+        !cowns.empty() &&
+        cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
+      {
+        auto name_obj = cowns.back();
+        name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();
+        rt::remove_reference(frame->object(), name_obj);
+        cowns.pop_back();
+      }
+      // when
+      auto behavior = frame->stack_pop("behavior");
+      scheduler->add(
+        std::make_shared<rt::core::Behavior>(behavior, cowns, name));
+
+      // @Max, Interesting for your report: Some kind of ownership transfer is
+      // needed here. Freezing is "the easiest" untill we get into the mess that
+      // function objects in cpython are. It could be interesting to see if we
+      // can't just transfer ownership to the behavior region.
+      freeze(behavior);
+
+      return std::nullopt;
+    });
+  }
+
+  void init_builtins(ui::UI* ui, verona::interpreter::Scheduler* scheduler)
   {
     mermaid_builtins(ui);
     ctor_builtins();
     action_builtins();
     pragma_builtins();
+    concurrency_builtins(scheduler);
   }
 }

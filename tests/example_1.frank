@@ -1,3 +1,14 @@
-x = {}
-y = {}
-x.y = {}
+# For debugging:
+# mermaid_show_functions()
+
+r = Region()
+c1 = Cown(r, "c1")
+r.f = {}
+
+@name("B1")
+when (c1):
+    print("Running B1")
+
+is_closed(r)
+close(r)
+

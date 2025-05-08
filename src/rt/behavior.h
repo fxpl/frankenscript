@@ -1,0 +1,120 @@
+#pragma once
+
+#include <map>
+#include <memory>
+#include <optional>
+#include <set>
+#include <vector>
+
+namespace verona::interpreter
+{
+  struct Bytecode;
+}
+
+namespace rt::objects
+{
+  class DynObject;
+  struct Region;
+} // namespace rt::objects
+
+namespace rt::ui
+{
+  class MermaidUI;
+  class ObjectGraphDiagram;
+}
+
+namespace rt::core
+{
+  // TODO rename this to `Behaviour`
+  class Behavior
+  {
+    friend class rt::ui::MermaidUI;
+    friend class rt::ui::ObjectGraphDiagram;
+
+  public:
+    enum class Status
+    {
+      New,
+      Pending,
+      Ready,
+      Running,
+      Done,
+    };
+
+    static std::string status_to_string(Status status)
+    {
+      switch (status)
+      {
+        case Status::New:
+          return "New";
+        case Status::Pending:
+          return "Pending";
+        case Status::Ready:
+          return "Ready";
+        case Status::Running:
+          return "Running";
+        case Status::Done:
+          return "Done";
+        default:
+          return "Unknown";
+      }
+    }
+
+    static void set_active_behavior(std::shared_ptr<Behavior>);
+    static std::shared_ptr<Behavior> get_active_behavior();
+
+  private:
+    static std::shared_ptr<Behavior> s_active_behavior;
+
+  private:
+    // Static member for naming
+    static int s_behavior_counter;
+
+    // A unique ID, this is used for drawing and naming, it isn't needed for
+    // scheduling.
+    int id;
+    std::string name;
+
+    // The IDs of the cowns this behavior is waiting on. This is used to create
+    // a better mermaid diagram, it isn't needed for scheduling.
+    std::map<int, objects::DynObject*> ordered_cown;
+
+    // The local region of this behavior. This has to be swapped into the global
+    // `local_region` when this behavior runs.
+    objects::Region* local_region;
+
+  public:
+    // This maps the cowns of this behavior to the previous behavior this
+    // is waiting on. This is used to draw the dependencies, it is not used
+    // for sceduling.
+    // Both of these pointers are weak reference.
+    std::map<objects::DynObject*, Behavior*> cown_deps;
+
+    Status status;
+    // The cowns as they were passed in to the cown. These have to be provided
+    // to the new Interpreter to populate the frame
+    std::vector<objects::DynObject*> cowns;
+    // This uses a function object opposed to a Bytecode* to not leak memory
+    objects::DynObject* code;
+    // The number of behaviors that this behavior is waiting on
+    int pred_ctn = 0;
+    // Behaviors which are waiting on this behavior. These will be notified once
+    // this behavior completes
+    std::set<std::shared_ptr<Behavior>> succ;
+
+    Behavior(
+      objects::DynObject* code_,
+      std::vector<objects::DynObject*> cowns_,
+      std::optional<std::string> name_ = std::nullopt);
+
+    std::string get_name();
+    std::string id_str();
+
+    verona::interpreter::Bytecode* spawn();
+    // This completes the behavior by releasing all cowns
+    // decreffing all held objects
+    void complete();
+  };
+
+  typedef std::shared_ptr<Behavior> behavior_ptr;
+} // namespace rt::core

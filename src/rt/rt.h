@@ -22,7 +22,7 @@ namespace rt
   objects::DynObject* make_iter(objects::DynObject* iter_src);
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
-  objects::DynObject* make_cown(objects::DynObject* region);
+  objects::DynObject* make_cown(objects::DynObject* value, objects::DynObject* name);
 
   void freeze(objects::DynObject* obj);
   objects::DynObject* create_region();
@@ -53,7 +53,7 @@ namespace rt
     objects::DynObject* dst,
     objects::DynObject* target);
 
-  size_t pre_run(rt::ui::UI* ui);
+  size_t pre_run(rt::ui::UI* ui, verona::interpreter::Scheduler* scheduler);
   void post_run(size_t count, rt::ui::UI* ui);
 
   objects::DynObject* iter_next(objects::DynObject* iter);
@@ -69,4 +69,15 @@ namespace rt
   /// released.
   void cown_update_state(objects::DynObject* cown);
   bool is_cown_released(objects::DynObject* cown);
+  
+  void aquire_cown(objects::DynObject* cown, core::Behavior* behavior);
+  void release_cown(objects::DynObject* cown);
+  int get_cown_id(objects::DynObject* cown);
+
+  // This increases the rc without asking questions. Very much a
+  // hack but I don't care anymore.
+  void hack_inc_rc(objects::DynObject* obj);
+
+  rt::core::behavior_ptr get_active_behavior();
+  void set_active_behavior(rt::core::behavior_ptr behavior);
 } // namespace rt
