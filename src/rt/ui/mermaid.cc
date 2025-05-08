@@ -441,7 +441,7 @@ namespace rt::ui
             out << "| ";
 
             auto pred = b->cown_deps[cown];
-            if (pred)
+            if (pred && pred->status != core::Behaviour::Status::Done)
             {
               out << this->behaviour_node_name(pred);
             }
