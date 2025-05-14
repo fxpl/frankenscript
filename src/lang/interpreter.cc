@@ -31,30 +31,29 @@ namespace verona::interpreter
   // ==============================================
   // Statement Effects
   // ==============================================
-  // Handled by Interpreter
+
+
+  // Handled by Interpreter #########################################
   struct ExecNext
   {};
 
-  // Handled by Interpreter
   struct ExecJump
   {
     trieste::Location target;
   };
 
-  // Handled by Interpreter
   struct ExecFunc
   {
     trieste::Node body;
     size_t arg_ctn;
   };
 
-  // Handled by Interpreter
   struct ExecReturn
   {
     std::optional<rt::objects::DynObject*> value;
   };
 
-  // Scheduler #########################################
+  // Handled by Scheduler #########################################
   
   struct ExecPrint
   {
@@ -74,7 +73,9 @@ namespace verona::interpreter
   struct MainComplete
   {};
 
+  // The set of actions handled by the Interpreter is given by "AllCommandsVariant / Subaction_variant" 
   using AllCommandsVariant = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
+  // Set of actions handled by the Scheduler
   using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
 
   struct ExecInScheduler
