@@ -538,9 +538,7 @@ namespace verona::interpreter
     }
 
   public:
-    // Allows printing of schedule/breakpoint 
-    bool prev_schedule_call = false;
-    bool prev_breakpoint_call = false;
+
     Interpreter(
       rt::ui::UI* ui_,
       trieste::Node block,
@@ -683,7 +681,7 @@ namespace verona::interpreter
     }
   };
 
-  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed, bool prompt_steps)
+  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed)
   {
     auto ui = rt::ui::globalUI();
     ui->set_output_file(output);
@@ -695,7 +693,7 @@ namespace verona::interpreter
 
     size_t initial = rt::pre_run(ui, &s);
 
-    s.start(new Bytecode{main_body}, interactive, seed, prompt_steps);
+    s.start(new Bytecode{main_body}, interactive, seed);
 
     rt::post_run(initial, ui);
   }
@@ -792,55 +790,103 @@ namespace verona::interpreter
       ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
     }
 
-    // Two solutions:
-    // 1. Draw the schedule here and make sure that ExecSchedule doesn't
-    //    draw the scheudle
-    // 2. Store the message but use it explicitly
+
     this->next_schedule_msg = ss.str();
-    //draw_schedule(ss.str());
-    //std::cout << "!!! " << "Scheduled `" << format_behaviour_name(behaviour->get_name()) << "`" << std::endl;
   }
 
   void print_help()
   {
     std::cout << "Commands:" << std::endl;
     std::cout << "- <b>      : Run behaviour number b until the next break point" << std::endl;
-    std::cout << "- s<b>,<n> : Run behaviour number b n step (default n = 0) [Default]" << std::endl;
+    std::cout << "- s<b>,<n> : Run behaviour number b n step (default n = 0)" << std::endl;
     std::cout << "- h        : Prints this message " << std::endl << std::endl;
   }
 
 
-  std::string processLines(const std::string& input, const size_t desired_lines) {
+  std::string ellips_block(const std::string& input, const size_t desired_lines) {
     std::istringstream iss(input);
     std::string line;
+    std::string throaway_line;
     
     // Split input into lines
     size_t i{0};
     std::string result = "";
-    while (std::getline(iss, line) && i < desired_lines) 
+    while (i < desired_lines && std::getline(iss, line)) 
     {
       result += line + "\n";
       i++;
     }
     if (std::getline(iss, line))
     {
-      result += "   {...}\n";
+      std::string indentation;
+      for (char c : line)
+      {
+          if (c == ' ' || c == '\t')
+            indentation += c;
+          else
+              break;
+      }
+      result += indentation + "[...]\n";
     }
     
     return result;
   }
 
-  void Scheduler::start(Bytecode* main_block, bool i, int s, bool prompt_steps)
+  void Scheduler::handle_exec_print_action(
+    const std::string& line_string,
+    const std::string& name,
+    bool& should_break)
+  {
+      auto shortened_string = ellips_block(line_string, 4);
+      std::stringstream draw_ss;
+      std::stringstream terminal_ss;
+
+      draw_ss << shortened_string;
+      terminal_ss << ">>> " << draw_ss.str();
+
+      if (this->prev_schedule_call)
+      {
+          this->prev_schedule_call = false;
+          should_break = true;
+          draw_ss << this->next_schedule_msg << std::endl;
+          terminal_ss << "!!! Scheduled new behaviour" << std::endl;
+      }
+      else if (this->prev_breakpoint_call)
+      {
+          this->prev_breakpoint_call = false;
+          should_break = true;
+          draw_ss << "Reached breakpoint in " << name << std::endl;
+          terminal_ss << "!!! Reached breakpoint in " << name << std::endl;
+      }
+
+      std::cout << terminal_ss.str();
+      draw_schedule(draw_ss.str());
+  }
+
+  void Scheduler::step(bool& should_break)
+  {
+    if (this->interactive)
+    {
+      if (steps == 0) 
+      {
+        should_break = true;
+      }
+      steps--;
+    }
+    else
+    {
+      should_break = true;
+    }
+  }
+
+  void Scheduler::start(Bytecode* main_block, bool interactive_arg, int seed_arg)
   {
     auto main_function = rt::make_func(main_block);
     // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
     // thereby also deleting the trieste nodes.
     rt::hack_inc_rc(main_function);
-    prompt_user_for_steps = false;
-    this->interactive = i;
-    this->rng.seed(s);
-    this->prompt_user_for_steps = prompt_steps;
-    // :notes: I imagine a world without ugly c++ :notes:
+    this->interactive = interactive_arg;
+    this->rng.seed(seed_arg);
     auto behaviour = std::make_shared<rt::core::Behaviour>(
       main_function, std::vector<rt::objects::DynObject*>{}, this, "main");
     behaviour->status = rt::core::Behaviour::Status::Ready;
@@ -850,7 +896,6 @@ namespace verona::interpreter
     {
       print_help();
     }
-
 
     while (behaviour)
     {
@@ -873,58 +918,28 @@ namespace verona::interpreter
         assert(false && "HOW DID IT BREAK THIS BADLY?");
       }
 
-
       this->current_int = inter;
       auto result = inter->resume();
       auto action = result.action;
-      auto should_break{false};
+      bool should_break{false};
       if (std::holds_alternative<ExecPrint>(action))
       {
-        auto line_string = std::get<ExecPrint>(action).value;
-        auto shortened_string = processLines(line_string, 4);
-        std::stringstream draw_ss;
-        std::stringstream terminal_ss;
-        draw_ss << shortened_string;
-        terminal_ss << ">>> " << draw_ss.str();
-        if (this->current_int->prev_schedule_call)
-        {
-          this->current_int->prev_schedule_call = false;
-          draw_ss << this->next_schedule_msg << std::endl; 
-          terminal_ss << "!!! " << "Scheduled new behaviour" << std::endl;
-          should_break = true;
-        }
-        else if (this->current_int->prev_breakpoint_call)
-        {
-          this->current_int->prev_breakpoint_call = false;
-          draw_ss << "Reached breakpoint in " << format_behaviour_name(behaviour->get_name()) << std::endl;
-          terminal_ss << "!!! " << "Reached breakpoint in " << format_behaviour_name(behaviour->get_name()) << std::endl;
-          should_break = true;
-        }
-        std::cout << terminal_ss.str();
-        draw_schedule(draw_ss.str());
-        if (this->interactive)
-        {
-          if (steps == 0) 
-          {
-            should_break = true;
-          }
-          steps--;
-        }
-        else
-        {
-          should_break = true;
-        }
-
-          
+        handle_exec_print_action(std::get<ExecPrint>(action).value, 
+        format_behaviour_name(behaviour->get_name()),
+        should_break);
+        // We only utilize these for printing, thus they should be reset once printing is done
+        assert(!this->prev_schedule_call && !this->prev_breakpoint_call);
+        step(should_break);
       }
       else if (std::holds_alternative<ExecSchedule>(action)){
-        this->current_int->prev_schedule_call = true;
+        this->prev_schedule_call = true;
         // Assumption: Schedule is implemented through a builtin function call
         // Its Call node will always be followed by a Print node 
         assert(!result.exec_complete);
       }
       else if (std::holds_alternative<ExecBreakpoint>(action))
       {
+        this->prev_breakpoint_call = true;
         // Assumption: Breakpoint is implemented through a builtin function call
         // Its Call node will always be followed by a Print node 
         assert(!result.exec_complete);
@@ -941,10 +956,11 @@ namespace verona::interpreter
       if (result.exec_complete)
       {
         should_break = true;
-        std::cout << "!!! " << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
-        this->complete(behaviour);
+        this->complete_behaviour(behaviour);
+        
         std::stringstream ss;
         ss << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
+        std::cout << "!!! " << ss.str();
         draw_schedule(ss.str());
       }
       if (should_break)
@@ -958,36 +974,14 @@ namespace verona::interpreter
           draw_schedule(ss.str(), true);
         }
       }
-      // "Always" call if not interactive, otherwise there is no way
-      // to seed for certain execution strains.
-      // The expection being breakpoints/schedule
-      // else if (std::holds_alternative<ExecPrint>(action))
-      // {
-      //   behaviour = this->get_next();
-      // }
-      
-      
-
-
-
     }
 
     rt::remove_reference(nullptr, main_function);
   }
 
-  void Scheduler::prompt_steps()
-  {
-    if (this->first_break)
-    {
-      print_help();
-      first_break = false;
-    }
-  }
 
 
-
-
-  void Scheduler::complete(rt::core::behaviour_ptr behaviour)
+  void Scheduler::complete_behaviour(rt::core::behaviour_ptr behaviour)
   {
     behaviour->complete();
     std::erase(this->ready, behaviour);
@@ -1017,7 +1011,7 @@ namespace verona::interpreter
     behaviour->succ.clear();
   }
 
-  void Scheduler::draw_schedule(std::string message, bool bp)
+  void Scheduler::draw_schedule(std::string message, bool entering_behaviour)
   {
 
     // FIXME: We should really get wrid of the UI* abstraction. There is no way
@@ -1026,13 +1020,120 @@ namespace verona::interpreter
     auto ui = rt::ui::globalUI();
     assert(ui->is_mermaid());
     auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
-    if (bp)
+    if (entering_behaviour)
     {
       mermaid->close_file();
     }
     mermaid->output(message);
   }
   
+  size_t Scheduler::prompt_user()
+  {
+    size_t selected;
+    while (true)
+    {
+    // Prompt the user:
+        std::cout << std::endl;
+        std::cout << "Available behaviours:" << std::endl;
+        for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
+        {
+            auto b = this->ready[idx];
+            std::cout << "- " << idx << ": " << b->get_name();
+    
+            if (b->status == rt::core::Behaviour::Status::Running)
+            {
+                std::cout << " (continue)";
+            }
+            std::cout << std::endl;
+        }
+    
+        // Get user input
+        std::cout << "> ";
+        std::string line;
+        std::getline(std::cin, line);
+    
+        // Check for quit
+        if (line == "q")
+        {
+          auto ui = rt::ui::globalUI();
+          assert(ui->is_mermaid());
+          auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
+          mermaid->close_file();
+          exit(0);
+        }
+
+        if (line == "h")
+        {
+          print_help();
+          continue;
+        }
+        
+    
+        // Check for step command
+        if (line[0] == 's')
+        {
+          if (line.size() > 1)
+          {
+            size_t comma_pos = line.find(',');
+            // s<b>, <n>
+            if (comma_pos != std::string::npos)
+            {
+                std::string idx_str = line.substr(1, comma_pos - 1);
+                std::string count_str = line.substr(comma_pos + 1);
+    
+                size_t idx = 0, count = 0;
+                std::istringstream idx_iss(idx_str);
+                std::istringstream count_iss(count_str);
+    
+                if (idx_iss >> idx && count_iss >> count && idx < this->ready.size())
+                {
+                    selected = idx;
+                    steps = count;
+                    //std::cout << "\nStepping behaviour " << idx << " for " << steps << " times." << std::endl;
+                    break;
+                }
+            }
+            // s<b>
+            std::istringstream iss(line.substr(1));
+            size_t n = 0;
+            if (iss >> n && n < this->ready.size())
+            {
+              selected = n;
+              steps = 0;
+              break;
+            }
+          }
+          // s
+          else if (this->ready.size() == 1)
+          {
+            selected = 0;
+            steps = 0;
+            break;
+          }
+            
+        }
+        else
+        {
+          steps = std::numeric_limits<int>::max();
+          // Check for Enter press
+          if (this->ready.size() == 1 && line == "")
+          {
+            selected = 0;
+            break;
+          }
+          // Handle normal selection
+          std::istringstream iss(line);
+          size_t n = 0;
+          if (iss >> n && n < this->ready.size())
+          {
+            selected = n;
+            break;
+          }
+        }
+    }
+    return selected;
+  }
+
   rt::core::behaviour_ptr Scheduler::get_next()
   {
     if (this->ready.empty())
@@ -1043,104 +1144,7 @@ namespace verona::interpreter
     size_t selected;
     if (this->interactive)
     {
-      while (true)
-      {
-      // Prompt the user:
-          std::cout << std::endl;
-          std::cout << "Available behaviours:" << std::endl;
-          for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
-          {
-              auto b = this->ready[idx];
-              std::cout << "- " << idx << ": " << b->get_name();
-      
-              if (b->status == rt::core::Behaviour::Status::Running)
-              {
-                  std::cout << " (continue)";
-              }
-              std::cout << std::endl;
-          }
-      
-          // Get user input
-          std::cout << "> ";
-          std::string line;
-          std::getline(std::cin, line);
-      
-          // Check for quit
-          if (line == "q")
-          {
-              exit(0);
-          }
-
-          if (line == "h")
-          {
-            print_help();
-            continue;
-          }
-          
-      
-          // Check for step command
-          if (line[0] == 's')
-          {
-            if (line.size() > 1)
-            {
-              size_t comma_pos = line.find(',');
-              // s<b>, <n>
-              if (comma_pos != std::string::npos)
-              {
-                  std::string idx_str = line.substr(1, comma_pos - 1);
-                  std::string count_str = line.substr(comma_pos + 1);
-      
-                  size_t idx = 0, count = 0;
-                  std::istringstream idx_iss(idx_str);
-                  std::istringstream count_iss(count_str);
-      
-                  if (idx_iss >> idx && count_iss >> count && idx < this->ready.size())
-                  {
-                      selected = idx;
-                      steps = count;
-                      //std::cout << "\nStepping behaviour " << idx << " for " << steps << " times." << std::endl;
-                      break;
-                  }
-              }
-              // s<b>
-              std::istringstream iss(line.substr(1));
-              size_t n = 0;
-              if (iss >> n && n < this->ready.size())
-              {
-                selected = n;
-                steps = 0;
-                break;
-              }
-            }
-            // s
-            else if (this->ready.size() == 1)
-            {
-              selected = 0;
-              steps = 0;
-              break;
-            }
-              
-          }
-          else
-          {
-            steps = std::numeric_limits<int>::max();
-            // Check for Enter press
-            if (this->ready.size() == 1 && line == "")
-            {
-              selected = 0;
-              break;
-            }
-            // Handle normal selection
-            std::istringstream iss(line);
-            size_t n = 0;
-            if (iss >> n && n < this->ready.size())
-            {
-              selected = n;
-              break;
-            }
-          }
-
-      }
+      selected = prompt_user();
     }
     else
     {

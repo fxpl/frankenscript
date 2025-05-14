@@ -62,6 +62,8 @@ namespace verona::interpreter
 
     // Necessary to print the line and information of a scheduled behaviour in
     // one go, since Call nodes do not store what line they were called from
+    // Solely written to by add()
+    // Solely read by start()
     std::string next_schedule_msg;
 
     // FIXME:
@@ -78,8 +80,6 @@ namespace verona::interpreter
     /// @brief Indicates how many steps should be taken until
     /// prompting user again, in the case of interactive exec
     size_t steps{0};
-    // For faster debugging
-    bool prompt_user_for_steps{true};
 
     /// @brief RNG for concurrency
     std::mt19937 rng;
@@ -89,6 +89,14 @@ namespace verona::interpreter
     // ones are used
     std::vector<std::string> completed_behaviours;
 
+    // Allows printing of schedule/breakpoint, needed when proccessing a 'ExecPrint' action.
+    // Indicates if the previous action proccessed was of type 'ExecSchedule' or 
+    //'ExecBreakpoint', respectively. Necessary, as we can't obtain the information
+    // required for a proper print from the trieste 'Call' node. That is, the node that
+    // leads the Interpreter to propagate 'ExecSchedule' or 'ExecBreakpoint' to the Scheduler.
+    bool prev_schedule_call{false};
+    bool prev_breakpoint_call{false};
+
   public:
     Scheduler();
     ~Scheduler();
@@ -96,7 +104,7 @@ namespace verona::interpreter
 
     void add(rt::core::behaviour_ptr behaviour);
 
-    void start(Bytecode* main_block, bool interactive, int seed, bool prompt_steps);
+    void start(Bytecode* main_block, bool interactive, int seed);
 
     void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
     void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
@@ -107,9 +115,11 @@ namespace verona::interpreter
     bool is_complete(const std::string behaviour_name);
 
   private:
-    void prompt_steps();
-    void complete(rt::core::behaviour_ptr behaviour);
-    void draw_schedule(std::string message, bool bp = false);
+    size_t prompt_user();
+    void complete_behaviour(rt::core::behaviour_ptr behaviour);
+    void draw_schedule(std::string message, bool entering_behaviour = false);
     rt::core::behaviour_ptr get_next();
+    void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);
+    void step(bool& should_break);
   };
 }
