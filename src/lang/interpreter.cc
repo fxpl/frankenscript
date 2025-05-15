@@ -73,14 +73,14 @@ namespace verona::interpreter
   struct MainComplete
   {};
 
-  // The set of actions handled by the Interpreter is given by "AllCommandsVariant / Subaction_variant" 
-  using AllCommandsVariant = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
+  // The set of actions handled by the Interpreter is given by "BasicCommands / SchedulerCommands" 
+  using BasicCommands = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
   // Set of actions handled by the Scheduler
-  using Subaction_variant = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
+  using SchedulerCommands = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
 
   struct ExecInScheduler
   {
-    Subaction_variant action;
+    SchedulerCommands action;
     bool exec_complete;
   };
 
@@ -159,7 +159,7 @@ namespace verona::interpreter
       return frame_stack.front()->frame;
     }
 
-    AllCommandsVariant
+    BasicCommands
     run_stmt(trieste::Node& node)
     {
       // ==========================================
