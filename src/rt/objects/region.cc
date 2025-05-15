@@ -311,12 +311,10 @@ namespace rt::objects
     // Calculate real LRC
     to_close_reg->local_reference_count = total_rc - intra_region_rc;
 
-    std::cout << "total:" << total_rc << " intra:" << intra_region_rc << std::endl;
-
     to_close_reg->is_lrc_dirty = false;
     if (to_close_reg->combined_lrc() == 0) 
     {
-      action(to_close_reg);
+      //action(to_close_reg);
       return true;
     }
     return false;
