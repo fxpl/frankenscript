@@ -202,9 +202,6 @@ namespace rt::objects
       return this->combined_lrc() == 0;
     }
 
-    /// Forces the region to be closed, by setting all references from the local
-    /// reagion to `None`
-    void close();
     /// Checks if the region can be closed, returns false if it remain open.
     bool try_close();
 

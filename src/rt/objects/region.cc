@@ -332,10 +332,6 @@ namespace rt::objects
   //   clean_lrcs_and_close(nullptr);
   // }
 
-  void Region::close()
-  {
-    clean_lrc(this);
-  }
 
   bool Region::try_close()
   {
