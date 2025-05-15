@@ -1,0 +1,15 @@
+
+
+@name("B1")
+when ():
+    pass()
+    when ():
+        pass()
+    pass()
+@name("B2")
+when ():
+    pass()
+    pass()
+    pass()
+    when ():
+        pass()
