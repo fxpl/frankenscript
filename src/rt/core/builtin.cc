@@ -265,7 +265,6 @@ namespace rt::core
     {
       // We have to remove our reference, as it would otherwise break the
       // `is_closed()` check from the forced close
-      std::cout << "yep" << std::endl;
       rt::remove_reference(frame->object(), bridge);
       region->try_close();
     }

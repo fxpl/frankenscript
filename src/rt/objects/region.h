@@ -21,7 +21,7 @@ namespace rt::objects
   void add_reference(DynObject* src, DynObject* target);
   void remove_reference(DynObject* src_initial, DynObject* old_dst_initial);
   void move_reference(DynObject* src, DynObject* dst, DynObject* target);
-  void clean_lrcs();
+  bool clean_lrc();
   DynObject* create_region();
   void destruct(DynObject* obj);
   void dealloc(DynObject* obj);
@@ -194,8 +194,8 @@ namespace rt::objects
     }
 
     /// Cleans the LRC's and returns whether the region 
-    bool clean_lrcs_and_close(Region* reg = nullptr);
-    void clean_lrcs();
+    //bool clean_lrc_and_close(Region* reg = nullptr);
+    bool clean_lrc(Region* reg);
 
     bool is_closed()
     {

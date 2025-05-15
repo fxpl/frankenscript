@@ -266,7 +266,7 @@ namespace rt::objects
     remove_region_reference(src_region, old_target_region);
   }
 
-  bool Region::clean_lrcs_and_close(Region* to_close_reg)
+  bool Region::clean_lrc(Region* to_close_reg)
   { 
 
     if ((to_close_reg == nullptr || to_close_reg->is_closed()))
@@ -282,12 +282,9 @@ namespace rt::objects
 
     bool continue_visit = true;
     std::set<DynObject*> seen_o;
-    //std::set<Edge> seen_e;
     size_t intra_region_rc{0};
     size_t total_rc{0};
-    // FIXME: This works only for the current behaviour that has
-    // set the local region. And only because the `dirty_regions`
-    // has been cleared except the current region.
+
     visit(to_close_reg, [&](Edge e) {
       auto src = e.src;
       auto dst = e.target;
@@ -308,35 +305,7 @@ namespace rt::objects
       }
       // We know dst is an intra region obj
       intra_region_rc++;
-      //seen_e.insert(e);
       return continue_visit;
-
-      // auto invalidate = dst_reg == to_close_reg;
-      // invalidate |=
-      //   (to_close_reg && to_close_reg->sub_region_reference_count != 0 &&
-      //    Region::is_ancestor(dst_reg, to_close_reg));
-      // if (invalidate)
-      // {
-      //   if (e.key == PrototypeField)
-      //   {
-      //     ui::error("Can't close the region due to this prototype", e);
-      //   }
-
-      //   auto old = src->set(e.key, nullptr);
-      //   assert(old == dst);
-      //   add_reference(src, nullptr);
-      //   remove_reference(src, dst);
-
-      //   continue_visit &= to_close_reg->is_closed();
-      //   return false;
-      // }
-
-      // if (dirty_regions.contains(dst_reg))
-      // {
-      //   dst_reg->local_reference_count += 1;
-      // }
-
-      // return false;
     });
 
     // Calculate real LRC
@@ -353,35 +322,28 @@ namespace rt::objects
     return false;
   }
 
-  void Region::clean_lrcs()
-  {
-    // This is a hack, basically we don't want `try_clean` to
-    // look at any other regions than the current one. That's
-    // why we remove all other regions.
-    dirty_regions.clear();
-    dirty_regions.insert(this);
-    clean_lrcs_and_close(nullptr);
-  }
+  // void Region::clean_lrc()
+  // {
+  //   // This is a hack, basically we don't want `try_clean` to
+  //   // look at any other regions than the current one. That's
+  //   // why we remove all other regions.
+  //   dirty_regions.clear();
+  //   dirty_regions.insert(this);
+  //   clean_lrcs_and_close(nullptr);
+  // }
 
   void Region::close()
   {
-    clean_lrcs_and_close(this);
+    clean_lrc(this);
   }
 
   bool Region::try_close()
   {
-    if (is_closed())
+    if (this->is_lrc_dirty)
     {
-      return true;
-    }
-    // TODO why check sbrc
-    if (this->is_lrc_dirty || this->sub_region_reference_count != 0)
-    {
-      // TODO change name to clean_lrcs?
-      clean_lrcs_and_close(this);
+      clean_lrc(this);
       dirty_regions.erase(this);
     }
-
     return is_closed();
   }
 
