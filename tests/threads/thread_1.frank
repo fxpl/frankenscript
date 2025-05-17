@@ -1,0 +1,12 @@
+#mermaid_show_functions()
+def test(a, b):
+    print(a)
+    print(b)
+a = {}
+b = {}
+freeze(a)
+freeze(b)
+
+t = Thread(test, a, b)
+start(t)
+pass()
