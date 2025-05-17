@@ -25,6 +25,8 @@ namespace rt
   objects::DynObject* make_str(std::string str_value);
   objects::DynObject* make_object();
   objects::DynObject* make_cown(objects::DynObject* value, objects::DynObject* name);
+  objects::DynObject* make_thread(objects::DynObject* func, std::vector<objects::DynObject*> kwargs);
+  std::vector<objects::DynObject*> get_thread_args(objects::DynObject* obj);
 
   void freeze(objects::DynObject* obj);
   objects::DynObject* create_region();

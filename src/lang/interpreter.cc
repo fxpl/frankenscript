@@ -795,6 +795,13 @@ namespace verona::interpreter
     this->next_schedule_msg = ss.str();
   }
 
+  // void Scheduler::add_thread(rt::objects::DynObject* thread)
+  // {
+
+  //   return;
+  // }
+
+
   void print_help()
   {
     std::cout << "Commands:" << std::endl;

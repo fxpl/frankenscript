@@ -96,6 +96,22 @@ namespace rt
     return new core::CownObject(value, name);
   }
 
+  objects::DynObject*
+  make_thread(objects::DynObject* func, std::vector<objects::DynObject*> kwargs)
+  {
+    return new core::ThreadObject(func, kwargs);
+  }
+
+  std::vector<objects::DynObject*>
+  get_thread_args(objects::DynObject* obj)
+  {
+    if (!obj && obj->get_prototype() != core::threadPrototypeObject())
+    {
+      ui::error("The given object is not a thread", obj);
+    }
+    return reinterpret_cast<core::ThreadObject*>(obj)->get_args();
+  }
+
   void freeze(objects::DynObject* obj)
   {
     // Cown specific handling of the freeze operation is handled by the

@@ -415,6 +415,65 @@ namespace rt::core
 
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
+
+    add_builtin("Thread", [=](auto frame, auto args) {
+      if (args < 1)
+      {
+        ui::error("Thread() expected at least 1 argument");
+      }
+      
+      // args (Stored on the stack in reverse order)
+      // -1 since the first argument is the func
+      std::vector<objects::DynObject*> kwargs = {};
+      for (int i = 0; i < args - 1; i++)
+      {
+        auto value = frame->stack_pop("arg");
+        kwargs.push_back(value);
+      }
+
+      // Check for proper args here, or in start() --> in start()
+
+      // func
+      auto func = frame->stack_pop("func");
+      if(!rt::try_get_bytecode(func))
+        ui::error("No valid function provided");
+      // create Thread obj
+      auto thread_obj = make_thread(func, kwargs);
+      rt::move_reference(frame->object(), thread_obj, func);
+      return thread_obj;      
+
+    });
+
+    add_builtin("start", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("start() expected 1 argument");
+      }
+      auto thread_obj = frame->stack_pop("thread");
+      auto target = rt::get(thread_obj, "target");
+      //assert(rt::try_get_bytecode(target));
+      auto kwargs = rt::get_thread_args(thread_obj);
+      auto bridge = rt::objects::create_region();
+      for (auto arg : kwargs)
+      {
+        assert(arg);
+        // Ideally we'd instead call set() using the proper identifiers,
+        // these would first need to be stored in builtin func 'Thread'   
+        auto old_var = rt::set(bridge, arg->get_name(), arg);
+      }
+      auto region = objects::get_region(bridge);
+      // Regions are created with an lrc of 1
+      if (region->combined_lrc() > 1)
+      {
+        ui::error("region is not closed", bridge);
+      }
+      
+      //scheduler->add_thread(thread_obj);
+      rt::remove_reference(frame->object(), thread_obj);
+      return std::nullopt;      
+
+    });
+
     add_builtin(rt::core::schedule_func_name, [=](auto frame, auto args) {
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behaviour

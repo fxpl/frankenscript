@@ -253,6 +253,82 @@ namespace rt::core
     }
   };
 
+      // The prototype object for thread
+  inline PrototypeObject* threadPrototypeObject()
+  {
+    static PrototypeObject* proto = new PrototypeObject("Thread");
+    return proto;
+  }
+
+  class ThreadObject : public objects::DynObject
+  {
+  private:
+    friend class verona::interpreter::Scheduler;
+
+    static int thread_id_counter;
+
+    enum class Status
+    {
+      New,
+      Pending,
+      Ready,
+      Running,
+      Done,
+    };
+
+    static std::string status_to_string(Status status)
+    {
+      switch (status)
+      {
+        case Status::New:
+          return "New";
+        case Status::Pending:
+          return "Pending";
+        case Status::Ready:
+          return "Ready";
+        case Status::Running:
+          return "Running";
+        case Status::Done:
+          return "Done";
+        default:
+          return "Unknown";
+      }
+    }
+
+    Status status;
+    int id;
+    std::vector<objects::DynObject*> kwargs;
+
+  public:
+    ThreadObject(
+      objects::DynObject* func,
+      std::vector<objects::DynObject*> kwargs_, 
+      objects::Region* region = rt::objects::get_local_region())
+    : objects::DynObject(threadPrototypeObject(), region)
+    {
+      id = thread_id_counter++;
+
+      status = Status::New;
+      auto old = set("target", func);
+      assert(!old);
+
+      // FIXME: This should ideally be a field in the DynObject, however the
+      // entries of 'fields' points to a DynObject and there is seemingly 
+      // no suitable candidate within the set of possible DynObjects to
+      // accomodate e.g. a vector
+      kwargs = kwargs_;
+
+      std::stringstream ss;
+      ss << "<thread " << this->id << ">";
+      name = ss.str();
+      
+    }
+  std::vector<objects::DynObject*> get_args()
+  {
+    return this->kwargs;
+  }
+  };
+
   // The prototype object for cown
   inline PrototypeObject* cownPrototypeObject()
   {
@@ -472,6 +548,7 @@ namespace rt::core
         builtinFuncPrototypeObject(),
         stringPrototypeObject(),
         keyIterPrototypeObject(),
+        threadPrototypeObject(),
         cownPrototypeObject(),
         trueObject(),
         falseObject(),
@@ -491,6 +568,7 @@ namespace rt::core
         stringPrototypeObject(),
         keyIterPrototypeObject(),
         cownPrototypeObject(),
+        threadPrototypeObject(),
       };
     return globals;
   }
