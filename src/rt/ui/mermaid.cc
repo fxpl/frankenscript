@@ -433,7 +433,7 @@ namespace rt::ui
         // Threads do not have any cown dependencies
         else if(b->is_behaviour)
         {
-          for (auto cown : b->cowns)
+          for (auto cown : b->args)
           {
             out << "    ";
             out << this->behaviour_node_name(b.get());

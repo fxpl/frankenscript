@@ -14,6 +14,7 @@ namespace rt::objects
 namespace rt::core
 {
   int Behaviour::s_behaviour_counter = 0;
+  int Behaviour::s_thread_counter = 0;
   std::shared_ptr<Behaviour> Behaviour::s_active_behaviour = nullptr;
 
   void Behaviour::set_active_behaviour(std::shared_ptr<Behaviour> active)
@@ -32,12 +33,12 @@ namespace rt::core
 
   Behaviour::Behaviour(
     rt::objects::DynObject* code_,
-    std::vector<rt::objects::DynObject*> cowns_,
+    std::vector<rt::objects::DynObject*> args_,
     verona::interpreter::Scheduler* scheduler_,
     std::optional<std::string> name_,
     bool is_behaviour_,
     rt::objects::DynObject* bridge_)
-  : id(s_behaviour_counter++), cowns(cowns_), code(code_), scheduler(scheduler_),
+  : args(args_), code(code_), scheduler(scheduler_),
     is_behaviour(is_behaviour_), bridge(bridge_)
   {
     this->status = Status::New;
@@ -45,12 +46,14 @@ namespace rt::core
 
     if (is_behaviour)
     {
-      for (auto c : cowns)
+      id = ++Behaviour::s_behaviour_counter;
+      for (auto c : args)
       {
         ordered_cown[rt::get_cown_id(c)] = c;
       }
     }
-    
+    else
+      id = ++rt::core::Behaviour::s_thread_counter;
 
     if (name_)
     {
@@ -91,7 +94,7 @@ namespace rt::core
 
     if (is_behaviour)
     {
-      for (auto c : this->cowns)
+      for (auto c : this->args)
       {
         rt::aquire_cown(c, this);
       }
@@ -111,7 +114,7 @@ namespace rt::core
     this->code = nullptr;
     if (this->is_behaviour)
     {
-      for (auto c : this->cowns)
+      for (auto c : this->args)
       { 
 
         if (rt::is_owner(c, this))
@@ -121,10 +124,18 @@ namespace rt::core
         rt::remove_reference(nullptr, c);
       }
     }
+    this->args.clear();
 
+    for (auto c : this->created_cowns)
+    {
+      // Entity isn't necessarily still the owner
+      if (rt::is_owner(c, this))
+      {
+        rt::release_cown(c, this);  
+      }
+      rt::remove_reference(nullptr, c);
+    }
     
-
-    this->cowns.clear();
 
     for (auto [cown, waiting_on] : cown_deps)
     {
@@ -137,13 +148,13 @@ namespace rt::core
 
   void Behaviour::signal_new_cown(rt::objects::DynObject* cown)
   {
-    this->cowns.push_back(cown);
+    this->created_cowns.push_back(cown);
     this->scheduler->signal_new_cown(cown, s_active_behaviour);
   }
 
   void Behaviour::signal_early_release(rt::objects::DynObject* cown)
   {
-    // assert(cown in cowns)
+    // assert(cown in args)
     this->scheduler->pending_cown_released(cown, s_active_behaviour);
   }
 

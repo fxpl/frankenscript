@@ -66,8 +66,9 @@ namespace rt::core
   
   private:
     static std::shared_ptr<Behaviour> s_active_behaviour;
-    // Static member for naming
+    // Static members for naming
     static int s_behaviour_counter;
+    static int s_thread_counter;
 
     // A unique ID, this is used for drawing and naming, it isn't needed for
     // scheduling.
@@ -98,12 +99,11 @@ namespace rt::core
     std::map<objects::DynObject*, Behaviour*> cown_deps;
 
     Status status;
-    // The cowns as they were passed in to the behaviour. These have to be provided
-    // to the new Interpreter to populate the frame. Note that creating a 
-    // cown in a behaviour will expand its set of cowns. Ergo, the set of aquired
-    // cowns is a subset.
-    // TODO split created and aquired cowns into two separate structures  
-    std::vector<objects::DynObject*> cowns;
+    // The args as they were passed in to the behaviour. These have to be provided
+    // to the new Interpreter to populate the frame.
+    std::vector<objects::DynObject*> args;
+    // Cowns that are created owing to the entitys code
+    std::vector<objects::DynObject*> created_cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     objects::DynObject* code;
     // The number of behaviours that this behaviour is waiting on

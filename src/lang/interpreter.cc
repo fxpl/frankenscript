@@ -758,7 +758,7 @@ namespace verona::interpreter
     
     if (behaviour->is_behaviour)
     {
-      for (auto cown : behaviour->cowns)
+      for (auto cown : behaviour->args)
       {
         // Get the last behaviour that is waiting on the cown
         auto cown_info = this->cowns.find(cown);
@@ -933,7 +933,7 @@ namespace verona::interpreter
         auto block = behaviour->spawn();
 
         inter = new Interpreter(
-          rt::ui::globalUI(), block->body, behaviour->cowns, behaviour);
+          rt::ui::globalUI(), block->body, behaviour->args, behaviour);
         this->running[behaviour] = inter;
       }
       else if (behaviour->status == rt::core::Behaviour::Status::Running)
@@ -1209,5 +1209,11 @@ namespace verona::interpreter
     }
     return false;
   }
+
+  bool Scheduler::is_executable_or_complete(const std::string behaviour_name)
+  {
+    return (is_executable(behaviour_name) || is_complete(behaviour_name));
+  }
+
 
 } // namespace verona::interpreter

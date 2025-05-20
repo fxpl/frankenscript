@@ -1,0 +1,12 @@
+
+# Creating behaviours within threads
+def testA(a, b):
+    when(a, b):
+        a.value = b
+
+c1 = Cown(Region())
+c2 = Cown(Region())
+t1 = Thread(testA, c1, c2)
+start(t1)
+pass()
+

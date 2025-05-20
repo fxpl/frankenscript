@@ -114,6 +114,7 @@ namespace verona::interpreter
     // Used for testing
     bool is_executable(const std::string behaviour_name);
     bool is_complete(const std::string behaviour_name);
+    bool is_executable_or_complete(const std::string behaviour_name);
 
   private:
     size_t prompt_user();
