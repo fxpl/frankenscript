@@ -6,6 +6,7 @@
 #include <set>
 #include <vector>
 
+
 namespace verona::interpreter
 {
   struct Bytecode;
@@ -62,11 +63,9 @@ namespace rt::core
 
     static void set_active_behaviour(std::shared_ptr<Behaviour>);
     static std::shared_ptr<Behaviour> get_active_behaviour();
-
+  
   private:
     static std::shared_ptr<Behaviour> s_active_behaviour;
-
-  private:
     // Static member for naming
     static int s_behaviour_counter;
 
@@ -87,6 +86,11 @@ namespace rt::core
     verona::interpreter::Scheduler* scheduler;
 
   public:
+    // Only needed for threads
+    bool is_behaviour;
+    objects::DynObject* bridge;
+    // Only needed for threads
+
     // This maps the cowns of this behaviour to the previous behaviour this
     // is waiting on. This is used to draw the dependencies, it is not used
     // for sceduling.
@@ -119,7 +123,9 @@ namespace rt::core
       objects::DynObject* code_,
       std::vector<objects::DynObject*> cowns_,
       verona::interpreter::Scheduler* scheduler_,
-      std::optional<std::string> name_ = std::nullopt);
+      std::optional<std::string> name_ = std::nullopt,
+      bool is_behaviour_ = true,
+      objects::DynObject* bridge_ = nullptr);
 
     std::string get_name();
     std::string id_str();

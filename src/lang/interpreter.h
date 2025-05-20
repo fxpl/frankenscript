@@ -103,7 +103,7 @@ namespace verona::interpreter
 
 
     void add(rt::core::behaviour_ptr behaviour);
-    //void add_thread(rt::objects::DynObject* thread);
+    void add_thread(Bytecode* target_bytecode, rt::objects::DynObject* bridge);
 
     void start(Bytecode* main_block, bool interactive, int seed);
 

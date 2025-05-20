@@ -34,24 +34,38 @@ namespace rt::core
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> cowns_,
     verona::interpreter::Scheduler* scheduler_,
-    std::optional<std::string> name_)
-  : id(s_behaviour_counter++), cowns(cowns_), code(code_), scheduler(scheduler_)
+    std::optional<std::string> name_,
+    bool is_behaviour_,
+    rt::objects::DynObject* bridge_)
+  : id(s_behaviour_counter++), cowns(cowns_), code(code_), scheduler(scheduler_),
+    is_behaviour(is_behaviour_), bridge(bridge_)
   {
-    for (auto c : cowns)
+    this->status = Status::New;
+    this->local_region = objects::Region::new_local_region();
+
+    if (is_behaviour)
     {
-      ordered_cown[rt::get_cown_id(c)] = c;
+      for (auto c : cowns)
+      {
+        ordered_cown[rt::get_cown_id(c)] = c;
+      }
     }
+    
 
     if (name_)
     {
       name = name_.value();
     }
-    else
+    else 
     {
       std::stringstream ss;
-      ss << "Behaviour_" << id;
+      if (is_behaviour)
+        ss << "Behaviour_" << id;
+      else
+        ss << "Thread_" << id;
       name = ss.str();
     }
+    
   }
 
   std::string Behaviour::get_name()
@@ -62,7 +76,11 @@ namespace rt::core
   std::string Behaviour::id_str()
   {
     std::stringstream ss;
-    ss << "B" << this->id;
+    if (is_behaviour)
+      ss << "B";
+    else
+      ss << "T";
+    ss << this->id;
     return ss.str();
   }
 
@@ -71,14 +89,16 @@ namespace rt::core
     assert(this->status == Status::Ready);
     this->status = Status::Running;
 
-    for (auto c : this->cowns)
+    if (is_behaviour)
     {
-      rt::aquire_cown(c, this);
+      for (auto c : this->cowns)
+      {
+        rt::aquire_cown(c, this);
+      }
     }
 
-    this->local_region = objects::Region::new_local_region();
-
-    return rt::try_get_bytecode(this->code).value();
+    auto test = rt::try_get_bytecode(this->code).value(); 
+    return test;
   }
 
   // FIXME: Currently both the scheduler and the behaviour has a function
@@ -89,15 +109,21 @@ namespace rt::core
     this->status = Status::Done;
     rt::remove_reference(nullptr, this->code);
     this->code = nullptr;
-
-    for (auto c : this->cowns)
+    if (this->is_behaviour)
     {
-      if (rt::is_owner(c, this))
-      {
-        rt::release_cown(c, this);  
+      for (auto c : this->cowns)
+      { 
+
+        if (rt::is_owner(c, this))
+        {
+          rt::release_cown(c, this);  
+        }
+        rt::remove_reference(nullptr, c);
       }
-      rt::remove_reference(nullptr, c);
     }
+
+    
+
     this->cowns.clear();
 
     for (auto [cown, waiting_on] : cown_deps)

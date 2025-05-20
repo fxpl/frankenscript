@@ -430,7 +430,8 @@ namespace rt::ui
           // C++ and the weird referencing rules...
           draw_region(b->local_region, ident, b.get());
         }
-        else
+        // Threads do not have any cown dependencies
+        else if(b->is_behaviour)
         {
           for (auto cown : b->cowns)
           {

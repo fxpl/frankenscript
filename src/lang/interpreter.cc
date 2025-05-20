@@ -562,11 +562,14 @@ namespace verona::interpreter
 
       for (auto elem : start_stack)
       {
-        frame->frame->stack_push(elem, "staring stack");
+        frame->frame->stack_push(elem, "starting stack");
       }
-
+      if (!behaviour->is_behaviour)
+        rt::remove_reference(nullptr, behaviour->bridge);
+      
       rt::set_active_behaviour(old_behaviour);
     }
+    
 
     // resume() helper
     template<typename... Subset, typename... Superset>
@@ -753,30 +756,44 @@ namespace verona::interpreter
   {
     assert(behaviour->status == rt::core::Behaviour::Status::New);
     
-
-    for (auto cown : behaviour->cowns)
+    if (behaviour->is_behaviour)
     {
-      // Get the last behaviour that is waiting on the cown
-      auto cown_info = this->cowns.find(cown);
-      if (cown_info != cowns.end())
+      for (auto cown : behaviour->cowns)
       {
-        auto predecessor = cown_info->second;
-        // If a behaviour isn't Done, set the successor
-        if (predecessor->status != rt::core::Behaviour::Status::Done)
+        // Get the last behaviour that is waiting on the cown
+        auto cown_info = this->cowns.find(cown);
+        if (cown_info != cowns.end())
         {
-          predecessor->cown_succ[cown] = behaviour;
-          behaviour->cown_ctn += 1;
-          // Only needed for Mermaid:
-          if (predecessor->succ.insert(behaviour).second)
+          auto predecessor = cown_info->second;
+          // If a behaviour isn't Done, set the successor
+          if (predecessor->status != rt::core::Behaviour::Status::Done)
           {
-            behaviour->pred_ctn += 1;
+            predecessor->cown_succ[cown] = behaviour;
+            behaviour->cown_ctn += 1;
+            // Only needed for Mermaid:
+            if (predecessor->succ.insert(behaviour).second)
+            {
+              behaviour->pred_ctn += 1;
+            }
+            behaviour->cown_deps[cown] = predecessor.get();
           }
-          behaviour->cown_deps[cown] = predecessor.get();
         }
+        // Update pointer to the last pending behaviour
+        this->cowns[cown] = behaviour;
       }
-      // Update pointer to the last pending behaviour
-      this->cowns[cown] = behaviour;
     }
+    else
+    {
+      auto old_behaviour = rt::get_active_behaviour();
+      rt::set_active_behaviour(behaviour);
+
+      rt::dissolve_region(behaviour->bridge);
+
+      rt::set_active_behaviour(old_behaviour);
+
+    }
+    
+
 
     std::stringstream ss;
     if (behaviour->pred_ctn == 0)
@@ -795,11 +812,14 @@ namespace verona::interpreter
     this->next_schedule_msg = ss.str();
   }
 
-  // void Scheduler::add_thread(rt::objects::DynObject* thread)
-  // {
-
-  //   return;
-  // }
+  void Scheduler::add_thread(Bytecode* target_bytecode, rt::objects::DynObject* bridge)
+  {
+    assert(target_bytecode || bridge);
+    //assert(objects::get_region(bridge).combined_lrd() == 1);
+    // How to distinguish between threads? string?
+    
+    return;
+  }
 
 
   void print_help()

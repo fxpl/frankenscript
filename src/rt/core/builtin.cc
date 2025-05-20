@@ -437,6 +437,10 @@ namespace rt::core
       auto func = frame->stack_pop("func");
       if(!rt::try_get_bytecode(func))
         ui::error("No valid function provided");
+      // Function needs to stay alive even if the 
+      // concurrent entity that defined it terminates   
+      rt::hack_inc_rc(func);
+      freeze(func);   
       // create Thread obj
       auto thread_obj = make_thread(func, kwargs);
       rt::move_reference(frame->object(), thread_obj, func);
@@ -450,25 +454,38 @@ namespace rt::core
         ui::error("start() expected 1 argument");
       }
       auto thread_obj = frame->stack_pop("thread");
+      // Is there a proper target func?
       auto target = rt::get(thread_obj, "target");
-      //assert(rt::try_get_bytecode(target));
+      if (!target.has_value())
+        ui::error("No target", thread_obj);
+      auto target_bytecode = rt::try_get_bytecode(target.value());
+      if (!target_bytecode.has_value())
+        ui::error("Target is not a valid function");
+      
+
+      // Can we reference the arguments from a new region without issue?
       auto kwargs = rt::get_thread_args(thread_obj);
       auto bridge = rt::objects::create_region();
+      auto count = kwargs.size();
       for (auto arg : kwargs)
       {
         assert(arg);
+        // args where pushed first to last 
+        std::stringstream ss;
+        ss << "arg" << count;
+        count--;
         // Ideally we'd instead call set() using the proper identifiers,
         // these would first need to be stored in builtin func 'Thread'   
-        auto old_var = rt::set(bridge, arg->get_name(), arg);
+        auto old_var = rt::set(bridge, ss.str(), arg);
+        assert(!old_var);
       }
       auto region = objects::get_region(bridge);
       // Regions are created with an lrc of 1
       if (region->combined_lrc() > 1)
-      {
         ui::error("region is not closed", bridge);
-      }
       
-      //scheduler->add_thread(thread_obj);
+      scheduler->add(
+        std::make_shared<rt::core::Behaviour>(target.value(), kwargs, scheduler, std::nullopt, false, bridge));
       rt::remove_reference(frame->object(), thread_obj);
       return std::nullopt;      
 
