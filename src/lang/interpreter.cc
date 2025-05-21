@@ -747,7 +747,7 @@ namespace verona::interpreter
         this->ready.push_back(succ);
       }
       behaviour->cown_succ.erase(cown);
-      
+      succ->cown_deps.erase(cown_info->first);
     }
   }
 
@@ -1022,6 +1022,7 @@ namespace verona::interpreter
         succ->status = rt::core::Behaviour::Status::Ready;
         this->ready.push_back(succ);
       }
+      succ->cown_deps.erase(cown_info.first);
     }
     behaviour->cown_succ.clear();
 

@@ -431,9 +431,9 @@ namespace rt::core
         kwargs.push_back(value);
       }
 
-      // Check for proper args here, or in start() --> in start()
 
-      // func
+      // FIXME: Currently, the onus is on user to assure that the right number
+      //  of arguments are provided. No simple way to assure that here(?)
       auto func = frame->stack_pop("func");
       if(!rt::try_get_bytecode(func))
         ui::error("No valid function provided");
