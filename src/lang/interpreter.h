@@ -48,17 +48,17 @@ namespace verona::interpreter
   class Scheduler
   {
     // All behaviours that are ready to run
-    std::vector<rt::core::behaviour_ptr> ready = {};
+    std::vector<rt::core::entity_ptr> ready = {};
     // A map from cowns to the last behaviour that will as some point own them.
     // Ergo this will initially map to the creating behaviour
     //
     // The cowns in the key are weak pointers, they should never be
     // dereferenced.
-    std::unordered_map<rt::objects::DynObject*, rt::core::behaviour_ptr> cowns =
+    std::unordered_map<rt::objects::DynObject*, rt::core::entity_ptr> cowns =
       {};
     // This feels hacky but also like the best solution? I can't even blame this
     // on C++
-    std::unordered_map<rt::core::behaviour_ptr, Interpreter*> running = {};
+    std::unordered_map<rt::core::entity_ptr, Interpreter*> running = {};
 
     // Necessary to print the line and information of a scheduled behaviour in
     // one go, since Call nodes do not store what line they were called from
@@ -102,14 +102,14 @@ namespace verona::interpreter
     ~Scheduler();
 
 
-    void add(rt::core::behaviour_ptr behaviour);
+    void add(rt::core::entity_ptr behaviour);
     void add_thread(Bytecode* target_bytecode, rt::objects::DynObject* bridge);
 
     void start(Bytecode* main_block, bool interactive, int seed);
 
-    void signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
-    void pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
-    //void new_pending_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour);
+    void signal_new_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
+    void pending_cown_released(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
+    //void new_pending_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
     
     // Used for testing
     bool is_executable(const std::string behaviour_name);
@@ -118,9 +118,9 @@ namespace verona::interpreter
 
   private:
     size_t prompt_user();
-    void complete_behaviour(rt::core::behaviour_ptr behaviour);
+    void complete_behaviour(rt::core::entity_ptr behaviour);
     void draw_schedule(std::string message, bool entering_behaviour = false);
-    rt::core::behaviour_ptr get_next();
+    rt::core::entity_ptr get_next();
     void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);
     void step(bool& should_break);
   };

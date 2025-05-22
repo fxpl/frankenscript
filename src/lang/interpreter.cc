@@ -99,7 +99,7 @@ namespace verona::interpreter
   {
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
-    rt::core::behaviour_ptr behaviour;
+    rt::core::entity_ptr behaviour;
 
     InterpreterFrame* top_frame()
     {
@@ -544,7 +544,7 @@ namespace verona::interpreter
       rt::ui::UI* ui_,
       trieste::Node block,
       std::vector<rt::objects::DynObject*> start_stack,
-      rt::core::behaviour_ptr behaviour_)
+      rt::core::entity_ptr behaviour_)
     : ui(ui_), behaviour(behaviour_)
     {
       // There is a question where the active behaviour should be set.
@@ -724,7 +724,7 @@ namespace verona::interpreter
     return ss.str();
   }
 
-  void Scheduler::signal_new_cown(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour)
+  void Scheduler::signal_new_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour)
   {
     // cown must be new
     assert(this->cowns.find(cown) == this->cowns.end());
@@ -733,7 +733,7 @@ namespace verona::interpreter
     this->cowns[cown] = behaviour;
   }
 
-  void Scheduler::pending_cown_released(rt::objects::DynObject* cown, rt::core::behaviour_ptr behaviour)
+  void Scheduler::pending_cown_released(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour)
   {
     // Is there a successor waiting on the cown 
     auto cown_info = behaviour->cown_succ.find(cown);
@@ -743,7 +743,7 @@ namespace verona::interpreter
       succ->cown_ctn -= 1;
       if (succ->cown_ctn == 0)
       {
-        succ->status = rt::core::Behaviour::Status::Ready;
+        succ->status = rt::core::ConcurrentEntity::Status::Ready;
         this->ready.push_back(succ);
       }
       behaviour->cown_succ.erase(cown);
@@ -752,9 +752,9 @@ namespace verona::interpreter
   }
 
 
-  void Scheduler::add(rt::core::behaviour_ptr behaviour)
+  void Scheduler::add(rt::core::entity_ptr behaviour)
   {
-    assert(behaviour->status == rt::core::Behaviour::Status::New);
+    assert(behaviour->status == rt::core::ConcurrentEntity::Status::New);
     
     if (behaviour->is_behaviour)
     {
@@ -766,7 +766,7 @@ namespace verona::interpreter
         {
           auto predecessor = cown_info->second;
           // If a behaviour isn't Done, set the successor
-          if (predecessor->status != rt::core::Behaviour::Status::Done)
+          if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
           {
             predecessor->cown_succ[cown] = behaviour;
             behaviour->cown_ctn += 1;
@@ -799,12 +799,12 @@ namespace verona::interpreter
     if (behaviour->pred_ctn == 0)
     {
       this->ready.push_back(behaviour);
-      behaviour->status = rt::core::Behaviour::Status::Ready;
+      behaviour->status = rt::core::ConcurrentEntity::Status::Ready;
       ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is ready";
     }
     else
     {
-      behaviour->status = rt::core::Behaviour::Status::Pending;
+      behaviour->status = rt::core::ConcurrentEntity::Status::Pending;
       ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
     }
 
@@ -915,9 +915,9 @@ namespace verona::interpreter
     rt::hack_inc_rc(main_function);
     this->interactive = interactive_arg;
     this->rng.seed(seed_arg);
-    auto behaviour = std::make_shared<rt::core::Behaviour>(
+    auto behaviour = std::make_shared<rt::core::ConcurrentEntity>(
       main_function, std::vector<rt::objects::DynObject*>{}, this, "main");
-    behaviour->status = rt::core::Behaviour::Status::Ready;
+    behaviour->status = rt::core::ConcurrentEntity::Status::Ready;
     this->ready.push_back(behaviour);
 
     if (this->interactive)
@@ -928,7 +928,7 @@ namespace verona::interpreter
     while (behaviour)
     {
       Interpreter* inter;
-      if (behaviour->status == rt::core::Behaviour::Status::Ready)
+      if (behaviour->status == rt::core::ConcurrentEntity::Status::Ready)
       {
         auto block = behaviour->spawn();
 
@@ -936,7 +936,7 @@ namespace verona::interpreter
           rt::ui::globalUI(), block->body, behaviour->args, behaviour);
         this->running[behaviour] = inter;
       }
-      else if (behaviour->status == rt::core::Behaviour::Status::Running)
+      else if (behaviour->status == rt::core::ConcurrentEntity::Status::Running)
       {
         inter = this->running[behaviour];
         assert(inter);
@@ -1009,7 +1009,7 @@ namespace verona::interpreter
 
 
 
-  void Scheduler::complete_behaviour(rt::core::behaviour_ptr behaviour)
+  void Scheduler::complete_behaviour(rt::core::entity_ptr behaviour)
   {
     behaviour->complete();
     std::erase(this->ready, behaviour);
@@ -1019,7 +1019,7 @@ namespace verona::interpreter
       succ->cown_ctn -= 1;
       if (succ->cown_ctn == 0)
       {
-        succ->status = rt::core::Behaviour::Status::Ready;
+        succ->status = rt::core::ConcurrentEntity::Status::Ready;
         this->ready.push_back(succ);
       }
       succ->cown_deps.erase(cown_info.first);
@@ -1033,7 +1033,7 @@ namespace verona::interpreter
       //   succ->pred_ctn -= 1;
       //   if (succ->pred_ctn == 0)
       //   {
-        //     succ->status = rt::core::Behaviour::Status::Ready;
+        //     succ->status = rt::core::ConcurrentEntity::Status::Ready;
         //     this->ready.push_back(succ);
         //   }
         // }
@@ -1069,7 +1069,7 @@ namespace verona::interpreter
             auto b = this->ready[idx];
             std::cout << "- " << idx << ": " << b->get_name();
     
-            if (b->status == rt::core::Behaviour::Status::Running)
+            if (b->status == rt::core::ConcurrentEntity::Status::Running)
             {
                 std::cout << " (continue)";
             }
@@ -1163,7 +1163,7 @@ namespace verona::interpreter
     return selected;
   }
 
-  rt::core::behaviour_ptr Scheduler::get_next()
+  rt::core::entity_ptr Scheduler::get_next()
   {
     if (this->ready.empty())
     {

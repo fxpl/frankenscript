@@ -13,11 +13,11 @@ namespace rt::objects
 
 namespace rt::core
 {
-  int Behaviour::s_behaviour_counter = 0;
-  int Behaviour::s_thread_counter = 0;
-  std::shared_ptr<Behaviour> Behaviour::s_active_behaviour = nullptr;
+  int ConcurrentEntity::s_behaviour_counter = 0;
+  int ConcurrentEntity::s_thread_counter = 0;
+  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::s_active_behaviour = nullptr;
 
-  void Behaviour::set_active_behaviour(std::shared_ptr<Behaviour> active)
+  void ConcurrentEntity::set_active_behaviour(std::shared_ptr<ConcurrentEntity> active)
   {
     s_active_behaviour = active;
     if (active)
@@ -26,12 +26,12 @@ namespace rt::core
     }
   }
 
-  std::shared_ptr<Behaviour> Behaviour::get_active_behaviour()
+  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::get_active_behaviour()
   {
     return s_active_behaviour;
   }
 
-  Behaviour::Behaviour(
+  ConcurrentEntity::ConcurrentEntity(
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> args_,
     verona::interpreter::Scheduler* scheduler_,
@@ -46,14 +46,14 @@ namespace rt::core
 
     if (is_behaviour)
     {
-      id = ++Behaviour::s_behaviour_counter;
+      id = ++ConcurrentEntity::s_behaviour_counter;
       for (auto c : args)
       {
         ordered_cown[rt::get_cown_id(c)] = c;
       }
     }
     else
-      id = ++rt::core::Behaviour::s_thread_counter;
+      id = ++rt::core::ConcurrentEntity::s_thread_counter;
 
     if (name_)
     {
@@ -71,12 +71,12 @@ namespace rt::core
     
   }
 
-  std::string Behaviour::get_name()
+  std::string ConcurrentEntity::get_name()
   {
     return this->name;
   }
 
-  std::string Behaviour::id_str()
+  std::string ConcurrentEntity::id_str()
   {
     std::stringstream ss;
     if (is_behaviour)
@@ -87,7 +87,7 @@ namespace rt::core
     return ss.str();
   }
 
-  verona::interpreter::Bytecode* Behaviour::spawn()
+  verona::interpreter::Bytecode* ConcurrentEntity::spawn()
   {
     assert(this->status == Status::Ready);
     this->status = Status::Running;
@@ -107,7 +107,7 @@ namespace rt::core
   // FIXME: Currently both the scheduler and the behaviour has a function
   // to complete a behaviour. All of this should really be in one place. It
   // might be better to move all of this into the scheduler.
-  void Behaviour::complete()
+  void ConcurrentEntity::complete()
   {
     this->status = Status::Done;
     rt::remove_reference(nullptr, this->code);
@@ -146,13 +146,13 @@ namespace rt::core
     }
   }
 
-  void Behaviour::signal_new_cown(rt::objects::DynObject* cown)
+  void ConcurrentEntity::signal_new_cown(rt::objects::DynObject* cown)
   {
     this->created_cowns.push_back(cown);
     this->scheduler->signal_new_cown(cown, s_active_behaviour);
   }
 
-  void Behaviour::signal_early_release(rt::objects::DynObject* cown)
+  void ConcurrentEntity::signal_early_release(rt::objects::DynObject* cown)
   {
     // assert(cown in args)
     this->scheduler->pending_cown_released(cown, s_active_behaviour);

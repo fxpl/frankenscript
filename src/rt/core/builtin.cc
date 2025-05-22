@@ -485,7 +485,7 @@ namespace rt::core
         ui::error("region is not closed", bridge);
       
       scheduler->add(
-        std::make_shared<rt::core::Behaviour>(target.value(), kwargs, scheduler, std::nullopt, false, bridge));
+        std::make_shared<rt::core::ConcurrentEntity>(target.value(), kwargs, scheduler, std::nullopt, false, bridge));
       rt::remove_reference(frame->object(), thread_obj);
       return std::nullopt;      
 
@@ -515,7 +515,7 @@ namespace rt::core
       // when
       auto behaviour = frame->stack_pop("behaviour");
       scheduler->add(
-        std::make_shared<rt::core::Behaviour>(behaviour, cowns, scheduler, name));
+        std::make_shared<rt::core::ConcurrentEntity>(behaviour, cowns, scheduler, name));
 
       // @Max, Interesting for your report: Some kind of ownership transfer is
       // needed here. Freezing is "the easiest" untill we get into the mess that

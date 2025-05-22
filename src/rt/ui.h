@@ -52,7 +52,7 @@ namespace rt::ui
     // This feels really wrong, but is the easiest fix rn. The list should
     // probably always be passed in to the `output()` call but that would
     // require more refactorings
-    std::vector<rt::core::behaviour_ptr>* scheduler_ready_list;
+    std::vector<rt::core::entity_ptr>* scheduler_ready_list;
 
   private:
     friend class ObjectGraphDiagram;

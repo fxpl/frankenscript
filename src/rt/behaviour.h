@@ -27,7 +27,7 @@ namespace rt::ui
 
 namespace rt::core
 {
-  class Behaviour
+  class ConcurrentEntity
   {
     friend class rt::ui::MermaidUI;
     friend class rt::ui::ObjectGraphDiagram;
@@ -61,11 +61,11 @@ namespace rt::core
       }
     }
 
-    static void set_active_behaviour(std::shared_ptr<Behaviour>);
-    static std::shared_ptr<Behaviour> get_active_behaviour();
+    static void set_active_behaviour(std::shared_ptr<ConcurrentEntity>);
+    static std::shared_ptr<ConcurrentEntity> get_active_behaviour();
   
   private:
-    static std::shared_ptr<Behaviour> s_active_behaviour;
+    static std::shared_ptr<ConcurrentEntity> s_active_behaviour;
     // Static members for naming
     static int s_behaviour_counter;
     static int s_thread_counter;
@@ -96,13 +96,13 @@ namespace rt::core
     // is waiting on. This is used to draw the dependencies, it is not used
     // for sceduling.
     // Both of these pointers are weak reference.
-    std::map<objects::DynObject*, Behaviour*> cown_deps;
+    std::map<objects::DynObject*, ConcurrentEntity*> cown_deps;
 
     Status status;
     // The args as they were passed in to the behaviour. These have to be provided
     // to the new Interpreter to populate the frame.
     std::vector<objects::DynObject*> args;
-    // Cowns that are created owing to the entitys code
+    // Cowns that are created owing to the entitys frankenscript code
     std::vector<objects::DynObject*> created_cowns;
     // This uses a function object opposed to a Bytecode* to not leak memory
     objects::DynObject* code;
@@ -110,16 +110,16 @@ namespace rt::core
     int pred_ctn = 0;
     // Number of cowns behaviour is waiting on
     size_t cown_ctn{0};
-    // Behaviours which are waiting on this behaviour. These will be notified once
+    // ConcurrentEntitys which are waiting on this behaviour. These will be notified once
     // this behaviour completes.
     // Currently needed for mermaid
-    std::set<std::shared_ptr<Behaviour>> succ;
+    std::set<std::shared_ptr<ConcurrentEntity>> succ;
     // Map from a cown to the next behaviour waiting for it, needed since all cowns are not 
-    // necessarily released at the end of behaviours. 
-    std::map<objects::DynObject*, std::shared_ptr<Behaviour>> cown_succ;
+    // necessarily released at the end of entities. 
+    std::map<objects::DynObject*, std::shared_ptr<ConcurrentEntity>> cown_succ;
 
 
-    Behaviour(
+    ConcurrentEntity(
       objects::DynObject* code_,
       std::vector<objects::DynObject*> cowns_,
       verona::interpreter::Scheduler* scheduler_,
@@ -139,5 +139,5 @@ namespace rt::core
     void signal_early_release(rt::objects::DynObject* cown);
   };
 
-  typedef std::shared_ptr<Behaviour> behaviour_ptr;
+  typedef std::shared_ptr<ConcurrentEntity> entity_ptr;
 } // namespace rt::core

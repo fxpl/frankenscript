@@ -359,7 +359,7 @@ namespace rt
     return reinterpret_cast<core::CownObject*>(cown)->is_released();
   }
 
-  void aquire_cown(objects::DynObject* cown, core::Behaviour* behaviour)
+  void aquire_cown(objects::DynObject* cown, core::ConcurrentEntity* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
@@ -369,7 +369,7 @@ namespace rt
     reinterpret_cast<core::CownObject*>(cown)->aquire(behaviour);
   }
 
-  void release_cown(objects::DynObject* cown, core::Behaviour* behaviour)
+  void release_cown(objects::DynObject* cown, core::ConcurrentEntity* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
@@ -379,7 +379,7 @@ namespace rt
     reinterpret_cast<core::CownObject*>(cown)->release(behaviour);
   }
 
-  bool is_owner(objects::DynObject* cown, core::Behaviour* behaviour)
+  bool is_owner(objects::DynObject* cown, core::ConcurrentEntity* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())
     {
@@ -404,11 +404,11 @@ namespace rt
     obj->change_rc(+1);
   }
 
-  rt::core::behaviour_ptr get_active_behaviour() {
-    return core::Behaviour::get_active_behaviour();
+  rt::core::entity_ptr get_active_behaviour() {
+    return core::ConcurrentEntity::get_active_behaviour();
   }
-  void set_active_behaviour(rt::core::behaviour_ptr behaviour) {
-    core::Behaviour::set_active_behaviour(behaviour);
+  void set_active_behaviour(rt::core::entity_ptr behaviour) {
+    core::ConcurrentEntity::set_active_behaviour(behaviour);
   }
 
 } // namespace rt

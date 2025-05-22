@@ -365,7 +365,7 @@ namespace rt::core
 
     Status status;
     int id;
-    core::Behaviour* owner;
+    core::ConcurrentEntity* owner;
 
   public:
     CownObject(
@@ -375,7 +375,7 @@ namespace rt::core
       id = s_id_counter++;
 
       status = Status::Pending;
-      this->owner = Behaviour::get_active_behaviour().get();
+      this->owner = ConcurrentEntity::get_active_behaviour().get();
       auto old = set("value", obj);
       assert(!old);
 
@@ -477,7 +477,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return Behaviour::get_active_behaviour().get() != this->owner;
+          return ConcurrentEntity::get_active_behaviour().get() != this->owner;
         case Status::Released:
         default:
           return true;
@@ -515,7 +515,7 @@ namespace rt::core
       }
     }
 
-    void aquire(Behaviour* behaviour)
+    void aquire(ConcurrentEntity* behaviour)
     {
       // Who needs other safety checks than this?
       // This is so gonna bite me...
@@ -525,13 +525,13 @@ namespace rt::core
       this->owner = behaviour;
     }
 
-    void release(Behaviour* behaviour)
+    void release(ConcurrentEntity* behaviour)
     {
       assert(this->owner == behaviour);
       this->status = Status::Released;
       this->owner = nullptr;
     }
-    bool is_owner(Behaviour* behaviour)
+    bool is_owner(ConcurrentEntity* behaviour)
     {
       return this->owner == behaviour;
     }

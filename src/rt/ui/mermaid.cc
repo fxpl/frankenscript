@@ -148,30 +148,30 @@ namespace rt::ui
       return {"[", "]"};
     }
 
-    std::string behaviour_node_name(core::Behaviour* behaviour)
+    std::string behaviour_node_name(core::ConcurrentEntity* behaviour)
     {
       std::stringstream ss;
       ss << "info_" << behaviour->id_str();
       return ss.str();
     }
 
-    void draw_behaviour_info(core::Behaviour* behaviour)
+    void draw_behaviour_info(core::ConcurrentEntity* behaviour)
     {
       out << "  " << this->behaviour_node_name(behaviour) << "([\""
           << behaviour->get_name() << "<br>Status: "
-          << core::Behaviour::status_to_string(behaviour->status) << "\"])"
+          << core::ConcurrentEntity::status_to_string(behaviour->status) << "\"])"
           << std::endl;
       // Set background color
       auto background = ERROR_NODE_COLOR;
       switch (behaviour->status)
       {
-        case core::Behaviour::Status::Running:
+        case core::ConcurrentEntity::Status::Running:
           background = BEHAVIOR_RUNNING_COLOR;
           break;
-        case core::Behaviour::Status::Ready:
+        case core::ConcurrentEntity::Status::Ready:
           background = BEHAVIOR_READY_COLOR;
           break;
-        case core::Behaviour::Status::Pending:
+        case core::ConcurrentEntity::Status::Pending:
           background = BEHAVIOR_PENDING_COLOR;
           break;
       }
@@ -250,12 +250,12 @@ namespace rt::ui
       return "";
     }
 
-    std::map<int, core::behaviour_ptr> aggregate_behaviours()
+    std::map<int, core::entity_ptr> aggregate_behaviours()
     {
       // Clone the vector
-      std::vector<core::behaviour_ptr> pending =
+      std::vector<core::entity_ptr> pending =
         *this->info->scheduler_ready_list;
-      std::map<int, core::behaviour_ptr> behaviours;
+      std::map<int, core::entity_ptr> behaviours;
 
       while (!pending.empty())
       {
@@ -412,7 +412,7 @@ namespace rt::ui
       indent.erase(indent.size() - 2);
     }
 
-    void draw_behaviour_nodes(std::map<int, core::behaviour_ptr>& behaviours)
+    void draw_behaviour_nodes(std::map<int, core::entity_ptr>& behaviours)
     {
       for (auto [id, b] : behaviours)
       {
@@ -420,12 +420,12 @@ namespace rt::ui
       }
     }
 
-    void draw_behaviours(std::map<int, core::behaviour_ptr>& behaviours)
+    void draw_behaviours(std::map<int, core::entity_ptr>& behaviours)
     {
       std::string ident = "";
       for (auto [id, b] : behaviours)
       {
-        if (b->status == core::Behaviour::Status::Running)
+        if (b->status == core::ConcurrentEntity::Status::Running)
         {
           // C++ and the weird referencing rules...
           draw_region(b->local_region, ident, b.get());
@@ -460,7 +460,7 @@ namespace rt::ui
     void draw_region(
       objects::Region* r,
       std::string& indent,
-      core::Behaviour* behaviour = nullptr)
+      core::ConcurrentEntity* behaviour = nullptr)
     {
       auto info = &regions[r];
       if (info->drawn)
