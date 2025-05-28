@@ -9,7 +9,8 @@
 
 namespace rt::core
 {
-  const std::string schedule_func_name = "spawn_behaviour";
+  const std::string schedule_behaviour_func_name = "spawn_behaviour";
+  const std::string schedule_thread_func_name = "start";
   const std::string breakpoint_func_name = "breakpoint";
 
   using PrototypeObject = objects::PrototypeObject;
@@ -316,8 +317,20 @@ namespace rt::core
       // entries of 'fields' points to a DynObject and there is seemingly 
       // no suitable candidate within the set of possible DynObjects to
       // accomodate e.g. a vector
+      auto count = kwargs_.size();
+      for (auto arg : kwargs_)
+      {
+        // args where pushed first to last 
+        std::stringstream ss;
+        ss << "arg" << count;
+        count--;
+        old = set(ss.str(), arg);
+        assert(!old);
+        //arg->change_rc(1);
+      }
       kwargs = kwargs_;
 
+      // TODO: Sync this with the name of created thread?
       std::stringstream ss;
       ss << "<thread " << this->id << ">";
       name = ss.str();
@@ -375,7 +388,7 @@ namespace rt::core
       id = s_id_counter++;
 
       status = Status::Pending;
-      this->owner = ConcurrentEntity::get_active_behaviour().get();
+      this->owner = ConcurrentEntity::get_active_entity().get();
       auto old = set("value", obj);
       assert(!old);
 
@@ -477,7 +490,7 @@ namespace rt::core
         // but this is single threaded
         case Status::Acquired:
         case Status::Pending:
-          return ConcurrentEntity::get_active_behaviour().get() != this->owner;
+          return ConcurrentEntity::get_active_entity().get() != this->owner;
         case Status::Released:
         default:
           return true;

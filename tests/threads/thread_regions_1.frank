@@ -1,0 +1,15 @@
+mermaid_show_functions()
+
+def test(a, b):
+    print(a)
+    print(b)
+
+r1 = Region()
+r2 = Region()
+
+t1 = Thread(test, r1, r2)
+r1 = None
+r2 = None
+start(t1)
+
+pass()

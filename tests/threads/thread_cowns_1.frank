@@ -1,0 +1,13 @@
+mermaid_show_functions()
+
+def test(a, b):
+    print(a)
+    print(b)
+
+# cowns
+c1 = Cown(Region())
+c2 = Cown(Region())
+t1 = Thread(test, c1, c2)
+start(t1)
+
+pass()

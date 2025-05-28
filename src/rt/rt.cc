@@ -32,7 +32,7 @@ namespace rt
 
   bool is_schedule_builtin(objects::DynObject* func)
   {
-    return func == get_builtin(rt::core::schedule_func_name);
+    return (func == get_builtin(rt::core::schedule_behaviour_func_name) || func == get_builtin(rt::core::schedule_thread_func_name));
   }
 
   bool is_breakpoint_builtin(objects::DynObject* func)
@@ -404,11 +404,11 @@ namespace rt
     obj->change_rc(+1);
   }
 
-  rt::core::entity_ptr get_active_behaviour() {
-    return core::ConcurrentEntity::get_active_behaviour();
+  rt::core::entity_ptr get_active_entity() {
+    return core::ConcurrentEntity::get_active_entity();
   }
-  void set_active_behaviour(rt::core::entity_ptr behaviour) {
-    core::ConcurrentEntity::set_active_behaviour(behaviour);
+  void set_active_entity(rt::core::entity_ptr behaviour) {
+    core::ConcurrentEntity::set_active_entity(behaviour);
   }
 
 } // namespace rt

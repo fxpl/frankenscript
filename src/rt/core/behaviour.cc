@@ -17,7 +17,7 @@ namespace rt::core
   int ConcurrentEntity::s_thread_counter = 0;
   std::shared_ptr<ConcurrentEntity> ConcurrentEntity::s_active_behaviour = nullptr;
 
-  void ConcurrentEntity::set_active_behaviour(std::shared_ptr<ConcurrentEntity> active)
+  void ConcurrentEntity::set_active_entity(std::shared_ptr<ConcurrentEntity> active)
   {
     s_active_behaviour = active;
     if (active)
@@ -26,7 +26,7 @@ namespace rt::core
     }
   }
 
-  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::get_active_behaviour()
+  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::get_active_entity()
   {
     return s_active_behaviour;
   }

@@ -1,0 +1,14 @@
+mermaid_show_functions()
+
+def test(a, b):
+    print(a)
+    print(b)
+# Immutable obj
+a = {}
+b = {}
+t1 = Thread(test, a, b)
+freeze(a)
+freeze(b)
+start(t1)
+
+pass()

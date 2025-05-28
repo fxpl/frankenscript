@@ -61,8 +61,8 @@ namespace rt::core
       }
     }
 
-    static void set_active_behaviour(std::shared_ptr<ConcurrentEntity>);
-    static std::shared_ptr<ConcurrentEntity> get_active_behaviour();
+    static void set_active_entity(std::shared_ptr<ConcurrentEntity>);
+    static std::shared_ptr<ConcurrentEntity> get_active_entity();
   
   private:
     static std::shared_ptr<ConcurrentEntity> s_active_behaviour;

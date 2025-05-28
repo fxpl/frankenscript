@@ -1,0 +1,8 @@
+mermaid_show_functions()
+
+def test():
+    print("hi")
+t1 = Thread(test)
+start(t1)
+
+pass()

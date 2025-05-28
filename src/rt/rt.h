@@ -83,6 +83,6 @@ namespace rt
   // hack but I don't care anymore.
   void hack_inc_rc(objects::DynObject* obj);
 
-  rt::core::entity_ptr get_active_behaviour();
-  void set_active_behaviour(rt::core::entity_ptr behaviour);
+  rt::core::entity_ptr get_active_entity();
+  void set_active_entity(rt::core::entity_ptr behaviour);
 } // namespace rt

@@ -555,8 +555,8 @@ namespace verona::interpreter
       //
       // However, in FrankenScript the runtime is more passive, meaning that
       // the interpreter drives the runtime and provides all needed information.
-      auto old_behaviour = rt::get_active_behaviour();
-      rt::set_active_behaviour(this->behaviour);
+      auto old_behaviour = rt::get_active_entity();
+      rt::set_active_entity(this->behaviour);
 
       auto frame = push_stack_frame(block);
 
@@ -567,7 +567,7 @@ namespace verona::interpreter
       if (!behaviour->is_behaviour)
         rt::remove_reference(nullptr, behaviour->bridge);
       
-      rt::set_active_behaviour(old_behaviour);
+      rt::set_active_entity(old_behaviour);
     }
     
 
@@ -594,7 +594,7 @@ namespace verona::interpreter
       auto return_to_scheduler{false};
       auto frame = top_frame();
 
-      rt::set_active_behaviour(this->behaviour);
+      rt::set_active_entity(this->behaviour);
       assert(frame);
 
       while (frame)
@@ -784,12 +784,12 @@ namespace verona::interpreter
     }
     else
     {
-      auto old_behaviour = rt::get_active_behaviour();
-      rt::set_active_behaviour(behaviour);
+      auto old_behaviour = rt::get_active_entity();
+      rt::set_active_entity(behaviour);
 
       rt::dissolve_region(behaviour->bridge);
 
-      rt::set_active_behaviour(old_behaviour);
+      rt::set_active_entity(old_behaviour);
 
     }
     
@@ -812,14 +812,6 @@ namespace verona::interpreter
     this->next_schedule_msg = ss.str();
   }
 
-  void Scheduler::add_thread(Bytecode* target_bytecode, rt::objects::DynObject* bridge)
-  {
-    assert(target_bytecode || bridge);
-    //assert(objects::get_region(bridge).combined_lrd() == 1);
-    // How to distinguish between threads? string?
-    
-    return;
-  }
 
 
   void print_help()

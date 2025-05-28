@@ -437,18 +437,15 @@ namespace rt::core
       auto func = frame->stack_pop("func");
       if(!rt::try_get_bytecode(func))
         ui::error("No valid function provided");
-      // Function needs to stay alive even if the 
-      // concurrent entity that defined it terminates   
-      rt::hack_inc_rc(func);
+      // Given no freeze, ownership will go to the temp region 
       freeze(func);   
       // create Thread obj
       auto thread_obj = make_thread(func, kwargs);
-      rt::move_reference(frame->object(), thread_obj, func);
       return thread_obj;      
 
     });
 
-    add_builtin("start", [=](auto frame, auto args) {
+    add_builtin(rt::core::schedule_thread_func_name, [=](auto frame, auto args) {
       if (args != 1)
       {
         ui::error("start() expected 1 argument");
@@ -461,8 +458,11 @@ namespace rt::core
       auto target_bytecode = rt::try_get_bytecode(target.value());
       if (!target_bytecode.has_value())
         ui::error("Target is not a valid function");
-      
-
+      // Function needs to stay alive even if the 
+      // concurrent entity that defined it terminates   
+      target.value()->change_rc(1);
+        
+        
       // Can we reference the arguments from a new region without issue?
       auto kwargs = rt::get_thread_args(thread_obj);
       auto bridge = rt::objects::create_region();
@@ -475,15 +475,22 @@ namespace rt::core
         ss << "arg" << count;
         count--;
         // Ideally we'd instead call set() using the proper identifiers,
-        // these would first need to be stored in builtin func 'Thread'   
+        // these would first need to be stored in builtin func 'Thread'
+        
+        rt::move_reference(thread_obj, bridge, arg);
         auto old_var = rt::set(bridge, ss.str(), arg);
         assert(!old_var);
+        rt::set(thread_obj, ss.str(), nullptr);
       }
       auto region = objects::get_region(bridge);
       // Regions are created with an lrc of 1
       if (region->combined_lrc() > 1)
         ui::error("region is not closed", bridge);
       
+      rt::move_reference(thread_obj, bridge, target.value());
+      auto old_var = rt::set(bridge, "target", target.value());
+      assert(!old_var);
+
       scheduler->add(
         std::make_shared<rt::core::ConcurrentEntity>(target.value(), kwargs, scheduler, std::nullopt, false, bridge));
       rt::remove_reference(frame->object(), thread_obj);
@@ -491,7 +498,7 @@ namespace rt::core
 
     });
 
-    add_builtin(rt::core::schedule_func_name, [=](auto frame, auto args) {
+    add_builtin(rt::core::schedule_behaviour_func_name, [=](auto frame, auto args) {
       // cowns (Stored on the stack in reverse order)
       // -1 since the first argument is the actual behaviour
       std::vector<objects::DynObject*> cowns = {};

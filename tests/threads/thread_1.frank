@@ -1,3 +1,4 @@
+mermaid_show_functions()
 
 def test(a, b):
     print(a)
@@ -25,3 +26,4 @@ c2 = Cown(Region())
 t3 = Thread(test, c1, c2)
 start(t3)
 
+pass()
