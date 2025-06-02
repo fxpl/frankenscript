@@ -82,9 +82,6 @@ namespace rt::core
     // The local region of this behaviour. This has to be swapped into the global
     // `local_region` when this behaviour runs.
     objects::Region* local_region;
-    // "Necessary" to signal the status change 'Pending --> Released' for cowns to the Scheduler
-    // Ergo change is propagated like so: cown->behaviour(owner)->scheduler
-    verona::interpreter::Scheduler* scheduler;
 
   public:
     // Only needed for threads
@@ -122,7 +119,6 @@ namespace rt::core
     ConcurrentEntity(
       objects::DynObject* code_,
       std::vector<objects::DynObject*> cowns_,
-      verona::interpreter::Scheduler* scheduler_,
       std::optional<std::string> name_ = std::nullopt,
       bool is_behaviour_ = true,
       objects::DynObject* bridge_ = nullptr);

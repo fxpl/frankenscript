@@ -227,6 +227,7 @@ namespace rt
     std::cout << "Initilizing global objects" << std::endl;
     core::globals();
     core::init_builtins(ui, scheduler);
+    core::CownObject::set_Scheduler(scheduler);
 
     if (ui->is_mermaid())
     {

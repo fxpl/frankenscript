@@ -34,11 +34,10 @@ namespace rt::core
   ConcurrentEntity::ConcurrentEntity(
     rt::objects::DynObject* code_,
     std::vector<rt::objects::DynObject*> args_,
-    verona::interpreter::Scheduler* scheduler_,
     std::optional<std::string> name_,
     bool is_behaviour_,
     rt::objects::DynObject* bridge_)
-  : args(args_), code(code_), scheduler(scheduler_),
+  : args(args_), code(code_),
     is_behaviour(is_behaviour_), bridge(bridge_)
   {
     this->status = Status::New;
@@ -149,14 +148,7 @@ namespace rt::core
   void ConcurrentEntity::signal_new_cown(rt::objects::DynObject* cown)
   {
     this->created_cowns.push_back(cown);
-    this->scheduler->signal_new_cown(cown, s_active_behaviour);
+    //this->scheduler->signal_new_cown(cown, s_active_behaviour);
   }
-
-  void ConcurrentEntity::signal_early_release(rt::objects::DynObject* cown)
-  {
-    // assert(cown in args)
-    this->scheduler->pending_cown_released(cown, s_active_behaviour);
-  }
-
 
 } // namespace rt::core

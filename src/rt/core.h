@@ -15,6 +15,9 @@ namespace rt::core
 
   using PrototypeObject = objects::PrototypeObject;
 
+  void set_Scheduler(verona::interpreter::Scheduler* instance);
+
+
   inline PrototypeObject* framePrototypeObject()
   {
     static PrototypeObject* proto = new PrototypeObject("Frame");
@@ -354,6 +357,12 @@ namespace rt::core
   private:
     static int s_id_counter;
 
+    // Making Cowns aware of Scheduler
+    static verona::interpreter::Scheduler* global_scheduler;
+    friend size_t rt::pre_run(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
+    // Exposing CownObject doesn't feel ideal, but what can you do?
+    static void set_Scheduler(verona::interpreter::Scheduler* instance);
+
     enum class Status
     {
       Pending,
@@ -398,7 +407,7 @@ namespace rt::core
       {
         this->change_rc(1);
         this->owner->signal_new_cown(this);
-        //verona::interpreter::Scheduler::new_pending_cown(this, this->owner);
+        global_scheduler->signal_new_cown(this);
       }
 
       if (name_)
@@ -523,7 +532,7 @@ namespace rt::core
       if (region->combined_lrc() == 0)
       {
         status = Status::Released;
-        this->owner->signal_early_release(this);
+        global_scheduler->pending_cown_released(this);
         this->owner = nullptr;
       }
     }

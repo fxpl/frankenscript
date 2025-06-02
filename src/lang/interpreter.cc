@@ -724,20 +724,27 @@ namespace verona::interpreter
     return ss.str();
   }
 
-  void Scheduler::signal_new_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour)
+  // void Scheduler::lock(rt::objects::DynObject* cown)
+  // {
+  //   if (rt::try_aquire(cown))
+
+  // }
+
+  void Scheduler::signal_new_cown(rt::objects::DynObject* cown)
   {
     // cown must be new
     assert(this->cowns.find(cown) == this->cowns.end());
     // This slightly complicates the description of the cowns map, since a cown will now initially map to
     // the behaviour that creates it  
-    this->cowns[cown] = behaviour;
+    this->cowns[cown] = rt::get_active_entity();
   }
 
-  void Scheduler::pending_cown_released(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour)
+  void Scheduler::pending_cown_released(rt::objects::DynObject* cown)
   {
     // Is there a successor waiting on the cown 
-    auto cown_info = behaviour->cown_succ.find(cown);
-    if (cown_info != behaviour->cown_succ.end())
+    auto entity = rt::get_active_entity();
+    auto cown_info = entity->cown_succ.find(cown);
+    if (cown_info != entity->cown_succ.end())
     {
       auto succ = cown_info->second;
       succ->cown_ctn -= 1;
@@ -746,7 +753,7 @@ namespace verona::interpreter
         succ->status = rt::core::ConcurrentEntity::Status::Ready;
         this->ready.push_back(succ);
       }
-      behaviour->cown_succ.erase(cown);
+      entity->cown_succ.erase(cown);
       succ->cown_deps.erase(cown_info->first);
     }
   }
@@ -908,7 +915,7 @@ namespace verona::interpreter
     this->interactive = interactive_arg;
     this->rng.seed(seed_arg);
     auto behaviour = std::make_shared<rt::core::ConcurrentEntity>(
-      main_function, std::vector<rt::objects::DynObject*>{}, this, "main");
+      main_function, std::vector<rt::objects::DynObject*>{}, "main");
     behaviour->status = rt::core::ConcurrentEntity::Status::Ready;
     this->ready.push_back(behaviour);
 

@@ -107,8 +107,8 @@ namespace verona::interpreter
 
     void start(Bytecode* main_block, bool interactive, int seed);
 
-    void signal_new_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
-    void pending_cown_released(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
+    void signal_new_cown(rt::objects::DynObject* cown);
+    void pending_cown_released(rt::objects::DynObject* cown);
     //void new_pending_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
     
     // Used for testing
