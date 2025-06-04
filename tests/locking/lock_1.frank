@@ -1,4 +1,4 @@
-# 
+
 def testA(a):
     r = Region()
     b = Cown(r)
@@ -16,4 +16,8 @@ def testA(a):
 a = Cown(Region())
 t1 = Thread(testA, a)
 start(t1)
+wait("Thread_1")
+# B1 should never be able to execute, as Thread_1 never called unlock(b)
+if is_executable_or_complete("B1") == True:
+    unreachable()
 pass()

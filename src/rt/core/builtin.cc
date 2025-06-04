@@ -443,6 +443,33 @@ namespace rt::core
       return std::nullopt;      
 
     });
+
+    /// TODO: Potentially hide this behind a pragma, as its used for testing?
+    /// Will not discern whether an entity with the provided name will at some point exist 
+    add_builtin("wait", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("wait() expected 1 argument");
+      }
+      auto entity_name = frame->stack_pop("Entity to wait on");
+      if (entity_name->get_prototype() != stringPrototypeObject())
+      {
+        ui::error("given arg is not a string", entity_name);
+      }
+      // Remove string object whitespace
+      auto s = entity_name->get_name();
+      if (s[0] == '\"')
+      {
+        s.erase(0, 1);
+        s.erase(s.size() - 1);
+      }
+      scheduler->wait(s);
+    
+      rt::remove_reference(frame->object(), entity_name);
+
+      return std::nullopt;      
+
+    });
     
     add_builtin("Thread", [=](auto frame, auto args) {
       if (args < 1)

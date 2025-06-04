@@ -84,10 +84,6 @@ namespace verona::interpreter
     /// @brief RNG for concurrency
     std::mt19937 rng;
 
-    // Track completed behaviours, only needed for testing
-    // Onus is on user to provide distinct names, if manual
-    // ones are used
-    std::vector<std::string> completed_behaviours;
 
     // Allows printing of schedule/breakpoint, needed when proccessing a 'ExecPrint' action.
     // Indicates if the previous action proccessed was of type 'ExecSchedule' or 
@@ -100,6 +96,18 @@ namespace verona::interpreter
     /// @brief Indicates if a builtin function call to lock() signaled the need for the current
     /// thread to yield. This should only be set in lock() and reset in start()
     bool lock_yield{false};
+
+    /// Used for testing #####################################
+
+    // Track completed entities
+    // Onus is on user to provide distinct names, if manual
+    // ones are used
+    std::vector<std::string> completed_behaviours;
+    /// @brief Tracks whick entities are waiting on a specific entity, if any
+    /// Only set trough wait()
+    std::unordered_map<std::string, std::vector<rt::core::entity_ptr>> waiting;
+
+    /// Used for testing #####################################
 
   public:
     Scheduler();
@@ -118,9 +126,10 @@ namespace verona::interpreter
     void pending_cown_released(rt::objects::DynObject* cown);
     
     // Used for testing
-    bool is_executable(const std::string behaviour_name);
-    bool is_complete(const std::string behaviour_name);
-    bool is_executable_or_complete(const std::string behaviour_name);
+    bool is_executable(const std::string entity_name);
+    bool is_complete(const std::string entity_name);
+    bool is_executable_or_complete(const std::string entity_name);
+    void wait(const std::string entity_name);
 
   private:
     size_t prompt_user();
@@ -129,5 +138,7 @@ namespace verona::interpreter
     rt::core::entity_ptr get_next();
     void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);
     void step(bool& should_break);
+    // Used for testing
+    void update_waiting();
   };
 }

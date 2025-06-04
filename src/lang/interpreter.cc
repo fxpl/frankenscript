@@ -1047,6 +1047,7 @@ namespace verona::interpreter
       {
         should_break = true;
         this->complete_entity(behaviour);
+        this->update_waiting();
         
         std::stringstream ss;
         ss << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
@@ -1069,6 +1070,7 @@ namespace verona::interpreter
 
     rt::remove_reference(nullptr, main_function);
   }
+
 
 
 
@@ -1249,6 +1251,29 @@ namespace verona::interpreter
   }
 
   // ################### TESTING FUNCTIONALITY ####################################
+
+
+  void Scheduler::wait(const std::string entity_name)
+  {
+    if (is_complete(entity_name))
+      return;
+    
+    auto active_entity = rt::get_active_entity();
+    this->waiting[entity_name].push_back(active_entity);
+    std::erase(this->ready, active_entity);
+    active_entity->status = rt::core::ConcurrentEntity::Status::Waiting;
+  }
+
+  void Scheduler::update_waiting()
+  {
+    auto active_entity = rt::get_active_entity();
+    for (const auto& entity : this->waiting[active_entity->get_name()])
+    {
+      this->ready.push_back(entity);
+      entity->status = rt::core::ConcurrentEntity::Status::Running;
+    }
+    this->waiting.erase(active_entity->get_name());
+  }
 
   bool Scheduler::is_executable(const std::string behaviour_name)
   {
