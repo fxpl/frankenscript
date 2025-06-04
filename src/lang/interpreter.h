@@ -124,7 +124,7 @@ namespace verona::interpreter
 
   private:
     size_t prompt_user();
-    void complete_behaviour(rt::core::entity_ptr behaviour);
+    void complete_entity(rt::core::entity_ptr behaviour);
     void draw_schedule(std::string message, bool entering_behaviour = false);
     rt::core::entity_ptr get_next();
     void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);

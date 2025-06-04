@@ -1046,7 +1046,7 @@ namespace verona::interpreter
       if (result.exec_complete)
       {
         should_break = true;
-        this->complete_behaviour(behaviour);
+        this->complete_entity(behaviour);
         
         std::stringstream ss;
         ss << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
@@ -1072,7 +1072,7 @@ namespace verona::interpreter
 
 
 
-  void Scheduler::complete_behaviour(rt::core::entity_ptr behaviour)
+  void Scheduler::complete_entity(rt::core::entity_ptr behaviour)
   {
     behaviour->complete();
     std::erase(this->ready, behaviour);

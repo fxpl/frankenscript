@@ -416,6 +416,34 @@ namespace rt::core
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
 
+    add_builtin("lock", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("lock() expected 1 argument");
+      }
+      auto cown = frame->stack_pop("cown to lock");
+      scheduler->lock(cown);
+    
+      rt::remove_reference(frame->object(), cown);
+
+      return std::nullopt;      
+
+    });
+
+    add_builtin("unlock", [=](auto frame, auto args) {
+      if (args != 1)
+      {
+        ui::error("unlock() expected 1 argument");
+      }
+      auto cown = frame->stack_pop("cown to unlock");
+      scheduler->unlock(cown);
+    
+      rt::remove_reference(frame->object(), cown);
+
+      return std::nullopt;      
+
+    });
+    
     add_builtin("Thread", [=](auto frame, auto args) {
       if (args < 1)
       {

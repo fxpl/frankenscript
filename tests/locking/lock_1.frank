@@ -1,0 +1,19 @@
+# 
+def testA(a):
+    r = Region()
+    b = Cown(r)
+    lock(b)
+    @name("B1")
+    when(b):
+        b.value = Region()
+    if is_executable_or_complete("B1") == True:
+        unreachable()
+    r = None
+    # cown should not be dynamically released if locked
+    if is_executable_or_complete("B1") == True:
+        unreachable()
+
+a = Cown(Region())
+t1 = Thread(testA, a)
+start(t1)
+pass()
