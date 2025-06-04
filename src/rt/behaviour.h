@@ -39,6 +39,7 @@ namespace rt::core
       Pending,
       Ready,
       Running,
+      Waiting,
       Done,
     };
 
@@ -54,6 +55,8 @@ namespace rt::core
           return "Ready";
         case Status::Running:
           return "Running";
+        case Status::Waiting:
+          return "Waiting";
         case Status::Done:
           return "Done";
         default:

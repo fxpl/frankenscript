@@ -97,6 +97,10 @@ namespace verona::interpreter
     bool prev_schedule_call{false};
     bool prev_breakpoint_call{false};
 
+    /// @brief Indicates if a builtin function call to lock() signaled the need for the current
+    /// thread to yield. This should only be set in lock() and reset in start()
+    bool lock_yield{false};
+
   public:
     Scheduler();
     ~Scheduler();
@@ -107,9 +111,11 @@ namespace verona::interpreter
 
     void start(Bytecode* main_block, bool interactive, int seed);
 
+    void lock(rt::objects::DynObject* cown);
+    void unlock(rt::objects::DynObject* cown);
+    
     void signal_new_cown(rt::objects::DynObject* cown);
     void pending_cown_released(rt::objects::DynObject* cown);
-    //void new_pending_cown(rt::objects::DynObject* cown, rt::core::entity_ptr behaviour);
     
     // Used for testing
     bool is_executable(const std::string behaviour_name);

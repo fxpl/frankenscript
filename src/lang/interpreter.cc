@@ -724,11 +724,74 @@ namespace verona::interpreter
     return ss.str();
   }
 
-  // void Scheduler::lock(rt::objects::DynObject* cown)
-  // {
-  //   if (rt::try_aquire(cown))
+  void Scheduler::lock(rt::objects::DynObject* cown)
+  {
+    auto active = rt::get_active_entity();
+    assert(!active->is_behaviour);
+    assert(!this->lock_yield && "Should always be reset after a yield");
 
-  // }
+    if (rt::is_owner(cown, active.get()))
+    {
+      // Owner could have created cown
+      rt::aquire_owned_cown(cown);
+      return;
+    }
+    
+    auto cown_info = this->cowns.find(cown);
+    assert(cown_info != this->cowns.end());
+    auto predecessor = cown_info->second;
+    // If an entity isn't Done, set the successor
+    if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
+    {
+      predecessor->cown_succ[cown] = active;
+      // Only needed for Mermaid:
+      predecessor->succ.insert(active).second;
+      active->cown_deps[cown] = predecessor.get();
+      
+      this->lock_yield = true;
+      std::erase(this->ready, active);
+      active->status = rt::core::ConcurrentEntity::Status::Waiting;
+    }
+    else
+      rt::aquire_cown(cown, active.get());
+    // Update pointer to the last entity
+    this->cowns[cown] = active;
+
+  }
+
+  void Scheduler::unlock(rt::objects::DynObject* cown)
+  {
+    auto entity = rt::get_active_entity();
+    assert(rt::is_owner(cown, entity.get()));
+
+    auto cown_info = entity->cown_succ.find(cown);
+    // Is there a successor waiting on the cown 
+    if (cown_info != entity->cown_succ.end())
+    {
+      auto succ = cown_info->second;
+      if (succ->is_behaviour)
+      {
+        succ->cown_ctn -= 1;
+        if (succ->cown_ctn == 0)
+        {
+          this->ready.push_back(succ);
+          succ->status = rt::core::ConcurrentEntity::Status::Ready;
+        }
+      }
+      // We're dealing with a thread
+      else
+      {
+        assert(this->running[succ] && "Threads can't yield to another entity without first having run");
+        this->ready.push_back(succ);
+        succ->status = rt::core::ConcurrentEntity::Status::Running;
+      }
+
+      entity->cown_succ.erase(cown);
+      succ->cown_deps.erase(cown_info->first);
+    }
+    
+
+  }
 
   void Scheduler::signal_new_cown(rt::objects::DynObject* cown)
   {
@@ -990,8 +1053,9 @@ namespace verona::interpreter
         std::cout << "!!! " << ss.str();
         draw_schedule(ss.str());
       }
-      if (should_break)
+      if (should_break || this->lock_yield)
       {
+        this->lock_yield = false;
         behaviour = this->get_next();
         if (this->interactive && behaviour) 
         {

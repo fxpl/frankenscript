@@ -401,8 +401,6 @@ namespace rt::core
       auto old = set("value", obj);
       assert(!old);
 
-      // This is really wonky. The scheduler should actually know about this
-      // new cown, but meh?
       if (this->status == Status::Pending)
       {
         this->change_rc(1);
@@ -545,6 +543,13 @@ namespace rt::core
 
       this->status = Status::Acquired;
       this->owner = behaviour;
+    }
+
+    void aquire_owned_cown()
+    {
+      assert(this->owner == rt::get_active_entity().get());
+      assert(this->status == Status::Pending || this->status == Status::Acquired);
+      this->status = Status::Acquired;
     }
 
     void release(ConcurrentEntity* behaviour)
