@@ -5,10 +5,10 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <unordered_map>
 #include <vector>
-#include <random>
 
 namespace rt::objects
 {
@@ -84,18 +84,24 @@ namespace verona::interpreter
     /// @brief RNG for concurrency
     std::mt19937 rng;
 
-
-    // Allows printing of schedule/breakpoint, needed when proccessing a 'ExecPrint' action.
-    // Indicates if the previous action proccessed was of type 'ExecSchedule' or 
-    //'ExecBreakpoint', respectively. Necessary, as we can't obtain the information
-    // required for a proper print from the trieste 'Call' node. That is, the node that
-    // leads the Interpreter to propagate 'ExecSchedule' or 'ExecBreakpoint' to the Scheduler.
+    // Allows printing of schedule/breakpoint, needed when proccessing a
+    // 'ExecPrint' action. Indicates if the previous action proccessed was of
+    // type 'ExecSchedule' or
+    //'ExecBreakpoint', respectively. Necessary, as we can't obtain the
+    // information
+    // required for a proper print from the trieste 'Call' node. That is, the
+    // node that leads the Interpreter to propagate 'ExecSchedule' or
+    // 'ExecBreakpoint' to the Scheduler.
     bool prev_schedule_call{false};
     bool prev_breakpoint_call{false};
 
-    /// @brief Indicates if a builtin function call to lock() signaled the need for the current
-    /// thread to yield. This should only be set in lock() and reset in start()
+    /// @brief Indicates if a builtin function call to lock() signaled the need
+    /// for the current thread to yield. This should only be set in lock() and
+    /// reset in start()
     bool lock_yield{false};
+
+    std::vector<rt::core::entity_ptr> pending;
+    std::vector<rt::core::entity_ptr> blocked;
 
     /// Used for testing #####################################
 
@@ -113,7 +119,6 @@ namespace verona::interpreter
     Scheduler();
     ~Scheduler();
 
-
     void add(rt::core::entity_ptr behaviour);
     void add_thread(Bytecode* target_bytecode, rt::objects::DynObject* bridge);
 
@@ -121,10 +126,10 @@ namespace verona::interpreter
 
     void lock(rt::objects::DynObject* cown);
     void unlock(rt::objects::DynObject* cown);
-    
+
     void signal_new_cown(rt::objects::DynObject* cown);
     void pending_cown_released(rt::objects::DynObject* cown);
-    
+
     // Used for testing
     bool is_executable(const std::string entity_name);
     bool is_complete(const std::string entity_name);
@@ -136,10 +141,14 @@ namespace verona::interpreter
     void complete_entity(rt::core::entity_ptr behaviour);
     void draw_schedule(std::string message, bool entering_behaviour = false);
     rt::core::entity_ptr get_next();
-    void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);
+    void handle_exec_print_action(
+      const std::string& line_string,
+      const std::string& name,
+      bool& should_break);
     void step(bool& should_break);
     void complete_behaviour(rt::core::entity_ptr entity);
     void complete_thread(rt::core::entity_ptr entity);
+    void handle_cown_release(rt::core::entity_ptr succ);
     // Used for testing
     void update_waiting();
   };

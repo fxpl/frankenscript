@@ -6,7 +6,6 @@
 #include <set>
 #include <vector>
 
-
 namespace verona::interpreter
 {
   struct Bytecode;
@@ -39,6 +38,7 @@ namespace rt::core
       Pending,
       Ready,
       Running,
+      Blocked,
       Waiting,
       Done,
     };
@@ -55,6 +55,8 @@ namespace rt::core
           return "Ready";
         case Status::Running:
           return "Running";
+        case Status::Blocked:
+          return "Blocked";
         case Status::Waiting:
           return "Waiting";
         case Status::Done:
@@ -66,7 +68,7 @@ namespace rt::core
 
     static void set_active_entity(std::shared_ptr<ConcurrentEntity>);
     static std::shared_ptr<ConcurrentEntity> get_active_entity();
-  
+
   private:
     static std::shared_ptr<ConcurrentEntity> s_active_behaviour;
     // Static members for naming
@@ -82,8 +84,8 @@ namespace rt::core
     // a better mermaid diagram, it isn't needed for scheduling.
     std::map<int, objects::DynObject*> ordered_cown;
 
-    // The local region of this behaviour. This has to be swapped into the global
-    // `local_region` when this behaviour runs.
+    // The local region of this behaviour. This has to be swapped into the
+    // global `local_region` when this behaviour runs.
     objects::Region* local_region;
 
   public:
@@ -99,8 +101,8 @@ namespace rt::core
     std::map<objects::DynObject*, ConcurrentEntity*> cown_deps;
 
     Status status;
-    // The args as they were passed in to the behaviour. These have to be provided
-    // to the new Interpreter to populate the frame.
+    // The args as they were passed in to the behaviour. These have to be
+    // provided to the new Interpreter to populate the frame.
     std::vector<objects::DynObject*> args;
     // Cowns that are created owing to the entitys frankenscript code
     std::vector<objects::DynObject*> created_cowns;
@@ -110,14 +112,12 @@ namespace rt::core
     int pred_ctn = 0;
     // Number of cowns behaviour is waiting on
     size_t cown_ctn{0};
-    // ConcurrentEntitys which are waiting on this behaviour. These will be notified once
-    // this behaviour completes.
-    // Currently needed for mermaid
+    // ConcurrentEntitys which are waiting on this behaviour. These will be
+    // notified once this behaviour completes. Currently needed for mermaid
     std::set<std::shared_ptr<ConcurrentEntity>> succ;
-    // Map from a cown to the next behaviour waiting for it, needed since all cowns are not 
-    // necessarily released at the end of entities. 
+    // Map from a cown to the next behaviour waiting for it, needed since all
+    // cowns are not necessarily released at the end of entities.
     std::map<objects::DynObject*, std::shared_ptr<ConcurrentEntity>> cown_succ;
-
 
     ConcurrentEntity(
       objects::DynObject* code_,
@@ -133,7 +133,7 @@ namespace rt::core
     // This completes the behaviour by releasing all cowns
     // decreffing all held objects
     void complete();
-    
+
     void signal_new_cown(rt::objects::DynObject* cown);
     void signal_early_release(rt::objects::DynObject* cown);
   };

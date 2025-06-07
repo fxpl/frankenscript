@@ -570,7 +570,7 @@ namespace rt::core
         release(active_entity.get());
         return true;
       }
-      else if (this->status == Status::Acquired)
+      else
       {
         // At some point the entity locked the cown without unlocking
         return false;

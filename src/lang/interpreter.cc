@@ -738,6 +738,30 @@ namespace verona::interpreter
     return ss.str();
   }
 
+  void Scheduler::handle_cown_release(rt::core::entity_ptr succ)
+  {
+    if (
+      succ->is_behaviour &&
+      succ->status == rt::core::ConcurrentEntity::Status::Pending)
+    {
+      succ->cown_ctn -= 1;
+      if (succ->cown_ctn == 0)
+      {
+        this->ready.push_back(succ);
+        std::erase(this->pending, succ);
+        succ->status = rt::core::ConcurrentEntity::Status::Ready;
+      }
+    }
+    // We're dealing with an entity that has already started running
+    else
+    {
+      assert(this->running[succ]);
+      std::erase(this->blocked, succ);
+      this->ready.push_back(succ);
+      succ->status = rt::core::ConcurrentEntity::Status::Running;
+    }
+  }
+
   void Scheduler::lock(rt::objects::DynObject* cown)
   {
     auto active_entity = rt::get_active_entity();
@@ -763,7 +787,8 @@ namespace verona::interpreter
 
       this->lock_yield = true;
       std::erase(this->ready, active_entity);
-      active_entity->status = rt::core::ConcurrentEntity::Status::Waiting;
+      this->blocked.push_back(active_entity);
+      active_entity->status = rt::core::ConcurrentEntity::Status::Blocked;
     }
     else
       rt::aquire_cown(cown, active_entity.get());
@@ -782,25 +807,7 @@ namespace verona::interpreter
     if (cown_info != entity->cown_succ.end())
     {
       auto succ = cown_info->second;
-      if (succ->is_behaviour)
-      {
-        succ->cown_ctn -= 1;
-        if (succ->cown_ctn == 0)
-        {
-          this->ready.push_back(succ);
-          succ->status = rt::core::ConcurrentEntity::Status::Ready;
-        }
-      }
-      // We're dealing with a thread
-      else
-      {
-        assert(
-          this->running[succ] &&
-          "Threads can't yield to another entity without first having run");
-        this->ready.push_back(succ);
-        succ->status = rt::core::ConcurrentEntity::Status::Running;
-      }
-
+      handle_cown_release(succ);
       entity->cown_succ.erase(cown);
       succ->cown_deps.erase(cown_info->first);
     }
@@ -822,11 +829,13 @@ namespace verona::interpreter
     auto cown_info = entity->cown_succ.find(cown);
     if (cown_info != entity->cown_succ.end())
     {
+      // TODO successor could be a thread, no?
       auto succ = cown_info->second;
       succ->cown_ctn -= 1;
       if (succ->cown_ctn == 0)
       {
         succ->status = rt::core::ConcurrentEntity::Status::Ready;
+        std::erase(this->pending, succ);
         this->ready.push_back(succ);
       }
       entity->cown_succ.erase(cown);
@@ -884,6 +893,7 @@ namespace verona::interpreter
     }
     else
     {
+      this->pending.push_back(entity);
       entity->status = rt::core::ConcurrentEntity::Status::Pending;
       ss << "New entity " << format_behaviour_name(entity->get_name())
          << " is pending";
@@ -1107,12 +1117,7 @@ namespace verona::interpreter
     for (auto cown_info : entity->cown_succ)
     {
       auto succ = cown_info.second;
-      succ->cown_ctn -= 1;
-      if (succ->cown_ctn == 0)
-      {
-        succ->status = rt::core::ConcurrentEntity::Status::Ready;
-        this->ready.push_back(succ);
-      }
+      handle_cown_release(succ);
       succ->cown_deps.erase(cown_info.first);
     }
   }
@@ -1142,12 +1147,7 @@ namespace verona::interpreter
       auto cown_info = entity->cown_succ.find(cown);
       assert(cown_info != entity->cown_succ.end());
       auto succ = cown_info->second;
-      succ->cown_ctn -= 1;
-      if (succ->cown_ctn == 0)
-      {
-        succ->status = rt::core::ConcurrentEntity::Status::Ready;
-        this->ready.push_back(succ);
-      }
+      handle_cown_release(succ);
       succ->cown_deps.erase(cown_info->first);
     }
   }
