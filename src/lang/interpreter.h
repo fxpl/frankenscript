@@ -138,6 +138,8 @@ namespace verona::interpreter
     rt::core::entity_ptr get_next();
     void handle_exec_print_action(const std::string& line_string, const std::string& name, bool& should_break);
     void step(bool& should_break);
+    void complete_behaviour(rt::core::entity_ptr entity);
+    void complete_thread(rt::core::entity_ptr entity);
     // Used for testing
     void update_waiting();
   };

@@ -15,9 +15,11 @@ namespace rt::core
 {
   int ConcurrentEntity::s_behaviour_counter = 0;
   int ConcurrentEntity::s_thread_counter = 0;
-  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::s_active_behaviour = nullptr;
+  std::shared_ptr<ConcurrentEntity> ConcurrentEntity::s_active_behaviour =
+    nullptr;
 
-  void ConcurrentEntity::set_active_entity(std::shared_ptr<ConcurrentEntity> active)
+  void
+  ConcurrentEntity::set_active_entity(std::shared_ptr<ConcurrentEntity> active)
   {
     s_active_behaviour = active;
     if (active)
@@ -37,8 +39,7 @@ namespace rt::core
     std::optional<std::string> name_,
     bool is_behaviour_,
     rt::objects::DynObject* bridge_)
-  : args(args_), code(code_),
-    is_behaviour(is_behaviour_), bridge(bridge_)
+  : args(args_), code(code_), is_behaviour(is_behaviour_), bridge(bridge_)
   {
     this->status = Status::New;
     this->local_region = objects::Region::new_local_region();
@@ -58,7 +59,7 @@ namespace rt::core
     {
       name = name_.value();
     }
-    else 
+    else
     {
       std::stringstream ss;
       if (is_behaviour)
@@ -67,7 +68,6 @@ namespace rt::core
         ss << "Thread_" << id;
       name = ss.str();
     }
-    
   }
 
   std::string ConcurrentEntity::get_name()
@@ -99,42 +99,48 @@ namespace rt::core
       }
     }
 
-    auto test = rt::try_get_bytecode(this->code).value(); 
+    auto test = rt::try_get_bytecode(this->code).value();
     return test;
   }
 
-  // FIXME: Currently both the scheduler and the behaviour has a function
-  // to complete a behaviour. All of this should really be in one place. It
-  // might be better to move all of this into the scheduler.
+  // FIXME: Currently both the scheduler and the behaviour has a function to
+  // complete a behaviour. All of this should really be in one place. might be
+  // better to move all of this into the scheduler.
   void ConcurrentEntity::complete()
   {
-    this->status = Status::Done;
-    rt::remove_reference(nullptr, this->code);
-    this->code = nullptr;
     if (this->is_behaviour)
     {
       for (auto c : this->args)
-      { 
+      {
+        assert(rt::is_owner(c, this));
+        rt::release_cown(c, this);
+        rt::remove_reference(nullptr, c);
+      }
 
+      for (auto c : this->created_cowns)
+      {
+        // Entity isn't necessarily still the owner
         if (rt::is_owner(c, this))
         {
-          rt::release_cown(c, this);  
+          rt::release_cown(c, this);
+        }
+        rt::remove_reference(nullptr, c);
+      }
+    }
+    else
+    {
+      for (auto c : this->created_cowns)
+      {
+        // Entity isn't necessarily still the owner
+        if (rt::is_owner(c, this))
+        {
+          // Thread may have locked cown
+          rt::try_release_created_cown(c);
         }
         rt::remove_reference(nullptr, c);
       }
     }
     this->args.clear();
-
-    for (auto c : this->created_cowns)
-    {
-      // Entity isn't necessarily still the owner
-      if (rt::is_owner(c, this))
-      {
-        rt::release_cown(c, this);  
-      }
-      rt::remove_reference(nullptr, c);
-    }
-    
 
     for (auto [cown, waiting_on] : cown_deps)
     {
@@ -148,7 +154,7 @@ namespace rt::core
   void ConcurrentEntity::signal_new_cown(rt::objects::DynObject* cown)
   {
     this->created_cowns.push_back(cown);
-    //this->scheduler->signal_new_cown(cown, s_active_behaviour);
+    // this->scheduler->signal_new_cown(cown, s_active_behaviour);
   }
 
 } // namespace rt::core

@@ -380,6 +380,16 @@ namespace rt
     reinterpret_cast<core::CownObject*>(cown)->aquire_owned_cown();
   }
 
+  bool try_release_created_cown(objects::DynObject* cown)
+  {
+    if (cown->get_prototype() != core::cownPrototypeObject())
+    {
+      ui::error("The given object is not a cown", cown);
+    }
+
+    return reinterpret_cast<core::CownObject*>(cown)->try_release_created_cown();
+  }
+
   void release_cown(objects::DynObject* cown, core::ConcurrentEntity* behaviour)
   {
     if (cown->get_prototype() != core::cownPrototypeObject())

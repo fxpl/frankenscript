@@ -17,7 +17,6 @@ namespace rt::core
 
   void set_Scheduler(verona::interpreter::Scheduler* instance);
 
-
   inline PrototypeObject* framePrototypeObject()
   {
     static PrototypeObject* proto = new PrototypeObject("Frame");
@@ -257,7 +256,7 @@ namespace rt::core
     }
   };
 
-      // The prototype object for thread
+  // The prototype object for thread
   inline PrototypeObject* threadPrototypeObject()
   {
     static PrototypeObject* proto = new PrototypeObject("Thread");
@@ -306,7 +305,7 @@ namespace rt::core
   public:
     ThreadObject(
       objects::DynObject* func,
-      std::vector<objects::DynObject*> kwargs_, 
+      std::vector<objects::DynObject*> kwargs_,
       objects::Region* region = rt::objects::get_local_region())
     : objects::DynObject(threadPrototypeObject(), region)
     {
@@ -317,19 +316,19 @@ namespace rt::core
       assert(!old);
 
       // FIXME: This should ideally be a field in the DynObject, however the
-      // entries of 'fields' points to a DynObject and there is seemingly 
+      // entries of 'fields' points to a DynObject and there is seemingly
       // no suitable candidate within the set of possible DynObjects to
       // accomodate e.g. a vector
       auto count = kwargs_.size();
       for (auto arg : kwargs_)
       {
-        // args where pushed first to last 
+        // args where pushed first to last
         std::stringstream ss;
         ss << "arg" << count;
         count--;
         old = set(ss.str(), arg);
         assert(!old);
-        //arg->change_rc(1);
+        // arg->change_rc(1);
       }
       kwargs = kwargs_;
 
@@ -337,12 +336,12 @@ namespace rt::core
       std::stringstream ss;
       ss << "<thread " << this->id << ">";
       name = ss.str();
-      
     }
-  std::vector<objects::DynObject*> get_args()
-  {
-    return this->kwargs;
-  }
+
+    std::vector<objects::DynObject*> get_args()
+    {
+      return this->kwargs;
+    }
   };
 
   // The prototype object for cown
@@ -359,7 +358,8 @@ namespace rt::core
 
     // Making Cowns aware of Scheduler
     static verona::interpreter::Scheduler* global_scheduler;
-    friend size_t rt::pre_run(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
+    friend size_t
+    rt::pre_run(ui::UI* ui, verona::interpreter::Scheduler* scheduler);
     // Exposing CownObject doesn't feel ideal, but what can you do?
     static void set_Scheduler(verona::interpreter::Scheduler* instance);
 
@@ -400,12 +400,17 @@ namespace rt::core
       this->owner = ConcurrentEntity::get_active_entity().get();
       auto old = set("value", obj);
       assert(!old);
-
+      //
       if (this->status == Status::Pending)
       {
         this->change_rc(1);
         this->owner->signal_new_cown(this);
-        global_scheduler->signal_new_cown(this);
+        auto region = objects::get_region(obj);
+        // lrc of 1 from being on stack. Note that Cown will temporarily be set
+        // to 'Pending' before builtin func Cown() finishes, even if the true
+        // lrc is 0.
+        if (region->combined_lrc() > 1)
+          global_scheduler->signal_new_cown(this);
       }
 
       if (name_)
@@ -548,8 +553,28 @@ namespace rt::core
     void aquire_owned_cown()
     {
       assert(this->owner == rt::get_active_entity().get());
-      assert(this->status == Status::Pending || this->status == Status::Acquired);
+      assert(
+        this->status == Status::Pending || this->status == Status::Acquired);
       this->status = Status::Acquired;
+    }
+
+    bool try_release_created_cown()
+    {
+      auto active_entity = rt::get_active_entity();
+      assert(this->owner == active_entity.get());
+      assert(
+        this->status == Status::Pending || this->status == Status::Acquired);
+      if (this->status == Status::Pending)
+      {
+        // Safe to release cown
+        release(active_entity.get());
+        return true;
+      }
+      else if (this->status == Status::Acquired)
+      {
+        // At some point the entity locked the cown without unlocking
+        return false;
+      }
     }
 
     void release(ConcurrentEntity* behaviour)
@@ -558,6 +583,7 @@ namespace rt::core
       this->status = Status::Released;
       this->owner = nullptr;
     }
+
     bool is_owner(ConcurrentEntity* behaviour)
     {
       return this->owner == behaviour;

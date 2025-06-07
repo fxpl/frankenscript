@@ -76,6 +76,7 @@ namespace rt
   
   void aquire_cown(objects::DynObject* cown, core::ConcurrentEntity* behaviour);
   void aquire_owned_cown(objects::DynObject* cown);
+  bool try_release_created_cown(objects::DynObject* cown);
   void release_cown(objects::DynObject* cown, core::ConcurrentEntity* behaviour);
   bool is_owner(objects::DynObject* cown, core::ConcurrentEntity* behaviour);
   int get_cown_id(objects::DynObject* cown);

@@ -7,10 +7,10 @@
 
 #include <iostream>
 #include <optional>
+#include <random>
 #include <ranges>
 #include <variant>
 #include <vector>
-#include <random>
 
 namespace verona::interpreter
 {
@@ -31,7 +31,6 @@ namespace verona::interpreter
   // ==============================================
   // Statement Effects
   // ==============================================
-
 
   // Handled by Interpreter #########################################
   struct ExecNext
@@ -54,7 +53,7 @@ namespace verona::interpreter
   };
 
   // Handled by Scheduler #########################################
-  
+
   struct ExecPrint
   {
     std::string value;
@@ -73,17 +72,25 @@ namespace verona::interpreter
   struct MainComplete
   {};
 
-  // The set of actions handled by the Interpreter is given by "BasicCommands / SchedulerCommands" 
-  using BasicCommands = std::variant<ExecNext, ExecJump, ExecFunc, ExecReturn, ExecPrint, ExecSchedule, ExecBreakpoint>;
+  // The set of actions handled by the Interpreter is given by "BasicCommands /
+  // SchedulerCommands"
+  using BasicCommands = std::variant<
+    ExecNext,
+    ExecJump,
+    ExecFunc,
+    ExecReturn,
+    ExecPrint,
+    ExecSchedule,
+    ExecBreakpoint>;
   // Set of actions handled by the Scheduler
-  using SchedulerCommands = std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
+  using SchedulerCommands =
+    std::variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>;
 
   struct ExecInScheduler
   {
     SchedulerCommands action;
     bool exec_complete;
   };
-
 
   // ==============================================
   // Interpreter/state
@@ -99,7 +106,7 @@ namespace verona::interpreter
   {
     rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
-    rt::core::entity_ptr behaviour;
+    rt::core::entity_ptr entity;
 
     InterpreterFrame* top_frame()
     {
@@ -159,8 +166,7 @@ namespace verona::interpreter
       return frame_stack.front()->frame;
     }
 
-    BasicCommands
-    run_stmt(trieste::Node& node)
+    BasicCommands run_stmt(trieste::Node& node)
     {
       // ==========================================
       // Operators that shouldn't be printed
@@ -170,7 +176,7 @@ namespace verona::interpreter
         auto message = std::string(node->location().view());
 
         // Mermaid output
-        //ui->output(message);
+        // ui->output(message);
 
         return ExecPrint{message};
       }
@@ -488,7 +494,7 @@ namespace verona::interpreter
           {
             return ExecSchedule{};
           }
-          else if(rt::is_breakpoint_builtin(func))
+          else if (rt::is_breakpoint_builtin(func))
           {
             return ExecBreakpoint{};
           }
@@ -539,13 +545,12 @@ namespace verona::interpreter
     }
 
   public:
-
     Interpreter(
       rt::ui::UI* ui_,
       trieste::Node block,
       std::vector<rt::objects::DynObject*> start_stack,
-      rt::core::entity_ptr behaviour_)
-    : ui(ui_), behaviour(behaviour_)
+      rt::core::entity_ptr entity_)
+    : ui(ui_), entity(entity_)
     {
       // There is a question where the active behaviour should be set.
       //
@@ -556,7 +561,7 @@ namespace verona::interpreter
       // However, in FrankenScript the runtime is more passive, meaning that
       // the interpreter drives the runtime and provides all needed information.
       auto old_behaviour = rt::get_active_entity();
-      rt::set_active_entity(this->behaviour);
+      rt::set_active_entity(this->entity);
 
       auto frame = push_stack_frame(block);
 
@@ -564,37 +569,38 @@ namespace verona::interpreter
       {
         frame->frame->stack_push(elem, "starting stack");
       }
-      if (!behaviour->is_behaviour)
-        rt::remove_reference(nullptr, behaviour->bridge);
-      
+      if (!this->entity->is_behaviour)
+        rt::remove_reference(nullptr, this->entity->bridge);
+
       rt::set_active_entity(old_behaviour);
     }
-    
 
     // resume() helper
     template<typename... Subset, typename... Superset>
-    std::variant<Subset...> narrow_variant(const std::variant<Superset...>& original)
+    std::variant<Subset...>
+    narrow_variant(const std::variant<Superset...>& original)
     {
-        return std::visit([](auto&& val) -> std::variant<Subset...> {
-            using T = std::decay_t<decltype(val)>;
-            if constexpr ((std::is_same_v<T, Subset> || ...))
-            {
-                return val; // allowed type
-            }
-            else
-            {
-                throw std::bad_variant_access(); // or handle error
-            }
-        }, original);
+      return std::visit(
+        [](auto&& val) -> std::variant<Subset...> {
+          using T = std::decay_t<decltype(val)>;
+          if constexpr ((std::is_same_v<T, Subset> || ...))
+          {
+            return val; // allowed type
+          }
+          else
+          {
+            throw std::bad_variant_access(); // or handle error
+          }
+        },
+        original);
     }
-    
-    ExecInScheduler
-     resume()
+
+    ExecInScheduler resume()
     {
       auto return_to_scheduler{false};
       auto frame = top_frame();
 
-      rt::set_active_entity(this->behaviour);
+      rt::set_active_entity(this->entity);
       assert(frame);
 
       while (frame)
@@ -649,7 +655,7 @@ namespace verona::interpreter
         {
           assert(false && "Unsuported operation");
         }
-        
+
         if (frame->ip == frame->body->end())
         {
           if (std::holds_alternative<ExecReturn>(action))
@@ -674,18 +680,26 @@ namespace verona::interpreter
         }
         if (return_to_scheduler)
         {
-          auto sub_action = narrow_variant<ExecPrint, ExecSchedule, ExecBreakpoint, MainComplete>(action);
+          auto sub_action = narrow_variant<
+            ExecPrint,
+            ExecSchedule,
+            ExecBreakpoint,
+            MainComplete>(action);
           assert(!std::holds_alternative<MainComplete>(sub_action));
           return ExecInScheduler{sub_action, finished};
         }
-
       }
       // Last instruction in main might not be any of the other three
       return ExecInScheduler{MainComplete{}, true};
     }
   };
 
-  void start(trieste::Node main_body, int step_counter, std::string output, bool interactive, int seed)
+  void start(
+    trieste::Node main_body,
+    int step_counter,
+    std::string output,
+    bool interactive,
+    int seed)
   {
     auto ui = rt::ui::globalUI();
     ui->set_output_file(output);
@@ -726,46 +740,45 @@ namespace verona::interpreter
 
   void Scheduler::lock(rt::objects::DynObject* cown)
   {
-    auto active = rt::get_active_entity();
-    assert(!active->is_behaviour);
+    auto active_entity = rt::get_active_entity();
     assert(!this->lock_yield && "Should always be reset after a yield");
 
-    if (rt::is_owner(cown, active.get()))
+    if (rt::is_owner(cown, active_entity.get()))
     {
       // Owner could have created cown
       rt::aquire_owned_cown(cown);
       return;
     }
-    
+
     auto cown_info = this->cowns.find(cown);
     assert(cown_info != this->cowns.end());
     auto predecessor = cown_info->second;
     // If an entity isn't Done, set the successor
     if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
     {
-      predecessor->cown_succ[cown] = active;
+      predecessor->cown_succ[cown] = active_entity;
       // Only needed for Mermaid:
-      predecessor->succ.insert(active).second;
-      active->cown_deps[cown] = predecessor.get();
-      
+      predecessor->succ.insert(active_entity).second;
+      active_entity->cown_deps[cown] = predecessor.get();
+
       this->lock_yield = true;
-      std::erase(this->ready, active);
-      active->status = rt::core::ConcurrentEntity::Status::Waiting;
+      std::erase(this->ready, active_entity);
+      active_entity->status = rt::core::ConcurrentEntity::Status::Waiting;
     }
     else
-      rt::aquire_cown(cown, active.get());
+      rt::aquire_cown(cown, active_entity.get());
     // Update pointer to the last entity
-    this->cowns[cown] = active;
-
+    this->cowns[cown] = active_entity;
   }
 
   void Scheduler::unlock(rt::objects::DynObject* cown)
   {
     auto entity = rt::get_active_entity();
     assert(rt::is_owner(cown, entity.get()));
+    rt::release_cown(cown, entity.get());
 
     auto cown_info = entity->cown_succ.find(cown);
-    // Is there a successor waiting on the cown 
+    // Is there a successor waiting on the cown
     if (cown_info != entity->cown_succ.end())
     {
       auto succ = cown_info->second;
@@ -781,7 +794,9 @@ namespace verona::interpreter
       // We're dealing with a thread
       else
       {
-        assert(this->running[succ] && "Threads can't yield to another entity without first having run");
+        assert(
+          this->running[succ] &&
+          "Threads can't yield to another entity without first having run");
         this->ready.push_back(succ);
         succ->status = rt::core::ConcurrentEntity::Status::Running;
       }
@@ -789,22 +804,20 @@ namespace verona::interpreter
       entity->cown_succ.erase(cown);
       succ->cown_deps.erase(cown_info->first);
     }
-    
-
   }
 
   void Scheduler::signal_new_cown(rt::objects::DynObject* cown)
   {
     // cown must be new
     assert(this->cowns.find(cown) == this->cowns.end());
-    // This slightly complicates the description of the cowns map, since a cown will now initially map to
-    // the behaviour that creates it  
+    // This slightly complicates the description of the cowns map, since a cown
+    // will now initially map to the behaviour that creates it
     this->cowns[cown] = rt::get_active_entity();
   }
 
   void Scheduler::pending_cown_released(rt::objects::DynObject* cown)
   {
-    // Is there a successor waiting on the cown 
+    // Is there a successor waiting on the cown
     auto entity = rt::get_active_entity();
     auto cown_info = entity->cown_succ.find(cown);
     if (cown_info != entity->cown_succ.end())
@@ -821,87 +834,85 @@ namespace verona::interpreter
     }
   }
 
-
-  void Scheduler::add(rt::core::entity_ptr behaviour)
+  void Scheduler::add(rt::core::entity_ptr entity)
   {
-    assert(behaviour->status == rt::core::ConcurrentEntity::Status::New);
-    
-    if (behaviour->is_behaviour)
+    assert(entity->status == rt::core::ConcurrentEntity::Status::New);
+
+    if (entity->is_behaviour)
     {
-      for (auto cown : behaviour->args)
+      for (auto cown : entity->args)
       {
-        // Get the last behaviour that is waiting on the cown
+        // Get the last entity that is waiting on the cown
         auto cown_info = this->cowns.find(cown);
         if (cown_info != cowns.end())
         {
           auto predecessor = cown_info->second;
-          // If a behaviour isn't Done, set the successor
+          // If a entity isn't Done, set the successor
           if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
           {
-            predecessor->cown_succ[cown] = behaviour;
-            behaviour->cown_ctn += 1;
+            predecessor->cown_succ[cown] = entity;
+            entity->cown_ctn += 1;
             // Only needed for Mermaid:
-            if (predecessor->succ.insert(behaviour).second)
+            if (predecessor->succ.insert(entity).second)
             {
-              behaviour->pred_ctn += 1;
+              entity->pred_ctn += 1;
             }
-            behaviour->cown_deps[cown] = predecessor.get();
+            entity->cown_deps[cown] = predecessor.get();
           }
         }
-        // Update pointer to the last pending behaviour
-        this->cowns[cown] = behaviour;
+        // Update pointer to the last pending entity
+        this->cowns[cown] = entity;
       }
     }
     else
     {
       auto old_behaviour = rt::get_active_entity();
-      rt::set_active_entity(behaviour);
+      rt::set_active_entity(entity);
 
-      rt::dissolve_region(behaviour->bridge);
+      rt::dissolve_region(entity->bridge);
 
       rt::set_active_entity(old_behaviour);
-
     }
-    
-
 
     std::stringstream ss;
-    if (behaviour->pred_ctn == 0)
+    if (entity->pred_ctn == 0)
     {
-      this->ready.push_back(behaviour);
-      behaviour->status = rt::core::ConcurrentEntity::Status::Ready;
-      ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is ready";
+      this->ready.push_back(entity);
+      entity->status = rt::core::ConcurrentEntity::Status::Ready;
+      ss << "New entity " << format_behaviour_name(entity->get_name())
+         << " is ready";
     }
     else
     {
-      behaviour->status = rt::core::ConcurrentEntity::Status::Pending;
-      ss << "New behaviour " << format_behaviour_name(behaviour->get_name()) << " is pending";
+      entity->status = rt::core::ConcurrentEntity::Status::Pending;
+      ss << "New entity " << format_behaviour_name(entity->get_name())
+         << " is pending";
     }
-
 
     this->next_schedule_msg = ss.str();
   }
 
-
-
   void print_help()
   {
     std::cout << "Commands:" << std::endl;
-    std::cout << "- <b>      : Run behaviour number b until the next break point" << std::endl;
-    std::cout << "- s<b>,<n> : Run behaviour number b n step (default n = 0)" << std::endl;
+    std::cout
+      << "- <b>      : Run behaviour number b until the next break point"
+      << std::endl;
+    std::cout << "- s<b>,<n> : Run behaviour number b n step (default n = 0)"
+              << std::endl;
     std::cout << "- h        : Prints this message " << std::endl << std::endl;
   }
 
-
-  std::string ellips_block(const std::string& input, const size_t desired_lines) {
+  std::string ellips_block(const std::string& input, const size_t desired_lines)
+  {
     std::istringstream iss(input);
     std::string line;
     std::string throaway_line;
-    
+
     // Split input into lines
     size_t i{0};
     std::string result = "";
-    while (i < desired_lines && std::getline(iss, line)) 
+    while (i < desired_lines && std::getline(iss, line))
     {
       result += line + "\n";
       i++;
@@ -911,53 +922,51 @@ namespace verona::interpreter
       std::string indentation;
       for (char c : line)
       {
-          if (c == ' ' || c == '\t')
-            indentation += c;
-          else
-              break;
+        if (c == ' ' || c == '\t')
+          indentation += c;
+        else
+          break;
       }
       result += indentation + "[...]\n";
     }
-    
+
     return result;
   }
 
   void Scheduler::handle_exec_print_action(
-    const std::string& line_string,
-    const std::string& name,
-    bool& should_break)
+    const std::string& line_string, const std::string& name, bool& should_break)
   {
-      auto shortened_string = ellips_block(line_string, 4);
-      std::stringstream draw_ss;
-      std::stringstream terminal_ss;
+    auto shortened_string = ellips_block(line_string, 4);
+    std::stringstream draw_ss;
+    std::stringstream terminal_ss;
 
-      draw_ss << shortened_string;
-      terminal_ss << ">>> " << draw_ss.str();
+    draw_ss << shortened_string;
+    terminal_ss << ">>> " << draw_ss.str();
 
-      if (this->prev_schedule_call)
-      {
-          this->prev_schedule_call = false;
-          should_break = true;
-          draw_ss << this->next_schedule_msg << std::endl;
-          terminal_ss << "!!! Scheduled new behaviour" << std::endl;
-      }
-      else if (this->prev_breakpoint_call)
-      {
-          this->prev_breakpoint_call = false;
-          should_break = true;
-          draw_ss << "Reached breakpoint in " << name << std::endl;
-          terminal_ss << "!!! Reached breakpoint in " << name << std::endl;
-      }
+    if (this->prev_schedule_call)
+    {
+      this->prev_schedule_call = false;
+      should_break = true;
+      draw_ss << this->next_schedule_msg << std::endl;
+      terminal_ss << "!!! Scheduled new behaviour" << std::endl;
+    }
+    else if (this->prev_breakpoint_call)
+    {
+      this->prev_breakpoint_call = false;
+      should_break = true;
+      draw_ss << "Reached breakpoint in " << name << std::endl;
+      terminal_ss << "!!! Reached breakpoint in " << name << std::endl;
+    }
 
-      std::cout << terminal_ss.str();
-      draw_schedule(draw_ss.str());
+    std::cout << terminal_ss.str();
+    draw_schedule(draw_ss.str());
   }
 
   void Scheduler::step(bool& should_break)
   {
     if (this->interactive)
     {
-      if (steps == 0) 
+      if (steps == 0)
       {
         should_break = true;
       }
@@ -969,7 +978,8 @@ namespace verona::interpreter
     }
   }
 
-  void Scheduler::start(Bytecode* main_block, bool interactive_arg, int seed_arg)
+  void
+  Scheduler::start(Bytecode* main_block, bool interactive_arg, int seed_arg)
   {
     auto main_function = rt::make_func(main_block);
     // Hack: Needed to keep the main function alive. Otherwise, it'll be freed
@@ -1014,31 +1024,34 @@ namespace verona::interpreter
       bool should_break{false};
       if (std::holds_alternative<ExecPrint>(action))
       {
-        handle_exec_print_action(std::get<ExecPrint>(action).value, 
-        format_behaviour_name(behaviour->get_name()),
-        should_break);
-        // We only utilize these for printing, thus they should be reset once printing is done
+        handle_exec_print_action(
+          std::get<ExecPrint>(action).value,
+          format_behaviour_name(behaviour->get_name()),
+          should_break);
+        // We only utilize these for printing, thus they should be reset once
+        // printing is done
         assert(!this->prev_schedule_call && !this->prev_breakpoint_call);
         step(should_break);
       }
-      else if (std::holds_alternative<ExecSchedule>(action)){
+      else if (std::holds_alternative<ExecSchedule>(action))
+      {
         this->prev_schedule_call = true;
         // Assumption: Schedule is implemented through a builtin function call
-        // Its Call node will always be followed by a Print node 
+        // Its Call node will always be followed by a Print node
         assert(!result.exec_complete);
       }
       else if (std::holds_alternative<ExecBreakpoint>(action))
       {
         this->prev_breakpoint_call = true;
         // Assumption: Breakpoint is implemented through a builtin function call
-        // Its Call node will always be followed by a Print node 
+        // Its Call node will always be followed by a Print node
         assert(!result.exec_complete);
       }
       else if (std::holds_alternative<MainComplete>(action))
       {
         assert(result.exec_complete);
       }
-      else 
+      else
       {
         assert(false && "Unsuported operation");
       }
@@ -1048,9 +1061,10 @@ namespace verona::interpreter
         should_break = true;
         this->complete_entity(behaviour);
         this->update_waiting();
-        
+
         std::stringstream ss;
-        ss << "Completed " << format_behaviour_name(behaviour->get_name()) << std::endl;
+        ss << "Completed " << format_behaviour_name(behaviour->get_name())
+           << std::endl;
         std::cout << "!!! " << ss.str();
         draw_schedule(ss.str());
       }
@@ -1058,10 +1072,11 @@ namespace verona::interpreter
       {
         this->lock_yield = false;
         behaviour = this->get_next();
-        if (this->interactive && behaviour) 
+        if (this->interactive && behaviour)
         {
           std::stringstream ss;
-          ss << "Entering behaviour " << format_behaviour_name(behaviour->get_name()) << std::endl;
+          ss << "Entering behaviour "
+             << format_behaviour_name(behaviour->get_name()) << std::endl;
           std::cout << "!!! " << ss.str();
           draw_schedule(ss.str(), true);
         }
@@ -1071,16 +1086,27 @@ namespace verona::interpreter
     rt::remove_reference(nullptr, main_function);
   }
 
-
-
-
-  void Scheduler::complete_entity(rt::core::entity_ptr behaviour)
+  void Scheduler::complete_behaviour(rt::core::entity_ptr entity)
   {
-    behaviour->complete();
-    std::erase(this->ready, behaviour);
-    for (auto cown_info : behaviour->cown_succ)
+    for (auto c : entity->args)
     {
-      auto succ  = cown_info.second;
+      // TODO cant make this assumption, any entity can call unlock on a cown
+      assert(rt::is_owner(c, entity.get()));
+      rt::release_cown(c, entity.get());
+      rt::remove_reference(nullptr, c);
+    }
+
+    for (auto c : entity->created_cowns)
+    {
+      // Behaviour isn't necessarily still the owner
+      if (rt::is_owner(c, entity.get()))
+        rt::release_cown(c, entity.get());
+      rt::remove_reference(nullptr, c);
+    }
+
+    for (auto cown_info : entity->cown_succ)
+    {
+      auto succ = cown_info.second;
       succ->cown_ctn -= 1;
       if (succ->cown_ctn == 0)
       {
@@ -1089,25 +1115,68 @@ namespace verona::interpreter
       }
       succ->cown_deps.erase(cown_info.first);
     }
-    behaviour->cown_succ.clear();
+  }
 
-    this->completed_behaviours.push_back(behaviour->get_name());
-    
-    // for (auto succ : behaviour->succ)
+  void Scheduler::complete_thread(rt::core::entity_ptr entity)
+  {
+    // TODO: Why isn't this proper?
+
+    // for (auto arg : entity->args)
     // {
-      //   succ->pred_ctn -= 1;
-      //   if (succ->pred_ctn == 0)
-      //   {
-        //     succ->status = rt::core::ConcurrentEntity::Status::Ready;
-        //     this->ready.push_back(succ);
-        //   }
-        // }
-    behaviour->succ.clear();
+    //   rt::remove_reference(nullptr, arg);
+    // }
+
+    std::vector<rt::objects::DynObject*> released_cowns;
+    for (auto c : entity->created_cowns)
+    {
+      // Thread isn't necessarily still the owner
+      if (rt::is_owner(c, entity.get()))
+        // Thread may have locked cown
+        if (rt::try_release_created_cown(c))
+          released_cowns.push_back(c);
+      rt::remove_reference(nullptr, c);
+    }
+
+    for (auto cown : released_cowns)
+    {
+      auto cown_info = entity->cown_succ.find(cown);
+      assert(cown_info != entity->cown_succ.end());
+      auto succ = cown_info->second;
+      succ->cown_ctn -= 1;
+      if (succ->cown_ctn == 0)
+      {
+        succ->status = rt::core::ConcurrentEntity::Status::Ready;
+        this->ready.push_back(succ);
+      }
+      succ->cown_deps.erase(cown_info->first);
+    }
+  }
+
+  void Scheduler::complete_entity(rt::core::entity_ptr entity)
+  {
+    std::erase(this->ready, entity);
+    entity->status = rt::core::ConcurrentEntity::Status::Done;
+    rt::remove_reference(nullptr, entity->code);
+    entity->code = nullptr;
+
+    // This division duplicates some code, but clarifies that Behaviours can
+    // always release cowns that they have created and own. In contrast to
+    // Threads that may have locked a created cown
+    if (entity->is_behaviour)
+      complete_behaviour(entity);
+    else
+      complete_thread(entity);
+
+    entity->args.clear();
+    entity->cown_succ.clear();
+
+    this->completed_behaviours.push_back(entity->get_name());
+
+    entity->succ.clear();
   }
 
   void Scheduler::draw_schedule(std::string message, bool entering_behaviour)
   {
-
     // FIXME: We should really get wrid of the UI* abstraction. There is no way
     // that we'll ever change the output at this point and it just makes several
     // things harder, like this:
@@ -1120,110 +1189,108 @@ namespace verona::interpreter
     }
     mermaid->output(message);
   }
-  
+
   size_t Scheduler::prompt_user()
   {
     size_t selected;
     while (true)
     {
-    // Prompt the user:
-        std::cout << std::endl;
-        std::cout << "Available behaviours:" << std::endl;
-        for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
-        {
-            auto b = this->ready[idx];
-            std::cout << "- " << idx << ": " << b->get_name();
-    
-            if (b->status == rt::core::ConcurrentEntity::Status::Running)
-            {
-                std::cout << " (continue)";
-            }
-            std::cout << std::endl;
-        }
-    
-        // Get user input
-        std::cout << "> ";
-        std::string line;
-        std::getline(std::cin, line);
-    
-        // Check for quit
-        if (line == "q")
-        {
-          auto ui = rt::ui::globalUI();
-          assert(ui->is_mermaid());
-          auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
-          mermaid->close_file();
-          exit(0);
-        }
+      // Prompt the user:
+      std::cout << std::endl;
+      std::cout << "Available behaviours:" << std::endl;
+      for (unsigned int idx = 0; idx < this->ready.size(); idx += 1)
+      {
+        auto b = this->ready[idx];
+        std::cout << "- " << idx << ": " << b->get_name();
 
-        if (line == "h")
+        if (b->status == rt::core::ConcurrentEntity::Status::Running)
         {
-          print_help();
-          continue;
+          std::cout << " (continue)";
         }
-        
-    
-        // Check for step command
-        if (line[0] == 's')
+        std::cout << std::endl;
+      }
+
+      // Get user input
+      std::cout << "> ";
+      std::string line;
+      std::getline(std::cin, line);
+
+      // Check for quit
+      if (line == "q")
+      {
+        auto ui = rt::ui::globalUI();
+        assert(ui->is_mermaid());
+        auto mermaid = reinterpret_cast<rt::ui::MermaidUI*>(ui);
+        mermaid->close_file();
+        exit(0);
+      }
+
+      if (line == "h")
+      {
+        print_help();
+        continue;
+      }
+
+      // Check for step command
+      if (line[0] == 's')
+      {
+        if (line.size() > 1)
         {
-          if (line.size() > 1)
+          size_t comma_pos = line.find(',');
+          // s<b>, <n>
+          if (comma_pos != std::string::npos)
           {
-            size_t comma_pos = line.find(',');
-            // s<b>, <n>
-            if (comma_pos != std::string::npos)
+            std::string idx_str = line.substr(1, comma_pos - 1);
+            std::string count_str = line.substr(comma_pos + 1);
+
+            size_t idx = 0, count = 0;
+            std::istringstream idx_iss(idx_str);
+            std::istringstream count_iss(count_str);
+
+            if (
+              idx_iss >> idx && count_iss >> count && idx < this->ready.size())
             {
-                std::string idx_str = line.substr(1, comma_pos - 1);
-                std::string count_str = line.substr(comma_pos + 1);
-    
-                size_t idx = 0, count = 0;
-                std::istringstream idx_iss(idx_str);
-                std::istringstream count_iss(count_str);
-    
-                if (idx_iss >> idx && count_iss >> count && idx < this->ready.size())
-                {
-                    selected = idx;
-                    steps = count;
-                    //std::cout << "\nStepping behaviour " << idx << " for " << steps << " times." << std::endl;
-                    break;
-                }
-            }
-            // s<b>
-            std::istringstream iss(line.substr(1));
-            size_t n = 0;
-            if (iss >> n && n < this->ready.size())
-            {
-              selected = n;
-              steps = 0;
+              selected = idx;
+              steps = count;
               break;
             }
           }
-          // s
-          else if (this->ready.size() == 1)
-          {
-            selected = 0;
-            steps = 0;
-            break;
-          }
-            
-        }
-        else
-        {
-          steps = std::numeric_limits<int>::max();
-          // Check for Enter press
-          if (this->ready.size() == 1 && line == "")
-          {
-            selected = 0;
-            break;
-          }
-          // Handle normal selection
-          std::istringstream iss(line);
+          // s<b>
+          std::istringstream iss(line.substr(1));
           size_t n = 0;
           if (iss >> n && n < this->ready.size())
           {
             selected = n;
+            steps = 0;
             break;
           }
         }
+        // s
+        else if (this->ready.size() == 1)
+        {
+          selected = 0;
+          steps = 0;
+          break;
+        }
+      }
+      else
+      {
+        steps = std::numeric_limits<int>::max();
+        // Check for Enter press
+        if (this->ready.size() == 1 && line == "")
+        {
+          selected = 0;
+          break;
+        }
+        // Handle normal selection
+        std::istringstream iss(line);
+        size_t n = 0;
+        if (iss >> n && n < this->ready.size())
+        {
+          selected = n;
+          break;
+        }
+      }
     }
     return selected;
   }
@@ -1250,14 +1317,14 @@ namespace verona::interpreter
     return behaviour;
   }
 
-  // ################### TESTING FUNCTIONALITY ####################################
-
+  // ################### TESTING FUNCTIONALITY
+  // ####################################
 
   void Scheduler::wait(const std::string entity_name)
   {
     if (is_complete(entity_name))
       return;
-    
+
     auto active_entity = rt::get_active_entity();
     this->waiting[entity_name].push_back(active_entity);
     std::erase(this->ready, active_entity);
@@ -1303,6 +1370,5 @@ namespace verona::interpreter
   {
     return (is_executable(behaviour_name) || is_complete(behaviour_name));
   }
-
 
 } // namespace verona::interpreter
