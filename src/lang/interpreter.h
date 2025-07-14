@@ -149,7 +149,9 @@ namespace verona::interpreter
     void complete_behaviour(rt::core::entity_ptr entity);
     void complete_thread(rt::core::entity_ptr entity);
     void handle_cown_release(rt::core::entity_ptr succ);
+    void search_for_stuck_entities();
     // Used for testing
     void update_waiting();
+    void cleanup_entity(rt::core::entity_ptr entity);
   };
 }

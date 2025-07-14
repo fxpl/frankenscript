@@ -1,0 +1,11 @@
+# Do threads respect locks
+def testA(a):
+    lock(a)
+    unlock(a)
+
+a = Cown(Region())
+t1 = Thread(testA, a)
+lock(a)
+start(t1)
+wait("Thread_1")
+unreachable()

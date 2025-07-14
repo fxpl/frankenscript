@@ -409,8 +409,8 @@ namespace rt::core
         // lrc of 1 from being on stack. Note that Cown will temporarily be set
         // to 'Pending' before builtin func Cown() finishes, even if the true
         // lrc is 0.
-        if (region->combined_lrc() > 1)
-          global_scheduler->signal_new_cown(this);
+        global_scheduler->signal_new_cown(this);
+        // if (region->combined_lrc() > 1)
       }
 
       if (name_)

@@ -731,7 +731,7 @@ namespace verona::interpreter
     reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list = nullptr;
   }
 
-  std::string format_behaviour_name(std::string name)
+  std::string format_entity_name(std::string name)
   {
     std::stringstream ss;
     ss << "`" << name << "`";
@@ -777,6 +777,15 @@ namespace verona::interpreter
     auto cown_info = this->cowns.find(cown);
     assert(cown_info != this->cowns.end());
     auto predecessor = cown_info->second;
+    // Edge case where-owing to BoC-creating a cown with a guarded obj that has
+    // no incoming references results in the cown being released and thus the
+    // owner being set to null
+    if (active_entity == predecessor)
+    {
+      rt::aquire_cown(cown, active_entity.get());
+      return;
+    }
+
     // If an entity isn't Done, set the successor
     if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
     {
@@ -888,14 +897,14 @@ namespace verona::interpreter
     {
       this->ready.push_back(entity);
       entity->status = rt::core::ConcurrentEntity::Status::Ready;
-      ss << "New entity " << format_behaviour_name(entity->get_name())
+      ss << "New entity " << format_entity_name(entity->get_name())
          << " is ready";
     }
     else
     {
       this->pending.push_back(entity);
       entity->status = rt::core::ConcurrentEntity::Status::Pending;
-      ss << "New entity " << format_behaviour_name(entity->get_name())
+      ss << "New entity " << format_entity_name(entity->get_name())
          << " is pending";
     }
 
@@ -997,30 +1006,30 @@ namespace verona::interpreter
     rt::hack_inc_rc(main_function);
     this->interactive = interactive_arg;
     this->rng.seed(seed_arg);
-    auto behaviour = std::make_shared<rt::core::ConcurrentEntity>(
+    auto entity = std::make_shared<rt::core::ConcurrentEntity>(
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
-    behaviour->status = rt::core::ConcurrentEntity::Status::Ready;
-    this->ready.push_back(behaviour);
+    entity->status = rt::core::ConcurrentEntity::Status::Ready;
+    this->ready.push_back(entity);
 
     if (this->interactive)
     {
       print_help();
     }
 
-    while (behaviour)
+    while (entity)
     {
       Interpreter* inter;
-      if (behaviour->status == rt::core::ConcurrentEntity::Status::Ready)
+      if (entity->status == rt::core::ConcurrentEntity::Status::Ready)
       {
-        auto block = behaviour->spawn();
+        auto block = entity->spawn();
 
         inter = new Interpreter(
-          rt::ui::globalUI(), block->body, behaviour->args, behaviour);
-        this->running[behaviour] = inter;
+          rt::ui::globalUI(), block->body, entity->args, entity);
+        this->running[entity] = inter;
       }
-      else if (behaviour->status == rt::core::ConcurrentEntity::Status::Running)
+      else if (entity->status == rt::core::ConcurrentEntity::Status::Running)
       {
-        inter = this->running[behaviour];
+        inter = this->running[entity];
         assert(inter);
       }
       else
@@ -1036,7 +1045,7 @@ namespace verona::interpreter
       {
         handle_exec_print_action(
           std::get<ExecPrint>(action).value,
-          format_behaviour_name(behaviour->get_name()),
+          format_entity_name(entity->get_name()),
           should_break);
         // We only utilize these for printing, thus they should be reset once
         // printing is done
@@ -1069,11 +1078,11 @@ namespace verona::interpreter
       if (result.exec_complete)
       {
         should_break = true;
-        this->complete_entity(behaviour);
+        this->complete_entity(entity);
         this->update_waiting();
 
         std::stringstream ss;
-        ss << "Completed " << format_behaviour_name(behaviour->get_name())
+        ss << "Completed " << format_entity_name(entity->get_name())
            << std::endl;
         std::cout << "!!! " << ss.str();
         draw_schedule(ss.str());
@@ -1081,19 +1090,67 @@ namespace verona::interpreter
       if (should_break || this->lock_yield)
       {
         this->lock_yield = false;
-        behaviour = this->get_next();
-        if (this->interactive && behaviour)
+        entity = this->get_next();
+        if (this->interactive && entity)
         {
           std::stringstream ss;
-          ss << "Entering behaviour "
-             << format_behaviour_name(behaviour->get_name()) << std::endl;
+          ss << "Entering entity " << format_entity_name(entity->get_name())
+             << std::endl;
           std::cout << "!!! " << ss.str();
           draw_schedule(ss.str(), true);
         }
       }
     }
 
+    this->search_for_stuck_entities();
     rt::remove_reference(nullptr, main_function);
+  }
+
+  void Scheduler::search_for_stuck_entities()
+  {
+    assert(this->ready.empty());
+
+    if (!this->pending.empty())
+    {
+      for (auto entity : this->pending)
+      {
+        std::stringstream ss;
+        ss << "Behaviour " << format_entity_name(entity->get_name())
+           << " could never start" << std::endl;
+        std::cout << ss.str();
+        cleanup_entity(entity);
+      }
+    }
+    if (!this->blocked.empty())
+    {
+      for (auto entity : this->blocked)
+      {
+        std::stringstream ss;
+        ss << "Entity " << format_entity_name(entity->get_name())
+           << " never finished" << std::endl;
+        std::cout << ss.str();
+        // cleanup_entity(entity);
+      }
+    }
+
+    if (!this->waiting.empty())
+    {
+      for (auto entity_info : this->waiting)
+      {
+        auto pred = entity_info.first;
+        assert(!is_complete(pred));
+        auto waiting_entities = entity_info.second;
+        for (auto entity : waiting_entities)
+        {
+          std::stringstream ss;
+          ss << "Entity " << format_entity_name(entity->get_name())
+             << " is still waiting on " << format_entity_name(pred)
+             << std::endl;
+          std::cout << ss.str();
+          // cleanup_entity(entity);
+        }
+      }
+    }
   }
 
   void Scheduler::complete_behaviour(rt::core::entity_ptr entity)
@@ -1170,9 +1227,30 @@ namespace verona::interpreter
     entity->args.clear();
     entity->cown_succ.clear();
 
+    // TODO assert/handle this somewhere more suitable
+    assert(!is_complete(entity->get_name()));
     this->completed_behaviours.push_back(entity->get_name());
 
     entity->succ.clear();
+  }
+
+  void Scheduler::cleanup_entity(rt::core::entity_ptr entity)
+  {
+    rt::remove_reference(nullptr, entity->code);
+    entity->code = nullptr;
+
+    if (entity->is_behaviour)
+    {
+      for (auto c : entity->args)
+      {
+        rt::remove_reference(nullptr, c);
+      }
+    }
+
+    for (auto c : entity->created_cowns)
+    {
+      rt::remove_reference(nullptr, c);
+    }
   }
 
   void Scheduler::draw_schedule(std::string message, bool entering_behaviour)
