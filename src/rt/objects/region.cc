@@ -267,8 +267,7 @@ namespace rt::objects
   }
 
   bool Region::clean_lrc(Region* to_close_reg)
-  { 
-
+  {
     if ((to_close_reg == nullptr || to_close_reg->is_closed()))
     {
       return true;
@@ -278,7 +277,6 @@ namespace rt::objects
     {
       return false;
     }
-    
 
     bool continue_visit = true;
     std::set<DynObject*> seen_o;
@@ -312,9 +310,8 @@ namespace rt::objects
     to_close_reg->local_reference_count = total_rc - intra_region_rc;
 
     to_close_reg->is_lrc_dirty = false;
-    if (to_close_reg->combined_lrc() == 0) 
+    if (to_close_reg->combined_lrc() == 0)
     {
-      //action(to_close_reg);
       return true;
     }
     return false;
@@ -329,7 +326,6 @@ namespace rt::objects
   //   dirty_regions.insert(this);
   //   clean_lrcs_and_close(nullptr);
   // }
-
 
   bool Region::try_close()
   {

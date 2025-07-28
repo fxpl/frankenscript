@@ -1121,6 +1121,11 @@ namespace verona::interpreter
         cleanup_entity(entity);
       }
     }
+    if (!this->blocked.empty() || !this->waiting.empty())
+    {
+      rt::ui::MermaidUI::some_entity_never_finished = true;
+    }
+
     if (!this->blocked.empty())
     {
       for (auto entity : this->blocked)
@@ -1129,7 +1134,6 @@ namespace verona::interpreter
         ss << "Entity " << format_entity_name(entity->get_name())
            << " never finished" << std::endl;
         std::cout << ss.str();
-        // cleanup_entity(entity);
       }
     }
 
@@ -1147,7 +1151,6 @@ namespace verona::interpreter
              << " is still waiting on " << format_entity_name(pred)
              << std::endl;
           std::cout << ss.str();
-          // cleanup_entity(entity);
         }
       }
     }

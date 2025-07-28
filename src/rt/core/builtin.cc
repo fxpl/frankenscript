@@ -169,13 +169,12 @@ namespace rt::core
 
     // Handled in Scheduler
     add_builtin(rt::core::breakpoint_func_name, [mermaid](auto, auto args) {
-      
       if (args != 0)
       {
         ui::error("breakpoint() expected 0 arguments");
       }
 
-      //mermaid->break_next();
+      // mermaid->break_next();
 
       return std::nullopt;
     });
@@ -227,8 +226,7 @@ namespace rt::core
     });
   }
 
-  bool close_function_impl(
-    verona::interpreter::FrameObj* frame, size_t args)
+  bool close_function_impl(verona::interpreter::FrameObj* frame, size_t args)
   {
     if (args != 1)
     {
@@ -415,7 +413,6 @@ namespace rt::core
 
   void concurrency_builtins(verona::interpreter::Scheduler* scheduler)
   {
-
     add_builtin("lock", [=](auto frame, auto args) {
       if (args != 1)
       {
@@ -423,11 +420,10 @@ namespace rt::core
       }
       auto cown = frame->stack_pop("cown to lock");
       scheduler->lock(cown);
-    
+
       rt::remove_reference(frame->object(), cown);
 
-      return std::nullopt;      
-
+      return std::nullopt;
     });
 
     add_builtin("unlock", [=](auto frame, auto args) {
@@ -437,15 +433,15 @@ namespace rt::core
       }
       auto cown = frame->stack_pop("cown to unlock");
       scheduler->unlock(cown);
-    
+
       rt::remove_reference(frame->object(), cown);
 
-      return std::nullopt;      
-
+      return std::nullopt;
     });
 
     /// TODO: Potentially hide this behind a pragma, as its used for testing?
-    /// Will not discern whether an entity with the provided name will at some point exist 
+    /// Will not discern whether an entity with the provided name will at some
+    /// point exist
     add_builtin("wait", [=](auto frame, auto args) {
       if (args != 1)
       {
@@ -464,19 +460,18 @@ namespace rt::core
         s.erase(s.size() - 1);
       }
       scheduler->wait(s);
-    
+
       rt::remove_reference(frame->object(), entity_name);
 
-      return std::nullopt;      
-
+      return std::nullopt;
     });
-    
+
     add_builtin("Thread", [=](auto frame, auto args) {
       if (args < 1)
       {
         ui::error("Thread() expected at least 1 argument");
       }
-      
+
       // args (Stored on the stack in reverse order)
       // -1 since the first argument is the func
       std::vector<objects::DynObject*> kwargs = {};
@@ -486,116 +481,114 @@ namespace rt::core
         kwargs.push_back(value);
       }
 
-
       // FIXME: Currently, the onus is on user to assure that the right number
       //  of arguments are provided. No simple way to assure that here(?)
       auto func = frame->stack_pop("func");
-      if(!rt::try_get_bytecode(func))
+      if (!rt::try_get_bytecode(func))
         ui::error("No valid function provided");
-      // Given no freeze, ownership will go to the temp region 
-      freeze(func);   
+      // Given no freeze, ownership will go to the temp region
+      freeze(func);
       // create Thread obj
       auto thread_obj = make_thread(func, kwargs);
-      return thread_obj;      
-
+      return thread_obj;
     });
 
-    add_builtin(rt::core::schedule_thread_func_name, [=](auto frame, auto args) {
-      if (args != 1)
-      {
-        ui::error("start() expected 1 argument");
-      }
-      auto thread_obj = frame->stack_pop("thread");
-      // Is there a proper target func?
-      auto target = rt::get(thread_obj, "target");
-      if (!target.has_value())
-        ui::error("No target", thread_obj);
-      auto target_bytecode = rt::try_get_bytecode(target.value());
-      if (!target_bytecode.has_value())
-        ui::error("Target is not a valid function");
-      // Function needs to stay alive even if the 
-      // concurrent entity that defined it terminates   
-      target.value()->change_rc(1);
-        
-        
-      // Can we reference the arguments from a new region without issue?
-      auto kwargs = rt::get_thread_args(thread_obj);
-      auto bridge = rt::objects::create_region();
-      auto count = kwargs.size();
-      for (auto arg : kwargs)
-      {
-        assert(arg);
-        // args where pushed first to last 
-        std::stringstream ss;
-        ss << "arg" << count;
-        count--;
-        // Ideally we'd instead call set() using the proper identifiers,
-        // these would first need to be stored in builtin func 'Thread'
-        
-        rt::move_reference(thread_obj, bridge, arg);
-        auto old_var = rt::set(bridge, ss.str(), arg);
+    add_builtin(
+      rt::core::schedule_thread_func_name, [=](auto frame, auto args) {
+        if (args != 1)
+        {
+          ui::error("start() expected 1 argument");
+        }
+        auto thread_obj = frame->stack_pop("thread");
+        // Is there a proper target func?
+        auto target = rt::get(thread_obj, "target");
+        if (!target.has_value())
+          ui::error("No target", thread_obj);
+        auto target_bytecode = rt::try_get_bytecode(target.value());
+        if (!target_bytecode.has_value())
+          ui::error("Target is not a valid function");
+        // Function needs to stay alive even if the
+        // concurrent entity that defined it terminates
+        target.value()->change_rc(1);
+
+        // Can we reference the arguments from a new region without issue?
+        auto kwargs = rt::get_thread_args(thread_obj);
+        auto bridge = rt::objects::create_region();
+        auto count = kwargs.size();
+        for (auto arg : kwargs)
+        {
+          assert(arg);
+          // args where pushed first to last
+          std::stringstream ss;
+          ss << "arg" << count;
+          count--;
+          // Ideally we'd instead call set() using the proper identifiers,
+          // these would first need to be stored in builtin func 'Thread'
+
+          rt::move_reference(thread_obj, bridge, arg);
+          auto old_var = rt::set(bridge, ss.str(), arg);
+          assert(!old_var);
+          rt::set(thread_obj, ss.str(), nullptr);
+        }
+        auto region = objects::get_region(bridge);
+        // Regions are created with an lrc of 1
+        if (region->combined_lrc() > 1)
+          ui::error("region is not closed", bridge);
+
+        rt::move_reference(thread_obj, bridge, target.value());
+        auto old_var = rt::set(bridge, "target", target.value());
         assert(!old_var);
-        rt::set(thread_obj, ss.str(), nullptr);
-      }
-      auto region = objects::get_region(bridge);
-      // Regions are created with an lrc of 1
-      if (region->combined_lrc() > 1)
-        ui::error("region is not closed", bridge);
-      
-      rt::move_reference(thread_obj, bridge, target.value());
-      auto old_var = rt::set(bridge, "target", target.value());
-      assert(!old_var);
 
-      scheduler->add(
-        std::make_shared<rt::core::ConcurrentEntity>(target.value(), kwargs, std::nullopt, false, bridge));
-      rt::remove_reference(frame->object(), thread_obj);
-      return std::nullopt;      
+        scheduler->add(
+          std::make_shared<rt::core::ConcurrentEntity>(
+            target.value(), kwargs, std::nullopt, false, bridge));
+        rt::remove_reference(frame->object(), thread_obj);
+        return std::nullopt;
+      });
 
-    });
+    add_builtin(
+      rt::core::schedule_behaviour_func_name, [=](auto frame, auto args) {
+        // cowns (Stored on the stack in reverse order)
+        // -1 since the first argument is the actual behaviour
+        std::vector<objects::DynObject*> cowns = {};
+        for (int i = 0; i < args - 1; i++)
+        {
+          auto value = frame->stack_pop("cown");
+          cowns.push_back(value);
+        }
 
-    add_builtin(rt::core::schedule_behaviour_func_name, [=](auto frame, auto args) {
-      // cowns (Stored on the stack in reverse order)
-      // -1 since the first argument is the actual behaviour
-      std::vector<objects::DynObject*> cowns = {};
-      for (int i = 0; i < args - 1; i++)
-      {
-        auto value = frame->stack_pop("cown");
-        cowns.push_back(value);
-      }
+        std::optional<std::string> name;
+        // The last argument might be a name for the behaviour
+        if (
+          !cowns.empty() &&
+          cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
+        {
+          auto name_obj = cowns.back();
+          name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();
+          rt::remove_reference(frame->object(), name_obj);
+          cowns.pop_back();
+        }
+        // when
+        auto behaviour = frame->stack_pop("behaviour");
+        scheduler->add(
+          std::make_shared<rt::core::ConcurrentEntity>(behaviour, cowns, name));
 
-      std::optional<std::string> name;
-      // The last argument might be a name for the behaviour
-      if (
-        !cowns.empty() &&
-        cowns.back()->get_prototype() == rt::core::stringPrototypeObject())
-      {
-        auto name_obj = cowns.back();
-        name = dynamic_cast<rt::core::StringObject*>(name_obj)->as_key();
-        rt::remove_reference(frame->object(), name_obj);
-        cowns.pop_back();
-      }
-      // when
-      auto behaviour = frame->stack_pop("behaviour");
-      scheduler->add(
-        std::make_shared<rt::core::ConcurrentEntity>(behaviour, cowns, name));
+        // @Max, Interesting for your report: Some kind of ownership transfer is
+        // needed here. Freezing is "the easiest" untill we get into the mess
+        // that function objects in cpython are. It could be interesting to see
+        // if we can't just transfer ownership to the behaviour region.
+        freeze(behaviour);
 
-      // @Max, Interesting for your report: Some kind of ownership transfer is
-      // needed here. Freezing is "the easiest" untill we get into the mess that
-      // function objects in cpython are. It could be interesting to see if we
-      // can't just transfer ownership to the behaviour region.
-      freeze(behaviour);
-
-      return std::nullopt;
-    });
+        return std::nullopt;
+      });
     add_builtin("is_executable", [=](auto frame, auto args) {
-      
       if (args != 1)
       {
         std::stringstream ss;
         ss << "is_executable" << " expected 1 argument";
         ui::error(ss.str());
       }
-  
+
       auto behaviour_name = frame->stack_pop("behaviour_name");
       if (behaviour_name->get_prototype() != stringPrototypeObject())
       {
@@ -615,14 +608,13 @@ namespace rt::core
       return result_obj;
     });
     add_builtin("is_complete", [=](auto frame, auto args) {
-      
       if (args != 1)
       {
         std::stringstream ss;
         ss << "is_complete" << " expected 1 argument";
         ui::error(ss.str());
       }
-  
+
       auto behaviour_name = frame->stack_pop("behaviour_name");
       if (behaviour_name->get_prototype() != stringPrototypeObject())
       {
@@ -642,14 +634,13 @@ namespace rt::core
       return result_obj;
     });
     add_builtin("is_executable_or_complete", [=](auto frame, auto args) {
-      
       if (args != 1)
       {
         std::stringstream ss;
         ss << "is_executable_or_complete" << " expected 1 argument";
         ui::error(ss.str());
       }
-  
+
       auto behaviour_name = frame->stack_pop("behaviour_name");
       if (behaviour_name->get_prototype() != stringPrototypeObject())
       {

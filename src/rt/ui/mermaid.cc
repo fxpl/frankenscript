@@ -159,8 +159,8 @@ namespace rt::ui
     {
       out << "  " << this->behaviour_node_name(behaviour) << "([\""
           << behaviour->get_name() << "<br>Status: "
-          << core::ConcurrentEntity::status_to_string(behaviour->status) << "\"])"
-          << std::endl;
+          << core::ConcurrentEntity::status_to_string(behaviour->status)
+          << "\"])" << std::endl;
       // Set background color
       auto background = ERROR_NODE_COLOR;
       switch (behaviour->status)
@@ -232,6 +232,12 @@ namespace rt::ui
   private:
     bool is_borrow_edge(objects::Edge e)
     {
+      if (objects::get_region(e.src) == nullptr)
+      {
+        assert(MermaidUI::some_entity_never_finished);
+        // arbitrary value
+        return true;
+      }
       return e.src != nullptr && e.target != nullptr &&
         objects::get_region(e.src) != objects::get_region(e.target) &&
         objects::get_region(e.src)->is_local_region;
@@ -253,8 +259,7 @@ namespace rt::ui
     std::map<int, core::entity_ptr> aggregate_behaviours()
     {
       // Clone the vector
-      std::vector<core::entity_ptr> pending =
-        *this->info->scheduler_ready_list;
+      std::vector<core::entity_ptr> pending = *this->info->scheduler_ready_list;
       std::map<int, core::entity_ptr> behaviours;
 
       while (!pending.empty())
@@ -431,7 +436,7 @@ namespace rt::ui
           draw_region(b->local_region, ident, b.get());
         }
         // Threads do not have any cown dependencies
-        else if(b->is_behaviour)
+        else if (b->is_behaviour)
         {
           for (auto cown : b->args)
           {

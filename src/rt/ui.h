@@ -46,6 +46,11 @@ namespace rt::ui
   class MermaidUI : public UI
   {
   public:
+    // FIXME: Should only ever be modified by the Scheduler
+    // Indicates that certain assumptions regarding program state can no longer
+    // be made
+    static inline bool some_entity_never_finished = false;
+
     static inline bool pragma_draw_regions_nested = true;
     static inline bool highlight_unreachable = false;
 
