@@ -1,0 +1,8 @@
+c1 = Cown(Region(), "c1")
+
+@name("B1")
+when (c1):
+    pass()
+
+if is_executable_or_complete("B1") == False:
+    unreachable()

@@ -777,9 +777,9 @@ namespace verona::interpreter
     auto cown_info = this->cowns.find(cown);
     assert(cown_info != this->cowns.end());
     auto predecessor = cown_info->second;
-    // Edge case where-owing to BoC-creating a cown with a guarded obj that has
-    // no incoming references results in the cown being released and thus the
-    // owner being set to null
+    // Edge case where--owing to BoC--creating a cown with a guarded obj that
+    // has no incoming references results in the cown being released and thus
+    // the owner being set to null
     if (active_entity == predecessor)
     {
       rt::aquire_cown(cown, active_entity.get());
@@ -860,13 +860,12 @@ namespace verona::interpreter
     {
       for (auto cown : entity->args)
       {
-        // Get the last entity that is waiting on the cown
+        // Get the last entity that is waiting on or created the cown
         auto cown_info = this->cowns.find(cown);
         if (cown_info != cowns.end())
         {
           auto predecessor = cown_info->second;
-          // If a entity isn't Done, set the successor
-          if (predecessor->status != rt::core::ConcurrentEntity::Status::Done)
+          if (!rt::is_cown_released(cown))
           {
             predecessor->cown_succ[cown] = entity;
             entity->cown_ctn += 1;

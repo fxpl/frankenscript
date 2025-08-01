@@ -1,0 +1,9 @@
+c1 = Cown(Region(), "c1")
+r = Region()
+c2 = Cown(r, "c2")
+
+@name("B1")
+when (c1, c2):
+    pass()
+
+lock(c1)
