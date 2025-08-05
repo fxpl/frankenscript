@@ -266,7 +266,8 @@ namespace rt::ui
       std::map<int, core::entity_ptr> behaviours;
       for (auto e : pending)
       {
-        behaviours.insert({e->id, e});
+        auto [_, inserted] = behaviours.insert({e->id, e});
+        assert(inserted);
       }
       return behaviours;
     }

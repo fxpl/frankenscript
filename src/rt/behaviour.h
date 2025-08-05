@@ -79,6 +79,8 @@ namespace rt::core
     // scheduling.
     int id;
     std::string name;
+    // Used for drawing
+    static int s_entity_counter;
 
     // The IDs of the cowns this behaviour is waiting on. This is used to create
     // a better mermaid diagram, it isn't needed for scheduling.

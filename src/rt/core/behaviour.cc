@@ -15,6 +15,7 @@ namespace rt::core
 {
   int ConcurrentEntity::s_behaviour_counter = 0;
   int ConcurrentEntity::s_thread_counter = 0;
+  int ConcurrentEntity::s_entity_counter = 0;
   std::shared_ptr<ConcurrentEntity> ConcurrentEntity::s_active_behaviour =
     nullptr;
 
@@ -43,17 +44,19 @@ namespace rt::core
   {
     this->status = Status::New;
     this->local_region = objects::Region::new_local_region();
+    id = ++ConcurrentEntity::s_entity_counter;
+    int naming_id;
 
     if (is_behaviour)
     {
-      id = ++ConcurrentEntity::s_behaviour_counter;
+      naming_id = ++ConcurrentEntity::s_behaviour_counter;
       for (auto c : args)
       {
         ordered_cown[rt::get_cown_id(c)] = c;
       }
     }
     else
-      id = ++rt::core::ConcurrentEntity::s_thread_counter;
+      naming_id = ++rt::core::ConcurrentEntity::s_thread_counter;
 
     if (name_)
     {
@@ -63,9 +66,9 @@ namespace rt::core
     {
       std::stringstream ss;
       if (is_behaviour)
-        ss << "Behaviour_" << id;
+        ss << "Behaviour_" << naming_id;
       else
-        ss << "Thread_" << id;
+        ss << "Thread_" << naming_id;
       name = ss.str();
     }
   }
