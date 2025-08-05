@@ -1,5 +1,4 @@
 # Do threads respect locks
-mermaid_show_functions()
 def testA(a):
     lock(a)
     unlock(a)

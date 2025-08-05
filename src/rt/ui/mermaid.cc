@@ -174,6 +174,9 @@ namespace rt::ui
         case core::ConcurrentEntity::Status::Pending:
           background = BEHAVIOR_PENDING_COLOR;
           break;
+        case core::ConcurrentEntity::Status::Blocked:
+          background = BEHAVIOR_PENDING_COLOR;
+          break;
       }
       out << "    style " << this->behaviour_node_name(behaviour)
           << " fill:" << background << std::endl;
@@ -261,22 +264,10 @@ namespace rt::ui
       // Clone the vector
       std::vector<core::entity_ptr> pending = *this->info->scheduler_ready_list;
       std::map<int, core::entity_ptr> behaviours;
-
-      while (!pending.empty())
+      for (auto e : pending)
       {
-        auto b = pending.back();
-        pending.pop_back();
-
-        auto [_, inserted] = behaviours.insert({b->id, b});
-        if (inserted)
-        {
-          for (auto succ : b->succ)
-          {
-            pending.push_back(succ);
-          }
-        }
+        behaviours.insert({e->id, e});
       }
-
       return behaviours;
     }
 
@@ -435,7 +426,7 @@ namespace rt::ui
           // C++ and the weird referencing rules...
           draw_region(b->local_region, ident, b.get());
         }
-        // Threads do not have any cown dependencies
+        // Threads do not have multiple cown dependencies
         else if (b->is_behaviour)
         {
           for (auto cown : b->args)
@@ -458,6 +449,19 @@ namespace rt::ui
             out << std::endl;
             edge_counter += 1;
           }
+        }
+        else if ((b->status == core::ConcurrentEntity::Status::Blocked))
+        {
+          assert(b->cown_deps.size() == 1);
+          auto pair = b->cown_deps.begin();
+          out << "    ";
+          out << this->behaviour_node_name(b.get());
+          out << " --> |";
+          out << escape(pair->first->get_name());
+          out << "| ";
+          out << this->behaviour_node_name(pair->second);
+          out << std::endl;
+          edge_counter += 1;
         }
       }
     }

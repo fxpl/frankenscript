@@ -721,7 +721,7 @@ namespace verona::interpreter
     auto ui = rt::ui::globalUI();
     assert(ui->is_mermaid());
     reinterpret_cast<rt::ui::MermaidUI*>(ui)->scheduler_ready_list =
-      &this->ready;
+      &this->all_entities;
   }
 
   Scheduler::~Scheduler()
@@ -838,8 +838,8 @@ namespace verona::interpreter
     auto cown_info = entity->cown_succ.find(cown);
     if (cown_info != entity->cown_succ.end())
     {
-      // TODO successor could be a thread, no?
       auto succ = cown_info->second;
+      assert(succ->is_behaviour);
       succ->cown_ctn -= 1;
       if (succ->cown_ctn == 0)
       {
@@ -855,7 +855,7 @@ namespace verona::interpreter
   void Scheduler::add(rt::core::entity_ptr entity)
   {
     assert(entity->status == rt::core::ConcurrentEntity::Status::New);
-
+    this->all_entities.push_back(entity);
     if (entity->is_behaviour)
     {
       for (auto cown : entity->args)
@@ -1008,6 +1008,7 @@ namespace verona::interpreter
     auto entity = std::make_shared<rt::core::ConcurrentEntity>(
       main_function, std::vector<rt::objects::DynObject*>{}, "main");
     entity->status = rt::core::ConcurrentEntity::Status::Ready;
+    this->all_entities.push_back(entity);
     this->ready.push_back(entity);
 
     if (this->interactive)
@@ -1213,6 +1214,7 @@ namespace verona::interpreter
 
   void Scheduler::complete_entity(rt::core::entity_ptr entity)
   {
+    std::erase(this->all_entities, entity);
     std::erase(this->ready, entity);
     entity->status = rt::core::ConcurrentEntity::Status::Done;
     rt::remove_reference(nullptr, entity->code);

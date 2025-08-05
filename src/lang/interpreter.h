@@ -47,6 +47,8 @@ namespace verona::interpreter
   // FIXME: The implementation of this should probably be in a different file...
   class Scheduler
   {
+    // All entities
+    std::vector<rt::core::entity_ptr> all_entities = {};
     // All behaviours that are ready to run
     std::vector<rt::core::entity_ptr> ready = {};
     // A map from cowns to the last behaviour that will as some point own them.
