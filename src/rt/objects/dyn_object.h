@@ -76,8 +76,11 @@ namespace rt::objects
 
       // TODO Follow SCC chain to the root.
       // Have to use atomic as this can be called from multiple threads.
-      return std::atomic_ref(rc).fetch_add(delta, std::memory_order_relaxed) +
-        delta;
+      // return std::atomic_ref(rc).fetch_add(delta, std::memory_order_relaxed) +
+      //   delta;
+      // My mac doesn*t like atomic_ref...
+      rc += delta;
+      return rc;
     }
 
     // prototype is borrowed, the caller does not need to provide an RC.

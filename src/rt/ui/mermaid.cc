@@ -177,6 +177,8 @@ namespace rt::ui
         case core::ConcurrentEntity::Status::Blocked:
           background = BEHAVIOR_PENDING_COLOR;
           break;
+        default:
+          break;
       }
       out << "    style " << this->behaviour_node_name(behaviour)
           << " fill:" << background << std::endl;
@@ -451,7 +453,7 @@ namespace rt::ui
             edge_counter += 1;
           }
         }
-        else if ((b->status == core::ConcurrentEntity::Status::Blocked))
+        else if (b->status == core::ConcurrentEntity::Status::Blocked)
         {
           assert(b->cown_deps.size() == 1);
           auto pair = b->cown_deps.begin();

@@ -104,7 +104,6 @@ namespace verona::interpreter
 
   class Interpreter
   {
-    rt::ui::UI* ui;
     std::vector<InterpreterFrame*> frame_stack;
     rt::core::entity_ptr entity;
 
@@ -546,11 +545,10 @@ namespace verona::interpreter
 
   public:
     Interpreter(
-      rt::ui::UI* ui_,
       trieste::Node block,
       std::vector<rt::objects::DynObject*> start_stack,
       rt::core::entity_ptr entity_)
-    : ui(ui_), entity(entity_)
+    : entity(entity_)
     {
       // There is a question where the active behaviour should be set.
       //
@@ -791,7 +789,7 @@ namespace verona::interpreter
     {
       predecessor->cown_succ[cown] = active_entity;
       // Only needed for Mermaid:
-      predecessor->succ.insert(active_entity).second;
+      predecessor->succ.insert(active_entity);
       active_entity->cown_deps[cown] = predecessor.get();
 
       this->lock_yield = true;
@@ -1023,8 +1021,7 @@ namespace verona::interpreter
       {
         auto block = entity->spawn();
 
-        inter = new Interpreter(
-          rt::ui::globalUI(), block->body, entity->args, entity);
+        inter = new Interpreter(block->body, entity->args, entity);
         this->running[entity] = inter;
       }
       else if (entity->status == rt::core::ConcurrentEntity::Status::Running)

@@ -260,10 +260,10 @@ namespace rt::objects
   // The immutable region stays the same, regardless of which interpreter
   // or behaviour is currently running
   inline Region immutable_region_impl;
-  inline constexpr Region* immutable_region{&immutable_region_impl};
+  inline Region* immutable_region{&immutable_region_impl};
 
   // The cown region stays the same, regardless of which interpreter
   // or behaviour is currently running
   inline Region cown_region_impl;
-  inline constexpr Region* cown_region{&cown_region_impl};
+  inline Region* cown_region{&cown_region_impl};
 } // namespace rt::objects
