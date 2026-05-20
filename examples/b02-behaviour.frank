@@ -1,0 +1,14 @@
+c1 = Cown(None, "Cown 1")
+c2 = Cown(c1, "Cown 2")
+
+@name("Behaviour 1")
+when(c1):
+    pass()
+
+@name("Behaviour 2")
+when(c2):
+    c1 = c2.value
+
+    @name("Behaviour 2.1")
+    when(c1):
+        c1.value = Region()
